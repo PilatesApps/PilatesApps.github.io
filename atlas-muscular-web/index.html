@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Atlas Muscular · Digital Coloring Book</title>
+<meta name="theme-color" content="#3F4A57">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Atlas Muscular">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Montserrat:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <button class="ib" id="btnIndex" aria-label="Índice"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+  <div class="ttl"><b>Atlas Muscular</b><span>Digital Coloring Book</span></div>
+  <div class="pg" id="pgLabel">1 / 23</div>
+  <button class="ib" id="btnShare" aria-label="Compartir lámina"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
+</header>
+
+<main id="viewport">
+  <div id="stage">
+    <img id="pageImg" alt="" draggable="false">
+    <canvas id="cColor"></canvas>
+    <canvas id="cLive"></canvas>
+    <img id="topImg" alt="" draggable="false" hidden>
+    <canvas id="cInk"></canvas>
+    <div id="texts"></div>
+    <div id="hot"></div>
+  </div>
+  <div id="toast" hidden></div>
+  <div class="zoombar" role="group" aria-label="Zoom">
+    <button id="zIn" aria-label="Ampliar"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6M10.5 7.5v6M7.5 10.5h6"/></svg></button>
+    <button id="zOut" aria-label="Reducir"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6M7.5 10.5h6"/></svg></button>
+    <button id="zFit" aria-label="Ver página completa"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+</main>
+
+<div class="dock" id="dock">
+  <button class="dk" id="dkTool" aria-label="Herramientas"><canvas id="dkToolIcon" width="88" height="44"></canvas><span id="dkToolName">Marcador</span></button>
+  <button class="dk" id="dkColor" aria-label="Colores"><span class="dsw" id="dkSwatch"></span><span>Color</span></button>
+  <button class="dk" id="dkUndo" aria-label="Deshacer"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span>Deshacer</span></button>
+  <button class="dk" id="dkTape" aria-label="No salirme"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 6v12M17 6v12"/></svg><span>No salirme</span></button>
+  <button class="dk" id="dkMore" aria-label="Más herramientas"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg><span>Más</span></button>
+</div>
+<section id="tools" hidden>
+  <div class="sheethead"><span class="grab"></span><button class="ib" id="btnCloseTools" aria-label="Cerrar herramientas"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="rowwrap"><div class="row brushes" id="brushRow"></div></div>
+  <div class="rowwrap"><div class="row colors" id="colorRow"></div></div>
+  <div class="row sliders" id="sliderRow">
+    <label>Grosor <input type="range" id="sSize" min="1" max="120" value="18"><output id="oSize">18</output></label>
+    <label>Opacidad <input type="range" id="sOpa" min="5" max="100" value="85"><output id="oOpa">85%</output></label>
+    <label>Dureza <input type="range" id="sHard" min="0" max="100" value="70"><output id="oHard">70%</output></label>
+  </div>
+  <div class="row actions">
+    <button class="pill on" id="btnTape" title="El color no se sale del músculo donde empiezas"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 6v12M17 6v12"/></svg>No salirme</button>
+    <button class="pill" id="btnUndo" aria-label="Deshacer"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+    <button class="pill" id="btnRedo" aria-label="Rehacer"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+    <button class="pill" id="btnSound" title="Sonido y vibración"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>Sonido</button>
+    <button class="pill" id="btnMore">Ajustes</button>
+    <button class="pill" id="btnClear"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Borrar todo</button>
+    <span class="confirm" id="confirmClear" hidden>¿Borrar toda la lámina? <button class="pill danger" id="clearYes">Sí, borrar</button><button class="pill" id="clearNo">No</button></span>
+  </div>
+</section>
+
+<nav class="bottom">
+  <button class="ib" id="btnPrev" aria-label="Página anterior"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+  <input type="range" id="pgSlider" min="1" max="23" value="1" aria-label="Ir a la página">
+  <button class="ib" id="btnNext" aria-label="Página siguiente"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+</nav>
+
+<div id="drawer" hidden>
+  <div class="dpanel">
+    <div class="dhead"><b>Índice</b><button class="ib" id="btnCloseIdx" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <ul id="idxList"></ul>
+    <p class="dnote">Edición Digital 2026 · Unidades 1 y 2</p>
+  </div>
+</div>
+
+<div id="kbd" hidden><textarea id="kbdText" rows="3" placeholder="Escribe aquí"></textarea><button id="kbdOk">Listo</button></div>
+<input type="color" id="colorPick" hidden>
+<script src="app.js"></script>
+</body>
+</html>
