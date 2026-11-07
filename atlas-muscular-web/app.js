@@ -364,6 +364,7 @@ async function openPage(n) {
   $('#pgLabel').textContent = `${n} / ${N}`; $('#pgName').textContent = PN[n - 1] || '';
   $('#btnPrev').disabled = n <= 1; $('#btnNext').disabled = n >= N; closeSheet();
   document.body.classList.toggle('freemode', !!page.nobucket);
+  $('#btnShare').hidden = !page.plate;
   if (page.nobucket) setTimeout(() => toast('Lienzo libre: dibuje el grupo muscular completo, de origen a inserción, como usted quiera'), 600);
   pageImg.src = pageFile(n, '.jpg');
   const topI = document.getElementById('topImg'); if (page.top) { topI.src = pageFile(n, '_top.png'); topI.hidden = false; } else { topI.hidden = true; topI.removeAttribute('src'); }
@@ -837,8 +838,18 @@ async function saveNow() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 
 /* ---------------- compartir con la marca del curso ---------------- */
+function coloredShare() {
+  if (!labels) return 1;
+  const d = xColor.getImageData(0, 0, W, H).data; let tot = 0, col = 0;
+  for (let i = 0; i < labels.length; i += 3) { const L = labels[i]; if (!L || L === page.bg) continue; tot++; if (d[i * 4 + 3] > 40) col++; }
+  return tot ? col / tot : 1;
+}
+const SHARE_MIN = 0.5;
 $('#btnShare').onclick = async () => {
   if (!page) return;
+  if (!page.plate) { toast('Solo se comparten las láminas que usted colorea'); return; }
+  const pc = coloredShare();
+  if (pc < SHARE_MIN) { toast(`Lleva ${Math.round(pc * 100)}% coloreado. Podrá compartir esta lámina al llegar al ${SHARE_MIN * 100}%`); return; }
   await saveNow();
   const FOOT = 150, c = document.createElement('canvas'); c.width = W; c.height = H + FOOT; const x = c.getContext('2d');
   x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
@@ -849,7 +860,15 @@ $('#btnShare').onclick = async () => {
   if (logo) { const lw = W * 0.7, lh = lw * logo.height / logo.width; x.globalAlpha = 0.1; x.drawImage(logo, (W - lw) / 2, (H - lh) / 2, lw, lh); x.globalAlpha = 1; }
   x.globalCompositeOperation = 'source-over';
   const tI = document.getElementById('topImg'); if (page.top && tI.complete) x.drawImage(tI, 0, 0, W, H);
+  // marca de agua diagonal repetida, suave
+  x.save(); x.globalAlpha = 0.07; x.fillStyle = '#3F4A57'; x.font = '600 34px Montserrat, sans-serif'; x.textAlign = 'center';
+  x.translate(W / 2, H / 2); x.rotate(-Math.PI / 6);
+  for (let yy = -H, r = 0; yy <= H; yy += 200, r++) for (let xx = -W * 1.2; xx <= W * 1.2; xx += 820) x.fillText('ATLAS MUSCULAR · BALANCED BODY', xx + (r % 2 ? 410 : 0), yy);
+  x.restore();
   x.drawImage(cInk, 0, 0);
+  // crédito pequeño dentro de la lámina
+  x.save(); x.globalAlpha = 0.55; x.fillStyle = '#3F4A57'; x.font = '500 20px Montserrat, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'bottom';
+  x.fillText('Atlas Muscular · Digital Coloring Book · © Balanced Body', W / 2, H - 14); x.restore();
   for (const [key, v] of Object.entries(texts)) {
     const r = zoneRect(key); if (!r) continue; const hpt = (r[3] - r[1]) * PT;
     x.fillStyle = '#1F3B73'; x.font = `600 ${key[0] === 'c' ? hpt * .75 : Math.min(hpt * .62, 40)}px Caveat, cursive`;
@@ -858,10 +877,14 @@ $('#btnShare').onclick = async () => {
   }
   // pie con la información del curso
   x.fillStyle = '#3F4A57'; x.fillRect(0, H, W, FOOT);
-  if (logo) { const lh = 46, lw = lh * logo.width / logo.height; x.drawImage(logo, 50, H + (FOOT - lh) / 2, lw, lh); }
+  let lwUsed = 0;
+  if (logo) { const lh = 48, lw = lh * logo.width / logo.height; x.drawImage(logo, 50, H + (FOOT - lh) / 2, lw, lh); lwUsed = lw; }
+  const avail = W - 50 - (50 + lwUsed + 60);
+  const fitFont = (txt, wt, size) => { let s = size; do { x.font = `${wt} ${s}px Montserrat, sans-serif`; s -= 1; } while (x.measureText(txt).width > avail && s > 12); };
   x.fillStyle = '#fff'; x.textAlign = 'right'; x.textBaseline = 'alphabetic';
-  x.font = '600 38px Montserrat, sans-serif'; x.fillText('ATLAS MUSCULAR · DIGITAL COLORING BOOK', W - 50, H + 66);
-  x.font = '400 26px Montserrat, sans-serif'; x.globalAlpha = .85; x.fillText('Anatomía + Movimiento™ · Edición Digital 2026', W - 50, H + 108); x.globalAlpha = 1;
+  const L1 = 'ATLAS MUSCULAR · DIGITAL COLORING BOOK', L2 = 'Anatomía + Movimiento™ · Edición Digital 2026';
+  fitFont(L1, 600, 30); x.fillText(L1, W - 50, H + 68);
+  fitFont(L2, 400, 22); x.globalAlpha = .85; x.fillText(L2, W - 50, H + 104); x.globalAlpha = 1;
   const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.9));
   const file = new File([blob], `atlas-muscular-pagina-${cur}.jpg`, { type: 'image/jpeg' });
   try {
