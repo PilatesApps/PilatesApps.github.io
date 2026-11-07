@@ -233,3 +233,9 @@ body.freemode #btnTape{display:none}
 body.textmode #dkTape,body.freemode #dkTape{display:none}
 @media (max-width:380px){.dk{font-size:9.5px}.nv{width:36px}}
 @media (max-width:599px){.nv{width:34px}.dk{font-size:10px;max-width:none}.dk span{overflow:visible;text-overflow:clip}}
+
+#storyBtn{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:13;display:flex;align-items:center;gap:8px;height:46px;padding:0 20px;border-radius:23px;
+  background:var(--chrome);color:#fff;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.25);overflow:hidden}
+#storyBtn svg{width:20px;height:20px;stroke:var(--accent)}
+#storyBtn.on{background:#2E3742}
+#storyBtn i{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);transition:width .3s linear}

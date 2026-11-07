@@ -365,6 +365,7 @@ async function openPage(n) {
   $('#btnPrev').disabled = n <= 1; $('#btnNext').disabled = n >= N; closeSheet();
   document.body.classList.toggle('freemode', !!page.nobucket);
   $('#btnShare').hidden = !page.plate;
+  if (typeof storyUI === 'function') setTimeout(storyUI, 0);
   if (page.nobucket) setTimeout(() => toast('Lienzo libre: dibuje el grupo muscular completo, de origen a inserción, como usted quiera'), 600);
   pageImg.src = pageFile(n, '.jpg');
   const topI = document.getElementById('topImg'); if (page.top) { topI.src = pageFile(n, '_top.png'); topI.hidden = false; } else { topI.hidden = true; topI.removeAttribute('src'); }
@@ -1044,6 +1045,25 @@ $('#musicChip').addEventListener('pointerdown', e => e.stopPropagation());
 $('#btnCloseMusic').onclick = () => { $('#music').hidden = true; };
 $('#music').addEventListener('pointerdown', e => { if (e.target.id === 'music') $('#music').hidden = true; });
 MUSIC.build();
+
+/* ---------------- audiolibro del cuento ---------------- */
+const STORIES = { 7: { src: 'audio/cuento_u1.mp3', t: 'Escuchar el cuento' } };
+const story = new Audio(); story.preload = 'none';
+function storyUI() {
+  const st = STORIES[cur]; const b = $('#storyBtn');
+  b.hidden = !st; if (!st) { if (!story.paused) story.pause(); return; }
+  const playing = !story.paused && story.dataset.p == cur;
+  b.classList.toggle('on', playing);
+  $('#storyLabel').textContent = playing ? 'Pausar' : (story.dataset.p == cur && story.currentTime > 1 ? 'Seguir escuchando' : st.t);
+}
+$('#storyBtn').addEventListener('pointerdown', e => e.stopPropagation());
+$('#storyBtn').onclick = () => {
+  const st = STORIES[cur]; if (!st) return;
+  if (story.dataset.p != cur) { story.src = st.src; story.dataset.p = cur; }
+  if (story.paused) { if (MUSIC.cur) MUSIC.stop(); story.play().catch(() => toast('No se pudo reproducir el audio')); } else story.pause();
+};
+story.addEventListener('play', storyUI); story.addEventListener('pause', storyUI); story.addEventListener('ended', () => { story.currentTime = 0; storyUI(); });
+story.addEventListener('timeupdate', () => { const p = story.duration ? story.currentTime / story.duration : 0; $('#storyBar').style.width = (p * 100) + '%'; });
 /* ---------------- arranque ---------------- */
 async function start() {
   await loadMeta();
