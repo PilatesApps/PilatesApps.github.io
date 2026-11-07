@@ -234,8 +234,12 @@ body.textmode #dkTape,body.freemode #dkTape{display:none}
 @media (max-width:380px){.dk{font-size:9.5px}.nv{width:36px}}
 @media (max-width:599px){.nv{width:34px}.dk{font-size:10px;max-width:none}.dk span{overflow:visible;text-overflow:clip}}
 
-#storyBtn{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:13;display:flex;align-items:center;gap:8px;height:46px;padding:0 20px;border-radius:23px;
-  background:var(--chrome);color:#fff;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.25);overflow:hidden}
-#storyBtn svg{width:20px;height:20px;stroke:var(--accent)}
-#storyBtn.on{background:#2E3742}
-#storyBtn i{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);transition:width .3s linear}
+#storyBtn{position:relative;overflow:hidden}
+#storyBtn svg{stroke:var(--chrome)}
+#storyBtn.on{background:var(--chrome);color:#fff}
+#storyBtn.on svg{stroke:var(--accent)}
+#storyBtn i{position:absolute;left:8px;right:auto;bottom:3px;height:3px;width:0;max-width:calc(100% - 16px);background:var(--accent);border-radius:2px;transition:width .3s linear}
+@media (min-width:900px){.bar #storyBtn{display:flex;flex:0 0 auto;max-width:none;flex-direction:row;gap:8px;height:44px;padding:0 18px;border-radius:22px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:13px;font-weight:600}
+ .bar #storyBtn[hidden]{display:none}}
+
+#cColor{z-index:1}#cLive{z-index:1}#topImg{z-index:2}#cInk{z-index:3}#texts{z-index:5}#hot{z-index:6}

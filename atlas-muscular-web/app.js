@@ -502,7 +502,7 @@ function startStroke(e) {
   if (FREE.includes(brush)) {
     const hl = brush === 'resaltador';
     stroke = { brush, s, layer: hl ? 'color' : 'ink', free: true, zone: null, wzone: null, ink: hl ? hlColor : penColor, col: hl ? hlColor : penColor, pts: [[x, y]], box: [x, y, x, y], last: [x, y], dist: 0, id: e.pointerId };
-    cLive.style.opacity = s.opa / 100; cLive.style.mixBlendMode = hl ? 'multiply' : 'normal'; cLive.style.filter = '';
+    cLive.style.opacity = s.opa / 100; cLive.style.mixBlendMode = hl ? 'multiply' : 'normal'; cLive.style.filter = ''; cLive.style.zIndex = hl ? '' : '4';
     const r = radius(e); dab(x, y, r, e.pressure, 0); SFX.start(brush); return;
   }
   if (isText() && brush === 'borrador') {
@@ -528,7 +528,7 @@ function startStroke(e) {
   }
   stroke = { brush, s, layer: eraseInk ? 'ink' : layer, zone, wzone, eraseInk, ink: '#1F3B73', pts: [[x, y]], box: [x, y, x, y], last: [x, y], dist: 0, id: e.pointerId };
   cLive.style.opacity = (stroke.brush === 'borrador' ? 0 : s.opa / 100);
-  cLive.style.mixBlendMode = stroke.layer === 'ink' ? 'normal' : 'multiply';
+  cLive.style.mixBlendMode = stroke.layer === 'ink' ? 'normal' : 'multiply'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';
   if (stroke.brush === 'acuarela') cLive.style.filter = 'blur(1.5px)'; else cLive.style.filter = '';
   const r = radius(e); dab(x, y, r, e.pressure, 0); clipLive(stroke.box); SFX.start(brush);
 }
@@ -1054,9 +1054,8 @@ function storyUI() {
   b.hidden = !st; if (!st) { if (!story.paused) story.pause(); return; }
   const playing = !story.paused && story.dataset.p == cur;
   b.classList.toggle('on', playing);
-  $('#storyLabel').textContent = playing ? 'Pausar' : (story.dataset.p == cur && story.currentTime > 1 ? 'Seguir escuchando' : st.t);
+  $('#storyLabel').textContent = playing ? 'Pausar' : (story.dataset.p == cur && story.currentTime > 1 ? 'Seguir' : 'Escuchar');
 }
-$('#storyBtn').addEventListener('pointerdown', e => e.stopPropagation());
 $('#storyBtn').onclick = () => {
   const st = STORIES[cur]; if (!st) return;
   if (story.dataset.p != cur) { story.src = st.src; story.dataset.p = cur; }
