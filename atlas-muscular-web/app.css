@@ -227,3 +227,9 @@ body.textmode #btnTape{display:none}
 .mtip{font-size:11px!important}
 
 body.freemode #btnTape{display:none}
+
+.dk.tapebtn.active{color:#fff;background:var(--chrome)}
+.dk.tapebtn.active svg{stroke:var(--accent)}
+body.textmode #dkTape,body.freemode #dkTape{display:none}
+@media (max-width:380px){.dk{font-size:9.5px}.nv{width:36px}}
+@media (max-width:599px){.nv{width:34px}.dk{font-size:10px;max-width:none}.dk span{overflow:visible;text-overflow:clip}}

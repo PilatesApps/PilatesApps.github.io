@@ -273,6 +273,7 @@ $('#dkTool').onclick = () => openSheet('tool');
 $('#dkColor').onclick = () => openSheet('color');
 $('#dkMore').onclick = () => openSheet('more');
 $('#dkUndo').onclick = () => $('#btnUndo').click();
+$('#dkTape').onclick = () => { closeSheet(); tapeBtn.click(); };
 $('#btnCloseTools').onclick = closeSheet;
 function setColor(c) {
   if (FREE.includes(brush)) { brush = 'marcador'; store.set('brush', brush); buildBrushes(); syncSliders(); }
@@ -298,7 +299,7 @@ function syncSound() { sndBtn.classList.toggle('on', sound); sndBtn.setAttribute
 sndBtn.onclick = () => { sound = !sound; store.set('sound', sound); syncSound(); if (sound) { SFX.blip('tick'); buzz(10); } };
 syncSound();
 const tapeBtn = $('#btnTape');
-function syncTape() { tapeBtn.classList.toggle('on', tape); tapeBtn.setAttribute('aria-checked', tape); }
+function syncTape() { tapeBtn.classList.toggle('on', tape); tapeBtn.setAttribute('aria-checked', tape); $('#dkTape').classList.toggle('active', tape); $('#dkTape').setAttribute('aria-pressed', tape); }
 tapeBtn.onclick = () => { tape = !tape; store.set('tape', tape); syncTape(); toast(tape ? 'No salirme: el color se queda dentro del músculo' : 'Libre: puedes salirte del músculo'); };
 
 let toastT = null;
