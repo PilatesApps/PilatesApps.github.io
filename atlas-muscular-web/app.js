@@ -362,6 +362,8 @@ async function openPage(n) {
   undo.length = 0; redo.length = 0;
   $('#pgLabel').textContent = `${n} / ${N}`; $('#pgName').textContent = PN[n - 1] || '';
   $('#btnPrev').disabled = n <= 1; $('#btnNext').disabled = n >= N; closeSheet();
+  document.body.classList.toggle('freemode', !!page.nobucket);
+  if (page.nobucket) setTimeout(() => toast('Lienzo libre: dibuje el grupo muscular completo, de origen a inserción, como usted quiera'), 600);
   pageImg.src = pageFile(n, '.jpg');
   const topI = document.getElementById('topImg'); if (page.top) { topI.src = pageFile(n, '_top.png'); topI.hidden = false; } else { topI.hidden = true; topI.removeAttribute('src'); }
   xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xLive.clearRect(0, 0, W, H);
@@ -511,7 +513,12 @@ function startStroke(e) {
     if (layer === 'ink' && !wz) { toast('Escribe dentro de los cuadritos o las bolitas'); return; }
     if (wz) { const r = wz.r; wzone = [r[0] * PT, r[1] * PT, (r[2] - r[0]) * PT, (r[3] - r[1]) * PT]; if (brush === 'borrador') eraseInk = true; }
   }
-  if (layer === 'color' && !eraseInk && tape) {
+  if (brush === 'borrador' && !eraseInk) {
+    // si toca una línea de bolígrafo o escritura, el borrador borra esa tinta (sin límites de zona)
+    const R = Math.max(6, S().size / 2) | 0, d = xInk.getImageData(Math.max(0, (x | 0) - R), Math.max(0, (y | 0) - R), 2 * R, 2 * R).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 20) { eraseInk = true; wzone = null; break; }
+  }
+  if (layer === 'color' && !eraseInk && tape && !page.nobucket) {
     const L = labelAt(x, y);
     if (!L) return;
     zone = zoneMask(L);
@@ -646,8 +653,8 @@ function renderTexts() {
 /* ---------------- biblioteca de láminas ---------------- */
 const PN = ['Portada', 'Edición Digital 2026', 'Bienvenida', 'Índice de contenido', 'Orden de construcción', 'Orden de construcción (2)',
   'El cuento de la Unidad 1', 'Los músculos de la Unidad 1', 'Lámina del grupo', 'Obturador externo', 'Obturador interno', 'Gemelo superior',
-  'Gemelo inferior', 'Cuadrado femoral', 'Piriforme', 'Cita de Leonardo da Vinci',
-  'El cuento de la Unidad 2', 'Los músculos de la Unidad 2', 'Lámina del grupo', 'Ilíaco', 'Psoas mayor', 'Psoas menor', 'Cita final'];
+  'Gemelo inferior', 'Cuadrado femoral', 'Piriforme', 'Lienzo libre: dibuje la Unidad 1',
+  'El cuento de la Unidad 2', 'Los músculos de la Unidad 2', 'Lámina del grupo', 'Ilíaco', 'Psoas mayor', 'Psoas menor', 'Lienzo libre: dibuje la Unidad 2'];
 const SECTIONS = [['Inicio', '', 1, 6], ['Unidad 1', 'Músculos posteriores profundos de la cadera', 7, 16], ['Unidad 2', 'Músculos anteriores profundos de la cadera', 17, 23]];
 const thumbCache = {};
 async function drawThumb(cv, n) {
@@ -872,6 +879,9 @@ const MUSIC = (() => {
     ['ambiente', 'Ambiente', 'Acordes cálidos', '🌙'],
     ['lluvia', 'Lluvia', 'Lluvia tranquila', '🌧'],
     ['mar', 'Mar', 'Olas lejanas', '🌊'],
+    ['cuencos', 'Cuencos de cristal', 'Vibración que relaja', '🔔'],
+    ['indie', 'Indie yoga', 'Guitarra suave y ritmo lento', '🌿'],
+    ['mantra', 'Mantra', 'Voz grave tipo Om', '🧘'],
   ];
   function ctx() {
     if (!ac) {
@@ -937,6 +947,52 @@ const MUSIC = (() => {
       const lg2 = ac.createGain(); lg2.gain.value = 0.05; lfo.connect(lg2).connect(wg.gain); w.connect(hp).connect(wg).connect(master); w.start(); keep(w, wg);
     }
   };
+  function pluck(m, t, vol = 0.18) {
+    const f = hz(m), N = Math.round(ac.sampleRate / f), len = ac.sampleRate * 2.5, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < N; i++) d[i] = Math.random() * 2 - 1;
+    for (let i = N; i < len; i++) d[i] = (d[i - N] + d[i - N + 1]) * 0.497;
+    const s = ac.createBufferSource(), g = ac.createGain(), lp = ac.createBiquadFilter(); s.buffer = b; lp.type = 'lowpass'; lp.frequency.value = 2600; g.gain.value = vol;
+    s.connect(lp).connect(g); g.connect(master); g.connect(verb); s.start(t);
+  }
+  Object.assign(play, {
+    cuencos() {
+      const BOWL = [55, 59, 62, 64, 67];   // notas de cuencos de cristal
+      const strike = () => { const t = ac.currentTime + 0.05, m = BOWL[Math.random() * BOWL.length | 0];
+        for (const [k, a] of [[1, 0.09], [2.01, 0.025], [3.02, 0.012]]) {
+          const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(); o.frequency.value = hz(m) * k; o2.frequency.value = hz(m) * k + 0.9;
+          g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + 0.6); g.gain.exponentialRampToValueAtTime(0.0004, t + 14);
+          o.connect(g); o2.connect(g); g.connect(master); g.connect(verb); o.start(t); o2.start(t); o.stop(t + 14.2); o2.stop(t + 14.2); } };
+      strike(); every(strike, 5200);
+    },
+    indie() {
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700; const bus = ac.createGain(); bus.gain.value = 0.7; lp.connect(bus); bus.connect(master); bus.connect(verb); keep(lp, bus);
+      const PROG = [[52, 59, 64, 67, 71], [48, 55, 64, 67, 72], [43, 50, 59, 62, 67], [45, 52, 60, 64, 69]];
+      let ci = 0;
+      const bar = () => { const t0 = ac.currentTime + 0.05, ch = PROG[ci++ % 4], beat = 0.75;
+        for (const m of ch.slice(0, 3)) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = hz(m);
+          g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.03, t0 + 1.5); g.gain.linearRampToValueAtTime(0, t0 + beat * 8 + 0.5); o.connect(g).connect(lp); o.start(t0); o.stop(t0 + beat * 8 + 0.6); }
+        const pat = [1, 2, 3, 4, 2, 3, 4, 3];
+        pat.forEach((k, i) => pluck(ch[k] + 0, t0 + i * beat, 0.14 + Math.random() * 0.05));
+        for (let i = 0; i < 8; i++) { const t = t0 + i * beat + beat / 2, n = noise('white'), hp = ac.createBiquadFilter(), g = ac.createGain();
+          hp.type = 'highpass'; hp.frequency.value = 7000; g.gain.setValueAtTime(0.03, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); n.connect(hp).connect(g).connect(master); n.start(t); n.stop(t + 0.1); }
+        for (const i of [0, 4]) { const t = t0 + i * beat, o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.25);
+          g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35); o.connect(g).connect(master); o.start(t); o.stop(t + 0.4); } };
+      bar(); every(bar, 6000);
+    },
+    mantra() {
+      const bus = ac.createGain(); bus.gain.value = 0.9; bus.connect(master); bus.connect(verb); keep(bus);
+      const chant = () => { const t = ac.currentTime + 0.05, base = hz([38, 38, 43, 36][Math.random() * 4 | 0]);
+        const src = ac.createOscillator(), src2 = ac.createOscillator(), mix = ac.createGain(); src.type = 'sawtooth'; src2.type = 'sawtooth'; src.frequency.value = base; src2.frequency.value = base * 1.003; src.connect(mix); src2.connect(mix);
+        const env = ac.createGain(); env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(0.09, t + 1.6); env.gain.setValueAtTime(0.09, t + 6.5); env.gain.linearRampToValueAtTime(0, t + 9);
+        // formantes: "o" que se cierra en "m"
+        for (const [f1, f2, q, a] of [[450, 380, 6, 1], [800, 300, 8, 0.5], [2830, 2500, 10, 0.12]]) {
+          const bp = ac.createBiquadFilter(), g = ac.createGain(); bp.type = 'bandpass'; bp.Q.value = q; bp.frequency.setValueAtTime(f1, t); bp.frequency.linearRampToValueAtTime(f1, t + 5); bp.frequency.linearRampToValueAtTime(f2, t + 6.5); g.gain.value = a;
+          mix.connect(bp).connect(g).connect(env); }
+        env.connect(bus); src.start(t); src2.start(t); src.stop(t + 9.2); src2.stop(t + 9.2);
+        const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = base / 2; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.05, t + 2); g.gain.linearRampToValueAtTime(0, t + 9.5); o.connect(g).connect(bus); o.start(t); o.stop(t + 9.6); };
+      chant(); every(chant, 9000);
+    }
+  });
   function stop() {
     timers.forEach(clearInterval); timers = [];
     if (ac) { const t = ac.currentTime; for (const n of nodes) { try { if (n.gain) n.gain.setTargetAtTime(0, t, 0.3); if (n.stop) n.stop(t + 1.2); } catch (e) {} } }

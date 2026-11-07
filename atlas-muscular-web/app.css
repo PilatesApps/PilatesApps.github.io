@@ -215,3 +215,15 @@ body.textmode #btnTape{display:none}
   .bar{justify-content:center;gap:14px}
   .dk{flex:0 0 92px}
 }
+
+#music .mpanel{max-height:88vh;overflow-y:auto}
+.mext{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.mext small{display:block;font-size:12px;color:var(--muted)}
+.mlinks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.mlink{display:grid;place-items:center;height:42px;border-radius:12px;font-size:12px;font-weight:600;text-decoration:none;color:#fff;text-align:center;padding:0 4px}
+.mlink.amz{background:#25D1DA;color:#0F1111}
+.mlink.spo{background:#1DB954}
+.mlink.ytm{background:#E62117}
+.mtip{font-size:11px!important}
+
+body.freemode #btnTape{display:none}
