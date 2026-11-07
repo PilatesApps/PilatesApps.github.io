@@ -58,6 +58,41 @@ const isText = () => page && !page.plate;
 const S = () => Object.assign({ size: B(brush).size, opa: B(brush).opa, hard: B(brush).hard }, settings[brush] || {});
 
 
+
+/* ---------------- instalar como app ---------------- */
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; showInstall(); });
+window.addEventListener('appinstalled', () => { $('#btnInstall').hidden = true; $('#instBox').hidden = true; toast('App instalada: ya puede usarla sin internet'); });
+function standalone() { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+function env() {
+  const ua = navigator.userAgent;
+  if (/FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)|TikTok|Telegram/i.test(ua)) return 'inapp';
+  if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return /CriOS|FxiOS|EdgiOS/.test(ua) ? 'ios-other' : 'ios';
+  if (/SamsungBrowser/.test(ua)) return 'samsung';
+  if (/Android/.test(ua)) return 'android';
+  return 'desktop';
+}
+function showInstall() { if (!standalone()) $('#btnInstall').hidden = false; }
+function setupInstall() {
+  if (standalone()) return;
+  const e = env();
+  if (e !== 'desktop' || installEvt) showInstall();
+  $('#btnInstall').onclick = async () => {
+    if (installEvt) { installEvt.prompt(); const r = await installEvt.userChoice; installEvt = null; if (r.outcome === 'accepted') $('#btnInstall').hidden = true; return; }
+    const T = {
+      inapp: 'Este enlace se abrió dentro de otra app (WhatsApp, Instagram...) y ahí no se puede instalar. Toque los tres puntos de arriba y elija <b>Abrir en Chrome</b> (o <b>Abrir en Safari</b> en iPhone). Allí aparecerá el botón Instalar.',
+      ios: 'En iPhone: toque el botón <b>Compartir</b> (el cuadrito con la flecha hacia arriba, abajo en Safari) y luego <b>Agregar a pantalla de inicio</b>.',
+      'ios-other': 'En iPhone la instalación se hace desde <b>Safari</b>. Copie el enlace, ábralo en Safari, toque <b>Compartir</b> y luego <b>Agregar a pantalla de inicio</b>.',
+      samsung: 'En Samsung Internet: toque el menú (las tres rayitas abajo), luego <b>Añadir página a</b> y <b>Pantalla de inicio</b>. O abra el enlace en Chrome y use el botón Instalar.',
+      android: 'En Chrome: toque los <b>tres puntos</b> de arriba a la derecha y elija <b>Instalar aplicación</b> o <b>Agregar a la pantalla principal</b>.',
+      desktop: 'En Chrome o Edge: toque el icono de instalar en la barra de direcciones, o el menú y <b>Instalar Atlas Muscular</b>.'
+    };
+    $('#instText').innerHTML = T[e] + '<br><br>Una vez instalada, funciona <b>sin internet</b>.';
+    $('#instBox').hidden = false;
+  };
+  $('#instClose').onclick = () => { $('#instBox').hidden = true; };
+  if (e === 'inapp' && !store.get('inappSeen', false)) { store.set('inappSeen', true); $('#btnInstall').click(); }
+}
 /* ---------------- sonido y vibración ---------------- */
 let sound = store.get('sound', true);
 const SFX = (() => {
@@ -786,6 +821,7 @@ async function start() {
   buildBrushes(); buildColors(); syncSliders(); syncTape(); buildIndex(); updateDock();
   await openPage(store.get('page', 1));
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  setupInstall();
 }
 new ResizeObserver(() => { const ph = stage.style.height; $('#texts').style.setProperty('--ph', ph); }).observe(stage);
 start();
