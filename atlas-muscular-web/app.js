@@ -215,23 +215,29 @@ function updateDock() {
   const b = BRUSHES.find(b => b.id === brush); document.getElementById('dkToolName').textContent = b ? b.name : '';
   const c = brush === 'resaltador' ? hlColor : brush === 'boligrafo' ? penColor : color;
   document.getElementById('dkSwatch').style.background = c;
-  document.getElementById('dkTape').classList.toggle('on', tape);
-  document.getElementById('dkTape').style.display = (page && page.plate) ? '' : 'none';
 }
-function openSheet(focus) {
-  document.body.classList.add('sheet');
-  if (focus === 'color') document.getElementById('colorRow').scrollIntoView({ block: 'nearest' });
+function openSheet(sec) {
+  const b = document.body;
+  if (b.classList.contains('sheet') && b.dataset.sheet === sec) { closeSheet(); return; }
+  b.dataset.sheet = sec; b.classList.add('sheet');
+  document.querySelectorAll('.dk').forEach(d => d.classList.toggle('on', d.id === 'dk' + sec[0].toUpperCase() + sec.slice(1)));
+  $('#tools').scrollTop = 0;
 }
-function closeSheet() { document.body.classList.remove('sheet'); }
+function closeSheet() { document.body.classList.remove('sheet'); document.querySelectorAll('.dk').forEach(d => d.classList.remove('on')); }
 function buildBrushes() {
   const row = $('#brushRow'); row.innerHTML = '';
-  for (const b of BRUSHES) {
-    if (isText() && !TEXT_BRUSHES.includes(b.id)) continue;
-    if (page && page.nobucket && b.id === 'balde') continue;
-    const bt = document.createElement('button'); bt.setAttribute('aria-pressed', b.id === brush);
-    bt.appendChild(preview(b.id)); const s = document.createElement('span'); s.textContent = b.name; bt.appendChild(s);
-    bt.onclick = () => { brush = b.id; store.set('brush', brush); buildBrushes(); buildColors(); syncSliders(); updateDock(); };
-    row.appendChild(bt);
+  const GROUPS = [['Pintar', ['marcador', 'lapiz', 'creyon', 'tiza', 'acuarela', 'oleo', 'aero', 'balde', 'borrador', 'gotero']],
+                  ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']]];
+  for (const [gname, ids] of GROUPS) {
+    const list = ids.map(B).filter(b => !(isText() && !TEXT_BRUSHES.includes(b.id)) && !(page && page.nobucket && b.id === 'balde'));
+    if (!list.length) continue;
+    if (!isText()) { const h = document.createElement('div'); h.className = 'glabel'; h.textContent = gname; row.appendChild(h); }
+    for (const b of list) {
+      const bt = document.createElement('button'); bt.setAttribute('aria-pressed', b.id === brush);
+      bt.appendChild(preview(b.id)); const s = document.createElement('span'); s.textContent = b.name; bt.appendChild(s);
+      bt.onclick = () => { brush = b.id; store.set('brush', brush); buildBrushes(); buildColors(); syncSliders(); updateDock(); };
+      row.appendChild(bt);
+    }
   }
 }
 function buildColors() {
@@ -240,7 +246,7 @@ function buildColors() {
     const hl = brush === 'resaltador', list = hl ? HL : PEN, curC = hl ? hlColor : penColor;
     for (const [n, c] of list) {
       const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.title = n;
-      b.setAttribute('aria-label', n); b.setAttribute('aria-pressed', c === curC);
+      b.setAttribute('aria-label', n); b.setAttribute('aria-pressed', c === curC); b.innerHTML = `<span>${n}</span>`;
       b.onclick = () => { if (hl) { hlColor = c; store.set('hl', c); } else { penColor = c; store.set('pen', c); } buildColors(); };
       row.appendChild(b);
     }
@@ -249,25 +255,24 @@ function buildColors() {
   }
   for (const [n, c] of COLORS) {
     const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.title = n;
-    b.setAttribute('aria-label', n); b.setAttribute('aria-pressed', c.toLowerCase() === color.toLowerCase());
+    b.setAttribute('aria-label', n); b.setAttribute('aria-pressed', c.toLowerCase() === color.toLowerCase()); b.innerHTML = `<span>${n}</span>`;
     b.onclick = () => setColor(c); row.appendChild(b);
   }
-  const sep = document.createElement('span'); sep.className = 'sep'; row.appendChild(sep);
+  const extra = recent.filter(c => !COLORS.some(k => k[1].toLowerCase() === c.toLowerCase()));
+  const gl = document.createElement('div'); gl.className = 'glabel'; gl.textContent = extra.length ? 'Otros colores y usados hace poco' : 'Otro color'; row.appendChild(gl);
   const wh = document.createElement('button'); wh.className = 'tool wheel'; wh.title = 'Otro color'; wh.setAttribute('aria-label', 'Elegir otro color');
   wh.onclick = () => { const p = $('#colorPick'); p.value = color; p.click(); }; row.appendChild(wh);
-  for (const c of recent) {
-    if (COLORS.some(k => k[1].toLowerCase() === c.toLowerCase())) continue;
+  for (const c of extra) {
     const b = document.createElement('button'); b.className = 'sw recent'; b.style.background = c; b.title = 'Usado hace poco';
     b.setAttribute('aria-pressed', c.toLowerCase() === color.toLowerCase()); b.onclick = () => setColor(c); row.appendChild(b);
   }
 }
 $('#colorPick').addEventListener('input', e => setColor(e.target.value));
 document.addEventListener('click', e => { if (e.target.closest('#colorRow .sw')) { updateDock(); if (window.innerWidth < 900) setTimeout(closeSheet, 150); } });
-$('#dkTool').onclick = () => document.body.classList.contains('sheet') ? closeSheet() : openSheet('tool');
-$('#dkColor').onclick = () => document.body.classList.contains('sheet') ? closeSheet() : openSheet('color');
-$('#dkMore').onclick = () => document.body.classList.contains('sheet') ? closeSheet() : openSheet();
+$('#dkTool').onclick = () => openSheet('tool');
+$('#dkColor').onclick = () => openSheet('color');
+$('#dkMore').onclick = () => openSheet('more');
 $('#dkUndo').onclick = () => $('#btnUndo').click();
-$('#dkTape').onclick = () => { $('#btnTape').click(); updateDock(); };
 $('#btnCloseTools').onclick = closeSheet;
 function setColor(c) {
   if (FREE.includes(brush)) { brush = 'marcador'; store.set('brush', brush); buildBrushes(); syncSliders(); }
@@ -289,12 +294,11 @@ for (const [id, key, out, suf] of [['#sSize', 'size', '#oSize', ''], ['#sOpa', '
   });
 }
 const sndBtn = $('#btnSound');
-function syncSound() { sndBtn.classList.toggle('on', sound); sndBtn.setAttribute('aria-pressed', sound); sndBtn.lastChild.textContent = sound ? 'Sonido' : 'Sin sonido'; }
+function syncSound() { sndBtn.classList.toggle('on', sound); sndBtn.setAttribute('aria-checked', sound); }
 sndBtn.onclick = () => { sound = !sound; store.set('sound', sound); syncSound(); if (sound) { SFX.blip('tick'); buzz(10); } };
 syncSound();
-$('#btnMore').onclick = () => { document.body.classList.toggle('more'); fit(); };
 const tapeBtn = $('#btnTape');
-function syncTape() { tapeBtn.classList.toggle('on', tape); tapeBtn.setAttribute('aria-pressed', tape); }
+function syncTape() { tapeBtn.classList.toggle('on', tape); tapeBtn.setAttribute('aria-checked', tape); }
 tapeBtn.onclick = () => { tape = !tape; store.set('tape', tape); syncTape(); toast(tape ? 'No salirme: el color se queda dentro del músculo' : 'Libre: puedes salirte del músculo'); };
 
 let toastT = null;
@@ -302,10 +306,7 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = fal
 
 /* ---------------- vista: zoom y desplazamiento ---------------- */
 let view = { s: 1, x: 0, y: 0, base: 1 };
-function measureTools() {
-  const t = document.getElementById('tools');
-  if (t && !t.hidden) document.documentElement.style.setProperty('--toolsH', t.offsetHeight + 'px');
-}
+function measureTools() {}
 // rueda del ratón mueve las barras de lado
 document.querySelectorAll('.row').forEach(r => r.addEventListener('wheel', e => {
   if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && r.scrollWidth > r.clientWidth) { r.scrollLeft += e.deltaY; e.preventDefault(); }
@@ -317,7 +318,7 @@ document.querySelectorAll('.row').forEach(r => {
   window.addEventListener('pointermove', e => { if (d) { const dx = e.clientX - d.x; if (Math.abs(dx) > 4) d.moved = true; r.scrollLeft = d.s - dx; } });
   window.addEventListener('pointerup', () => { if (d && d.moved) { r.addEventListener('click', ev => { ev.stopPropagation(); ev.preventDefault(); }, { capture: true, once: true }); } d = null; });
 });
-new ResizeObserver(() => { measureTools(); fit(); }).observe(document.getElementById('tools'));
+new ResizeObserver(() => fit()).observe(viewport);
 // arrastrar el panel de herramientas con el ratón (vertical u horizontal)
 (() => {
   const t = document.getElementById('tools'); let d = null;
@@ -338,7 +339,7 @@ function clampView() {
   view.x = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, view.x));
   view.y = h <= vh ? (vh - h) / 2 : Math.min(0, Math.max(vh - h, view.y));
 }
-function apply() { stage.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.s})`; }
+function apply() { stage.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.s})`; document.body.classList.toggle('zoomed', view.s > 1.01); }
 window.addEventListener('resize', fit);
 
 function toPage(e) {
@@ -349,7 +350,6 @@ function toPage(e) {
 /* ---------------- páginas ---------------- */
 async function loadMeta() {
   META = await (await fetch('pages.json')).json(); N = META.length;
-  $('#pgSlider').max = N;
 }
 function pageFile(n, suf) { return `pages/p${String(n).padStart(2, '0')}${suf}`; }
 function loadImg(src) { return new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; }); }
@@ -360,7 +360,8 @@ async function openPage(n) {
   if (n !== cur && META.length) { SFX.blip('page'); buzz(8); }
   cur = n; page = META[n - 1]; store.set('page', n);
   undo.length = 0; redo.length = 0;
-  $('#pgLabel').textContent = `${n} / ${N}`; $('#pgSlider').value = n;
+  $('#pgLabel').textContent = `${n} / ${N}`; $('#pgName').textContent = PN[n - 1] || '';
+  $('#btnPrev').disabled = n <= 1; $('#btnNext').disabled = n >= N; closeSheet();
   pageImg.src = pageFile(n, '.jpg');
   const topI = document.getElementById('topImg'); if (page.top) { topI.src = pageFile(n, '_top.png'); topI.hidden = false; } else { topI.hidden = true; topI.removeAttribute('src'); }
   xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xLive.clearRect(0, 0, W, H);
@@ -642,29 +643,75 @@ function renderTexts() {
   box.style.setProperty('--ph', stage.style.height || '100px');
 }
 
-/* ---------------- índice tocable ---------------- */
-const IDX = [
-  { t: 'Portada', n: 1 }, { t: 'Bienvenida', n: 3 }, { t: 'Índice', n: 4 }, { t: 'Orden de construcción', n: 5 },
-  { t: 'Unidad 1 · Músculos posteriores profundos de la cadera', n: 7, unit: 1 },
-  { t: 'Lámina del grupo', n: 9, sub: 1 }, { t: 'Láminas de cada músculo', n: 10, sub: 1 },
-  { t: 'Unidad 2 · Músculos anteriores profundos de la cadera', n: 17, unit: 1 },
-  { t: 'Lámina del grupo', n: 19, sub: 1 }, { t: 'Láminas de cada músculo', n: 20, sub: 1 },
-];
-function buildIndex() {
-  const ul = $('#idxList'); ul.innerHTML = '';
-  for (const it of IDX) {
-    const li = document.createElement('li'); if (it.unit) li.className = 'unit';
-    const b = document.createElement('button'); b.innerHTML = `<span>${it.n}</span>${it.sub ? '&nbsp;&nbsp;' : ''}`; b.append(it.t);
-    b.onclick = () => { $('#drawer').hidden = true; openPage(it.n); }; li.appendChild(b); ul.appendChild(li);
-  }
-  for (let u = 3; u <= 17; u++) {
-    const li = document.createElement('li'); li.className = 'soon';
-    const b = document.createElement('button'); b.innerHTML = `<span>·</span>Unidad ${u} · próximamente`; b.onclick = () => toast('Disponible en la próxima versión'); li.appendChild(b); ul.appendChild(li);
+/* ---------------- biblioteca de láminas ---------------- */
+const PN = ['Portada', 'Edición Digital 2026', 'Bienvenida', 'Índice de contenido', 'Orden de construcción', 'Orden de construcción (2)',
+  'El cuento de la Unidad 1', 'Los músculos de la Unidad 1', 'Lámina del grupo', 'Obturador externo', 'Obturador interno', 'Gemelo superior',
+  'Gemelo inferior', 'Cuadrado femoral', 'Piriforme', 'Cita de Leonardo da Vinci',
+  'El cuento de la Unidad 2', 'Los músculos de la Unidad 2', 'Lámina del grupo', 'Ilíaco', 'Psoas mayor', 'Psoas menor', 'Cita final'];
+const SECTIONS = [['Inicio', '', 1, 6], ['Unidad 1', 'Músculos posteriores profundos de la cadera', 7, 16], ['Unidad 2', 'Músculos anteriores profundos de la cadera', 17, 23]];
+const thumbCache = {};
+async function drawThumb(cv, n) {
+  const x = cv.getContext('2d'), w = cv.width, h = cv.height;
+  try {
+    const img = thumbCache[n] || (thumbCache[n] = await loadImg(pageFile(n, '.jpg')));
+    x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
+    const sv = n === cur && page ? null : await idbGet('p' + n);
+    x.globalCompositeOperation = 'multiply';
+    if (n === cur && page) x.drawImage(cColor, 0, 0, w, h); else if (sv && sv.color) x.drawImage(await blobImg(sv.color), 0, 0, w, h);
+    x.globalCompositeOperation = 'source-over';
+    if (META[n - 1] && META[n - 1].top) { const t = await loadImg(pageFile(n, '_top.png')).catch(() => null); if (t) x.drawImage(t, 0, 0, w, h); }
+    if (n === cur && page) x.drawImage(cInk, 0, 0, w, h); else if (sv && sv.ink) x.drawImage(await blobImg(sv.ink), 0, 0, w, h);
+    return !!(sv || (n === cur && dirtyAny));
+  } catch (e) { return false; }
+}
+let dirtyAny = false;
+async function buildHome() {
+  await saveNow();
+  const g = $('#homeGrid'); g.innerHTML = '';
+  $('#contName').textContent = `${cur}. ${PN[cur - 1] || ''}`;
+  drawThumb($('#contThumb'), cur);
+  const keys = await idbKeys();
+  for (const [t, sub, a, b] of SECTIONS) {
+    const sec = document.createElement('div'); sec.className = 'hsec';
+    sec.innerHTML = `<h2>${t}${sub ? `<small>${sub}</small>` : ''}</h2>`;
+    const cards = document.createElement('div'); cards.className = 'cards';
+    for (let n = a; n <= Math.min(b, N); n++) {
+      const c = document.createElement('button'); c.className = 'card' + (n === cur ? ' cur' : '');
+      c.innerHTML = `<span class="th"><canvas width="153" height="198"></canvas><span class="n">${n}</span>${keys.has('p' + n) ? '<span class="dot"><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg></span>' : ''}</span><span class="t">${PN[n - 1]}</span>`;
+      c.onclick = () => { closeHome(); openPage(n); };
+      cards.appendChild(c); drawThumb(c.querySelector('canvas'), n);
+    }
+    sec.appendChild(cards); g.appendChild(sec);
   }
 }
-$('#btnIndex').onclick = () => { $('#drawer').hidden = false; };
-$('#btnCloseIdx').onclick = () => { $('#drawer').hidden = true; };
-$('#drawer').addEventListener('pointerdown', e => { if (e.target.id === 'drawer') $('#drawer').hidden = true; });
+function openHome() { closeSheet(); $('#home').hidden = false; buildHome(); }
+function closeHome() { $('#home').hidden = true; }
+$('#btnHome').onclick = openHome;
+$('#pgBtn').onclick = openHome;
+$('#btnCloseHome').onclick = closeHome;
+$('#btnContinue').onclick = closeHome;
+async function idbKeys() { try { const d = await db(); return await new Promise(ok => { const q = d.transaction('p').objectStore('p').getAllKeys(); q.onsuccess = () => ok(new Set(q.result)); q.onerror = () => ok(new Set()); }); } catch (e) { return new Set(); } }
+
+/* ---------------- guía de primer uso ---------------- */
+const GUIDE = [
+  ['<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>', 'Elija y pinte', 'Abajo toque <b>la herramienta</b> y <b>el color</b>. Con <b>No salirme</b> encendido, el color se queda dentro del músculo que empezó a pintar.'],
+  ['<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'Acerque con dos dedos', 'Pellizque para ampliar y mueva con dos dedos. <b>Toque con dos dedos</b> para deshacer el último trazo.'],
+  ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'Todas sus láminas', 'Deslice de lado o use las flechas para pasar de página. Toque <b>el número de página</b> para ver todas las láminas y lo que ya pintó.'],
+  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Música y se guarda solo', 'Toque <b>la nota musical</b> para poner música relajante. Todo lo que pinta <b>se guarda solo</b> en este dispositivo.']
+];
+let gi = 0;
+function showGuide() {
+  gi = 0; $('#guide').hidden = false; renderGuide();
+}
+function renderGuide() {
+  const [ic, t, p] = GUIDE[gi];
+  $('#gSlides').innerHTML = `<div class="gslide"><div class="gi"><svg viewBox="0 0 24 24">${ic}</svg></div><b>${t}</b><p>${p}</p></div>`;
+  $('#gDots').innerHTML = GUIDE.map((_, i) => `<i class="${i === gi ? 'on' : ''}"></i>`).join('');
+  $('#gNext').textContent = gi === GUIDE.length - 1 ? '¡A pintar!' : 'Siguiente';
+}
+$('#gNext').onclick = () => { if (gi < GUIDE.length - 1) { gi++; renderGuide(); } else { $('#guide').hidden = true; store.set('guided', true); } };
+$('#gSkip').onclick = () => { $('#guide').hidden = true; store.set('guided', true); };
+$('#btnGuide').onclick = () => { closeSheet(); showGuide(); };
 /* zonas tocables en la página del índice (página 4) */
 function buildHotspots() {
   const hot = $('#hot'); hot.innerHTML = '';
@@ -680,7 +727,7 @@ function buildHotspots() {
 }
 
 /* ---------------- gestos ---------------- */
-const pointers = new Map(); let gesture = null, panOnly = false, swipe = null;
+const pointers = new Map(); let gesture = null, panOnly = false, swipe = null, undoPending = null;
 viewport.addEventListener('pointerdown', e => {
   if (document.body.classList.contains('sheet')) { closeSheet(); return; }
   if (e.target.closest('#toast')) return;
@@ -690,7 +737,8 @@ viewport.addEventListener('pointerdown', e => {
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
     cancelStroke(); const [a, b] = [...pointers.values()];
-    gesture = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, s: view.s, x: view.x, y: view.y };
+    gesture = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, s: view.s, x: view.x, y: view.y, t: Date.now(), moved: false };
+    if (undoPending) { undoPending.cancel(); undoPending = null; }
     return;
   }
   if (pointers.size > 2) return;
@@ -706,6 +754,7 @@ viewport.addEventListener('pointermove', e => {
   if (gesture && pointers.size >= 2) {
     const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
     const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2; const r = viewport.getBoundingClientRect();
+    if (Math.abs(d - gesture.d) > 12 || Math.hypot(cx - gesture.cx, cy - gesture.cy) > 12) gesture.moved = true;
     const ns = Math.max(1, Math.min(6, gesture.s * d / gesture.d));
     const px = gesture.cx - r.left, py = gesture.cy - r.top;
     view.x = (px - gesture.x) * (1 - ns / gesture.s) + gesture.x + (cx - gesture.cx);
@@ -717,7 +766,7 @@ viewport.addEventListener('pointermove', e => {
 });
 function up(e) {
   pointers.delete(e.pointerId);
-  if (gesture) { if (pointers.size < 2) gesture = null; return; }
+  if (gesture) { if (pointers.size < 2) { if (!gesture.moved && Date.now() - gesture.t < 300) { swap(undo, redo); toast('Deshecho'); } gesture = null; } return; }
   if (stroke && e.pointerId === stroke.id) endStroke();
   if (swipe) {
     const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
@@ -759,8 +808,7 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; viewport.style.cursor = ''; } });
 $('#btnPrev').onclick = () => openPage(cur - 1);
 $('#btnNext').onclick = () => openPage(cur + 1);
-$('#pgSlider').addEventListener('input', e => { $('#pgLabel').textContent = `${e.target.value} / ${N}`; });
-$('#pgSlider').addEventListener('change', e => openPage(+e.target.value));
+
 
 /* ---------------- guardado (IndexedDB) ---------------- */
 let dbp = null;
@@ -776,7 +824,7 @@ const toBlob = c => new Promise(ok => c.toBlob(ok, 'image/png'));
 async function saveNow() {
   clearTimeout(saveT); if (!dirty || !page) { dirty = false; return; } dirty = false;
   const n = cur; const [color, ink] = await Promise.all([toBlob(cColor), toBlob(cInk)]);
-  await idbSet('p' + n, { color, ink, texts: Object.assign({}, texts) });
+  await idbSet('p' + n, { color, ink, texts: Object.assign({}, texts) }); dirtyAny = true;
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 
@@ -815,11 +863,113 @@ $('#btnShare').onclick = async () => {
   toast('Lámina guardada en Descargas');
 };
 
+
+/* ---------------- música para colorear (generada en la app, sin internet) ---------------- */
+const MUSIC = (() => {
+  let ac = null, master = null, verb = null, cur = null, timers = [], nodes = [];
+  const TR = [
+    ['piano', 'Piano suave', 'Notas lentas', '🎹'],
+    ['ambiente', 'Ambiente', 'Acordes cálidos', '🌙'],
+    ['lluvia', 'Lluvia', 'Lluvia tranquila', '🌧'],
+    ['mar', 'Mar', 'Olas lejanas', '🌊'],
+  ];
+  function ctx() {
+    if (!ac) {
+      const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ac = new A();
+      master = ac.createGain(); master.gain.value = (store.get('mvol', 60) / 100) * 0.5; master.connect(ac.destination);
+      verb = ac.createConvolver(); const len = ac.sampleRate * 3.2, ir = ac.createBuffer(2, len, ac.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+      verb.buffer = ir; const vg = ac.createGain(); vg.gain.value = 0.55; verb.connect(vg).connect(master);
+    }
+    if (ac.state === 'suspended') ac.resume(); return ac;
+  }
+  function noise(kind) {
+    const n = ac.sampleRate * 4, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0); let br = 0;
+    for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; if (kind === 'brown') { br = (br + 0.02 * w) / 1.02; d[i] = br * 3.5; } else d[i] = w; }
+    const s = ac.createBufferSource(); s.buffer = b; s.loop = true; return s;
+  }
+  const every = (fn, ms) => { const t = setInterval(fn, ms); timers.push(t); };
+  const keep = (...n) => nodes.push(...n);
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function note(m, t, dur, vol, type = 'sine', dest = master) {
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = hz(m); o2.type = 'sine'; o2.frequency.value = hz(m) * 2.001;
+    const g2 = ac.createGain(); g2.gain.value = 0.18;
+    o.connect(g); o2.connect(g2).connect(g); g.connect(dest); g.connect(verb);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    o.start(t); o2.start(t); o.stop(t + dur + 0.1); o2.stop(t + dur + 0.1);
+  }
+  const PENTA = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81];
+  const CHORDS = [[48, 55, 64, 71], [45, 52, 60, 67], [41, 48, 57, 64], [43, 50, 59, 62]];
+  const play = {
+    piano() {
+      let ci = 0;
+      const bar = () => { const t = ac.currentTime + 0.05, ch = CHORDS[ci++ % 4]; note(ch[0] - 12 + 12, t, 5.5, 0.06, 'triangle'); note(ch[1], t + 0.02, 5, 0.035, 'triangle');
+        const k = 3 + (Math.random() * 3 | 0); for (let i = 0; i < k; i++) { const m = PENTA[Math.random() * PENTA.length | 0]; note(m, t + 0.3 + i * (0.9 + Math.random() * 0.7), 3.2, 0.05 + Math.random() * 0.03); } };
+      bar(); every(bar, 6000);
+    },
+    ambiente() {
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.4;
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.05; lg.gain.value = 350; lfo.connect(lg).connect(lp.frequency); lfo.start();
+      const bus = ac.createGain(); bus.gain.value = 0.9; lp.connect(bus); bus.connect(master); bus.connect(verb); keep(lfo, lp, bus);
+      let ci = 0;
+      const chord = () => { const t = ac.currentTime + 0.05; for (const m of CHORDS[ci++ % 4]) for (const det of [-6, 6]) {
+        const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sawtooth'; o.frequency.value = hz(m); o.detune.value = det;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.022, t + 2.5); g.gain.setValueAtTime(0.022, t + 6.5); g.gain.linearRampToValueAtTime(0, t + 9.5);
+        o.connect(g).connect(lp); o.start(t); o.stop(t + 9.6); } };
+      chord(); every(chord, 8000);
+    },
+    lluvia() {
+      const s = noise('white'), hp = ac.createBiquadFilter(), lp = ac.createBiquadFilter(), g = ac.createGain();
+      hp.type = 'highpass'; hp.frequency.value = 500; lp.type = 'lowpass'; lp.frequency.value = 5200; g.gain.value = 0.28;
+      s.connect(hp).connect(lp).connect(g).connect(master); s.start(); keep(s, g);
+      const s2 = noise('brown'), g2 = ac.createGain(); g2.gain.value = 0.35; s2.connect(g2).connect(master); s2.start(); keep(s2, g2);
+      every(() => { for (let i = 0; i < 3; i++) { const t = ac.currentTime + Math.random() * 0.25, o = ac.createOscillator(), gg = ac.createGain();
+        o.frequency.setValueAtTime(1800 + Math.random() * 2600, t); o.frequency.exponentialRampToValueAtTime(500, t + 0.04);
+        gg.gain.setValueAtTime(0.025 * Math.random(), t); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.05); o.connect(gg).connect(master); o.start(t); o.stop(t + 0.06); } }, 260);
+    },
+    mar() {
+      const s = noise('brown'), lp = ac.createBiquadFilter(), g = ac.createGain(); lp.type = 'lowpass'; lp.frequency.value = 650; g.gain.value = 0.25;
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.09; lg.gain.value = 0.22; lfo.connect(lg).connect(g.gain); lfo.start();
+      const lf2 = ac.createGain(); lf2.gain.value = 300; lfo.connect(lf2).connect(lp.frequency);
+      s.connect(lp).connect(g).connect(master); s.connect(verb); s.start(); keep(s, lfo, g);
+      const w = noise('white'), hp = ac.createBiquadFilter(), wg = ac.createGain(); hp.type = 'bandpass'; hp.frequency.value = 2500; hp.Q.value = 0.5; wg.gain.value = 0.0;
+      const lg2 = ac.createGain(); lg2.gain.value = 0.05; lfo.connect(lg2).connect(wg.gain); w.connect(hp).connect(wg).connect(master); w.start(); keep(w, wg);
+    }
+  };
+  function stop() {
+    timers.forEach(clearInterval); timers = [];
+    if (ac) { const t = ac.currentTime; for (const n of nodes) { try { if (n.gain) n.gain.setTargetAtTime(0, t, 0.3); if (n.stop) n.stop(t + 1.2); } catch (e) {} } }
+    nodes = []; cur = null; sync();
+  }
+  function start(id) { if (!ctx()) return; stop(); cur = id; play[id](); store.set('track', id); sync(); }
+  function sync() {
+    document.querySelectorAll('.trk').forEach(b => b.classList.toggle('on', b.dataset.id === cur));
+    $('#btnMusic').classList.toggle('on', !!cur);
+    $('#musicChip').hidden = !cur; if (cur) $('#musicChipName').textContent = TR.find(t => t[0] === cur)[1];
+    $('#mStop').hidden = !cur;
+  }
+  function build() {
+    $('#trackList').innerHTML = TR.map(([id, n, d, ic]) => `<button class="trk" data-id="${id}"><i>${ic}</i><span>${n}<small>${d}</small></span></button>`).join('');
+    document.querySelectorAll('.trk').forEach(b => b.onclick = () => (cur === b.dataset.id ? stop() : start(b.dataset.id)));
+    $('#mVol').value = store.get('mvol', 60);
+    $('#mVol').oninput = e => { store.set('mvol', +e.target.value); if (master) master.gain.setTargetAtTime(e.target.value / 100 * 0.5, ac.currentTime, 0.05); };
+    $('#mStop').onclick = stop; sync();
+  }
+  return { build, start, stop, get cur() { return cur; } };
+})();
+$('#btnMusic').onclick = () => { closeSheet(); $('#music').hidden = false; };
+$('#musicChip').onclick = () => { $('#music').hidden = false; };
+$('#musicChip').addEventListener('pointerdown', e => e.stopPropagation());
+$('#btnCloseMusic').onclick = () => { $('#music').hidden = true; };
+$('#music').addEventListener('pointerdown', e => { if (e.target.id === 'music') $('#music').hidden = true; });
+MUSIC.build();
 /* ---------------- arranque ---------------- */
 async function start() {
   await loadMeta();
-  buildBrushes(); buildColors(); syncSliders(); syncTape(); buildIndex(); updateDock();
+  buildBrushes(); buildColors(); syncSliders(); syncTape(); updateDock();
   await openPage(store.get('page', 1));
+  if (!store.get('guided', false)) showGuide();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   setupInstall();
 }
