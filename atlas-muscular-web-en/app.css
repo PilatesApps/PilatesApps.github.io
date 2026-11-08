@@ -380,14 +380,12 @@ body.hand #viewport{cursor:grab}
 .texrow button canvas{width:64px;height:32px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 .texrow .texopt{flex-direction:row;justify-content:center;font-size:12px;font-weight:600;padding:10px 4px;grid-column:span 2}
 /* pasar la hoja */
-.flip{position:absolute;z-index:30;pointer-events:none;perspective:2200px}
-.flip .leaf{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
-.flip .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;background:#fff}
-.flip .face canvas{width:100%;height:100%;display:block}
-.flip .back{transform:rotateY(180deg);background:linear-gradient(90deg,#efece4,#faf8f3 30%,#f3f0e8)}
-.flip .shade{position:absolute;inset:0;pointer-events:none;opacity:0}
-.flip .under{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.18),rgba(0,0,0,0) 40%);opacity:0}
-
+.flip{position:absolute;z-index:60;pointer-events:none;perspective:1800px;transform-style:preserve-3d}
+.flip .strip{position:absolute;transform-style:preserve-3d;will-change:transform}
+.flip .face{position:absolute;inset:0;width:100%;height:100%;display:block}
+.flip .back{background:linear-gradient(90deg,#ece8de,#f7f4ee)}
+.flip .shade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+.flip .under{position:absolute;inset:0;transform:translateZ(-1px);pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,.22),rgba(0,0,0,0) 70%);opacity:0}
 /* cursor de pintar */
 #brushDot{position:fixed;left:0;top:0;width:0;height:0;z-index:40;pointer-events:none}
 #brushDot .ring{position:absolute;left:0;top:0;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,255,255,.9)}
