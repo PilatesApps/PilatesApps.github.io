@@ -2103,9 +2103,10 @@ function scenePhoto(art, s) {
 }
 /* lo que se comparte: solo la obra con un borde fino (la escena es para elegir el estilo) */
 function shareBorder(art) {
-  const w = art.width, h = art.height, b = Math.round(Math.max(w, h) * .025), c = mkC(w + 2 * b, h + 2 * b), x = c.getContext('2d');
+  const w = art.width, h = art.height, b = Math.round(Math.max(w, h) * .025), k = w / 1224, foot = Math.round(120 * k), c = mkC(w + 2 * b, h + 2 * b + foot), x = c.getContext('2d');
   x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, c.width, c.height); x.drawImage(art, b, b);
   x.strokeStyle = 'rgba(63,74,87,.25)'; x.lineWidth = 1.5; x.strokeRect(b - .75, b - .75, w + 1.5, h + 1.5);
+  caption(x, c.width / 2, b + h + foot * .55, w * .9, k * 1.1, '#3F4A57');   // pie: logo, Atlas Muscular, Anatomía + Movimiento, Edición Digital 2026
   return c;
 }
 async function shareRender(st, s, final) {
