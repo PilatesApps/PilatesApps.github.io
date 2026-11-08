@@ -23,7 +23,7 @@ const undo = [], redo = [];
 /* ---------------- colores y lápices ---------------- */
 const COLORS = [
   ['Azul', '#2F62D6'], ['Celeste', '#16B3A8'], ['Verde', '#1E9E4A'], ['Amarillo', '#F2C230'],
-  ['Naranja', '#E8732A'], ['Terracota', '#B5533A'], ['Rojo', '#D7322F'], ['Rosado', '#E5578E'], ['Morado', '#8E3FD1'],
+  ['Naranja', '#E8732A'], ['Terracota', '#BE4136'], ['Rojo', '#F01D24'], ['Rosado', '#E5578E'], ['Morado', '#8E3FD1'],
   ['Piel', '#E8B596'], ['Blanco rosado', '#F4E4DE'], ['Hueso', '#EADFC4'], ['Gris', '#9AA3AD'],
   ['Blanco', '#FFFFFF'], ['Negro', '#1C1C1C']
 ];
