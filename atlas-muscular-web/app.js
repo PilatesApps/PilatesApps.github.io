@@ -37,6 +37,9 @@ const BRUSHES = [
   { id: 'oleo', name: 'Óleo', size: 30, opa: 100, hard: 90 },
   { id: 'aero', name: 'Aerógrafo', size: 50, opa: 25, hard: 0 },
   { id: 'chispeado', name: 'Chispeado', size: 44, opa: 100, hard: 60 },
+  { id: 'fibras', name: 'Fibras', size: 34, opa: 90, hard: 60 },
+  { id: 'sombreado', name: 'Sombreado', size: 40, opa: 85, hard: 70 },
+  { id: 'degradado', name: 'Degradado', size: 0, opa: 100, hard: 100 },
   { id: 'balde', name: 'Balde', size: 0, opa: 90, hard: 100 },
   { id: 'textura', name: 'Textura', size: 40, opa: 100, hard: 100 },
   { id: 'borrador', name: 'Borrador', size: 26, opa: 100, hard: 80 },
@@ -63,7 +66,7 @@ const HL = [['Amarillo', '#FFF200'], ['Celeste', '#3FE6FF'], ['Rosado', '#FF58C8
 const PEN = [['Azul', '#1F3B9E'], ['Negro', '#1C1C1C'], ['Rojo', '#C62828']];
 const FREE = ['resaltador', 'boligrafo'];
 const TEXT_BRUSHES = ['resaltador', 'boligrafo', 'borrador'];
-const TEXT_OFF = ['balde', 'textura', 'teclado', 'pluma'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
+const TEXT_OFF = ['balde', 'textura', 'degradado', 'teclado', 'pluma'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
 const ERASERS = ['borrador', 'magia'];
 let hlColor = store.get('hl', HL[0][1]), penColor = store.get('pen', PEN[0][1]);
 const isText = () => page && !page.plate;
@@ -252,6 +255,9 @@ function preview(id) {
   else if (id === 'carboncillo') { wave(9); x.globalCompositeOperation = 'destination-in'; x.drawImage(GRAIN.carboncillo, 0, 0); }
   else if (id === 'acuarela') { x.globalAlpha = .35; wave(15); x.globalAlpha = .7; x.lineWidth = 1.5; x.beginPath(); x.moveTo(10, 23); x.bezierCurveTo(30, -1, 55, 33, 78, 7); x.stroke(); x.beginPath(); x.moveTo(10, 37); x.bezierCurveTo(30, 13, 55, 47, 78, 21); x.stroke(); x.globalAlpha = .5; for (const [a, b, r] of [[22, 40, 2.5], [64, 36, 2], [80, 26, 1.6]]) { x.beginPath(); x.arc(a, b, r, 0, 7); x.fill(); } }
   else if (id === 'oleo') { wave(11); x.strokeStyle = '#fff'; x.globalAlpha = .55; x.lineWidth = 1.4; x.beginPath(); x.moveTo(10, 27); x.bezierCurveTo(30, 3, 55, 37, 78, 11); x.stroke(); x.strokeStyle = '#1d232b'; x.globalAlpha = .6; x.beginPath(); x.moveTo(12, 34); x.bezierCurveTo(32, 10, 56, 44, 78, 18); x.stroke(); }
+  else if (id === 'fibras') { x.lineCap = 'round'; for (let i = 0; i < 9; i++) { const o = (i - 4) * 2.1; x.globalAlpha = .45 + (i % 3) * .2; x.lineWidth = 1.1; x.beginPath(); x.moveTo(10, 30 + o); x.bezierCurveTo(30, 6 + o, 55, 40 + o, 78, 14 + o); x.stroke(); } }
+  else if (id === 'sombreado') { x.save(); x.beginPath(); x.ellipse(44, 22, 30, 15, 0, 0, 7); x.clip(); x.lineWidth = 1; for (let i = -60; i < 120; i += 5) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 44, 44); x.stroke(); } x.globalAlpha = .7; for (let i = -60; i < 120; i += 5) { x.beginPath(); x.moveTo(i + 44, 0); x.lineTo(i, 44); x.stroke(); } x.restore(); }
+  else if (id === 'degradado') { const g = x.createLinearGradient(16, 0, 72, 0); g.addColorStop(0, '#3F4A57'); g.addColorStop(1, 'rgba(63,74,87,.08)'); x.fillStyle = g; x.beginPath(); x.ellipse(44, 22, 30, 15, 0, 0, 7); x.fill(); x.fillStyle = '#3F4A57'; x.beginPath(); x.arc(18, 22, 3, 0, 7); x.fill(); x.strokeStyle = '#3F4A57'; x.beginPath(); x.arc(70, 22, 3, 0, 7); x.stroke(); }
   else if (id === 'chispeado') { const R = seeded(7); x.fillStyle = '#3F4A57'; for (let i = 0; i < 26; i++) { const a = 14 + R() * 60, b = 8 + R() * 28, q = R() < .15 ? 3.2 + R() * 2.5 : .6 + R() * 1.6; x.beginPath(); x.arc(a, b, q, 0, 7); x.fill(); } x.beginPath(); x.moveTo(52, 20); x.lineTo(52.6, 34); x.arc(53.3, 34, 1.2, Math.PI, 0, true); x.lineTo(54.2, 20); x.fill(); }
   else if (id === 'aero') { const g = x.createRadialGradient(44, 22, 2, 44, 22, 18); g.addColorStop(0, 'rgba(63,74,87,.55)'); g.addColorStop(1, 'rgba(63,74,87,0)'); x.fillStyle = g; x.fillRect(0, 0, 88, 44); for (let i = 0; i < 70; i++) { const a = Math.random() * 7, d = Math.abs((Math.random() + Math.random() - 1)) * 20; x.globalAlpha = .6; x.fillRect(44 + Math.cos(a) * d, 22 + Math.sin(a) * d, 1, 1); } }
   else if (id === 'balde') { x.font = '28px sans-serif'; x.textAlign = 'center'; x.fillText('🪣', 44, 33); }
@@ -285,11 +291,14 @@ function openSheet(sec) {
 function closeSheet() { document.body.classList.remove('sheet'); document.querySelectorAll('.dk').forEach(d => d.classList.remove('on')); }
 function buildBrushes() {
   const row = $('#brushRow'); row.innerHTML = '';
-  const GROUPS = [['Pintar', ['marcador', 'lapiz', 'creyon', 'tiza', 'carboncillo', 'acuarela', 'oleo', 'aero', 'chispeado', 'balde', 'textura']],
+  const GROUPS = [['Dibujar', ['lapiz', 'marcador', 'creyon', 'carboncillo', 'tiza']],
+                  ['Pintar', ['acuarela', 'oleo', 'aero', 'chispeado']],
+                  ['Anatomía: fibras y volumen', ['fibras', 'sombreado', 'degradado']],
+                  ['Rellenar', ['balde', 'textura']],
                   ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
                   ['Borrar', ['borrador', 'magia']]];
   for (const [gname, ids] of GROUPS) {
-    const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && (b.id === 'balde' || b.id === 'textura')));
+    const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && (b.id === 'balde' || b.id === 'textura' || b.id === 'degradado')));
     if (!list.length) continue;
     { const h = document.createElement('div'); h.className = 'glabel'; h.textContent = gname; row.appendChild(h); }
     for (const b of list) {
@@ -438,10 +447,10 @@ async function loadMeta() {
 function pageFile(n, suf) { return `pages/p${String(n).padStart(2, '0')}${suf}`; }
 function loadImg(src) { return new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; }); }
 
-/* pasar la hoja: la página vieja se levanta y gira como una hoja de papel */
+/* pasar la hoja: la página vieja se levanta, se curva como papel y gira, con su sombra */
 function pageFlip(fwd) {
   try {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !Element.prototype.animate) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const vr = viewport.getBoundingClientRect(), sr = stage.getBoundingClientRect();
     if (sr.width < 20) return;
     const k = Math.min(1, 900 / sr.width) * Math.min(2, devicePixelRatio || 1), cw = Math.round(sr.width * k), ch = Math.round(sr.height * k);
@@ -450,18 +459,39 @@ function pageFlip(fwd) {
     for (const el of [pageImg, cWipe, cColor, $('#topImg'), cTop, cInk]) { try { if (el && !el.hidden && (el.tagName !== 'IMG' || el.complete && el.naturalWidth)) x.drawImage(el, 0, 0, cw, ch); } catch (e) {} }
     document.querySelectorAll('.flip').forEach(f => f.remove());
     const f = document.createElement('div'); f.className = 'flip';
-    Object.assign(f.style, { left: (sr.left - vr.left) + 'px', top: (sr.top - vr.top) + 'px', width: sr.width + 'px', height: sr.height + 'px' });
-    f.innerHTML = '<div class="under"></div><div class="leaf"><div class="face front"></div><div class="face back"></div></div>';
-    const leaf = f.querySelector('.leaf'), front = f.querySelector('.front'), under = f.querySelector('.under');
-    front.appendChild(c); const sh = document.createElement('div'); sh.className = 'shade'; front.appendChild(sh);
-    sh.style.background = fwd ? 'linear-gradient(90deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.35))' : 'linear-gradient(270deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.35))';
-    leaf.style.transformOrigin = fwd ? 'left center' : 'right center';
-    viewport.appendChild(f);
-    const D = 720, E = 'cubic-bezier(.42,.06,.28,1)', sgn = fwd ? -1 : 1;
-    leaf.animate([{ transform: 'rotateY(0deg)' }, { transform: `rotateY(${sgn * 18}deg) skewY(${sgn * -1.2}deg)`, offset: .18 }, { transform: `rotateY(${sgn * 180}deg)` }], { duration: D, easing: E, fill: 'forwards' });
-    sh.animate([{ opacity: 0 }, { opacity: .9, offset: .5 }, { opacity: 0 }], { duration: D, easing: E, fill: 'forwards' });
-    under.animate([{ opacity: .9 }, { opacity: 0 }], { duration: D, easing: 'ease-out', fill: 'forwards' });
-    setTimeout(() => f.remove(), D + 60);
+    Object.assign(f.style, { position: 'fixed', left: sr.left + 'px', top: sr.top + 'px', width: sr.width + 'px', height: sr.height + 'px' });
+    const under = document.createElement('div'); under.className = 'under'; f.appendChild(under);
+    const N = 16, sw = sr.width / N, csw = cw / N, strips = [];
+    let parent = f;
+    for (let n = 0; n < N; n++) {
+      const i = fwd ? n : N - 1 - n;                    // la tira 0 es la que está pegada al lomo
+      const d = document.createElement('div'); d.className = 'strip';
+      Object.assign(d.style, { width: (sw + 1.5) + 'px', height: sr.height + 'px', top: '0px', transformOrigin: fwd ? 'left center' : 'right center' });
+      if (n === 0) d.style[fwd ? 'left' : 'right'] = '0px'; else d.style[fwd ? 'left' : 'right'] = sw + 'px';
+      const fr = document.createElement('canvas'); fr.className = 'face front'; fr.width = Math.ceil(csw) + 1; fr.height = ch; fr.getContext('2d').drawImage(c, Math.floor(i * csw), 0, Math.ceil(csw) + 1, ch, 0, 0, Math.ceil(csw) + 1, ch);
+      const bk = document.createElement('div'); bk.className = 'face back';
+      const sh = document.createElement('div'); sh.className = 'shade';
+      d.append(bk, fr, sh); parent.appendChild(d); strips.push({ d, sh, fr }); parent = d;
+    }
+    document.body.appendChild(f);   // por encima de todo: la hoja puede salir del marco al girar
+    const D = window.__flipD || 950, t0 = performance.now(), sg = fwd ? -1 : 1;
+    const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / D), e = ease(t), lift = Math.sin(Math.PI * t);
+      const total = 180 * e, bend = 75 * lift;           // a mitad de camino la hoja se curva más (el borde libre va por detrás)
+      let acc = 0;
+      for (let n = 0; n < N; n++) {
+        const w = n === 0 ? total : bend * (n / (N - 1)) * (2 / (N - 1)) * (1 - e * .25);
+        acc += w; const st = strips[n];
+        st.d.style.transform = n === 0 ? `translateZ(${lift * 30}px) rotateZ(${sg * -lift * 2.5}deg) rotateY(${sg * w}deg)` : `rotateY(${sg * w}deg)`;
+        st.sh.style.opacity = (Math.abs(Math.sin(acc * Math.PI / 180)) * .32 + (n / N) * lift * .12).toFixed(3);
+        st.fr.style.visibility = acc > 90 ? 'hidden' : 'visible';   // pasada la mitad se ve el dorso del papel
+      }
+      under.style.opacity = (lift * .8).toFixed(3);
+      if (t < 1) requestAnimationFrame(step); else f.remove();
+    };
+    requestAnimationFrame(step);
+    setTimeout(() => f.remove(), D + 400);
   } catch (e) {}
 }
 async function openPage(n) {
@@ -489,7 +519,7 @@ async function openPage(n) {
   if (brush !== 'gotero') brush = plate ? store.get('brush', 'marcador') : store.get('tbrush', 'resaltador');
   if (brush === 'gotero' && !plate) brush = store.get('tbrush', 'resaltador');
   if (!plate && TEXT_OFF.includes(brush)) { brush = 'resaltador'; }
-  if (page.nobucket && (brush === 'balde' || brush === 'textura')) { brush = 'marcador'; }   // solo en esta página, no se guarda
+  if (page.nobucket && (brush === 'balde' || brush === 'textura' || brush === 'degradado')) { brush = 'marcador'; }   // solo en esta página, no se guarda
   buildBrushes(); buildColors(); syncSliders(); updateDock();
   view.s = 1; fit();
   buildHotspots();
@@ -692,6 +722,34 @@ function dab(x, y, r, p, dir) {
       }
       X.restore(); break;
     }
+    case 'fibras': {
+      // fibras musculares: hebras finas y paralelas que siguen la dirección del trazo, con tonos claros y oscuros y un fondo suave
+      const st = stroke; if (!st.fb) {
+        st.fb = []; const n = Math.max(6, Math.min(30, r * 0.75 | 0));
+        for (let i = 0; i < n; i++) st.fb.push({ o: ((i + .5) / n * 2 - 1) * .95, w: .35 + Math.random() * .5, c: Math.random() < .4 ? mix(color, '#ffffff', .3 + Math.random() * .3) : mix(color, '#000000', .25 + Math.random() * .35), ph: Math.random() * 7, last: null, gap: 0 });
+        st.fbase = mix(color, '#ffffff', .12);
+      }
+      const nx = -Math.sin(dir), ny = Math.cos(dir); X.save(); X.lineCap = 'round';
+      if (st.fL) { X.globalAlpha = .55 + hard * .4; X.fillStyle = st.fbase; const L = [x + nx * r, y + ny * r], R = [x - nx * r, y - ny * r]; X.beginPath(); X.moveTo(st.fL[0], st.fL[1]); X.lineTo(L[0], L[1]); X.lineTo(R[0], R[1]); X.lineTo(st.fR[0], st.fR[1]); X.closePath(); X.fill(); }
+      st.fL = [x + nx * r, y + ny * r]; st.fR = [x - nx * r, y - ny * r];
+      X.globalAlpha = 1;
+      for (const b of st.fb) {
+        b.ph += .25; const wob = Math.sin(b.ph) * r * .025, px = x + nx * (b.o * r + wob), py = y + ny * (b.o * r + wob);
+        if (b.gap > 0) b.gap--; else if (Math.random() < .006) b.gap = 3 + (Math.random() * 6 | 0);   // la hebra se corta un instante: se ve fibrosa
+        if (b.last && !b.gap) { X.strokeStyle = b.c; X.lineWidth = Math.max(.6, r / st.fb.length * 1.3 * b.w); X.beginPath(); X.moveTo(b.last[0], b.last[1]); X.lineTo(px, py); X.stroke(); }
+        b.last = [px, py];
+      }
+      X.restore(); break;
+    }
+    case 'sombreado': {
+      // rayado de grabado: líneas paralelas en diagonal sobre una rejilla fija (así las pasadas coinciden); con más dureza se cruzan
+      const sp2 = Math.max(4, r * .22), X2 = X; X2.save(); X2.beginPath(); X2.arc(x, y, r, 0, 7); X2.clip();
+      X2.strokeStyle = color; X2.lineWidth = Math.max(.8, sp2 * .22); X2.lineCap = 'butt';
+      const fam = (ang) => { const ca = Math.cos(ang), sa = Math.sin(ang), c0 = x * -sa + y * ca; const k0 = Math.floor((c0 - r * 1.5) / sp2), k1 = Math.ceil((c0 + r * 1.5) / sp2);
+        for (let kk = k0; kk <= k1; kk++) { const c = kk * sp2, bx = -sa * c, by = ca * c; X2.beginPath(); X2.moveTo(bx + ca * (x * ca + y * sa - r * 2), by + sa * (x * ca + y * sa - r * 2)); X2.lineTo(bx + ca * (x * ca + y * sa + r * 2), by + sa * (x * ca + y * sa + r * 2)); X2.stroke(); } };
+      fam(Math.PI / 4); if (hard > .5) { X2.globalAlpha = Math.min(1, (hard - .5) * 2.2); fam(-Math.PI / 4); }
+      X2.restore(); break;
+    }
     case 'chispeado': {
       // pintura chispeada: muchas gotas irregulares, grandes y pequeñas, con gotitas alrededor y un rocío suave
       const st = stroke; X.save(); X.lineCap = 'round'; X.lineJoin = 'round';
@@ -728,6 +786,23 @@ function dab(x, y, r, p, dir) {
     }
   }
   const pad = r + 6; grow(x - pad, y - pad, x + pad, y + pad);
+}
+/* degradado: del color elegido (oscuro) a casi blanco, dentro de la parte tocada. Dos toques o arrastrar */
+let gradA = null;
+function gradMark(x, y) { xLive.clearRect(0, 0, W, H); xLive.save(); xLive.fillStyle = color; xLive.strokeStyle = '#fff'; xLive.lineWidth = 3; xLive.beginPath(); xLive.arc(x, y, 9, 0, 7); xLive.fill(); xLive.stroke(); xLive.restore(); cLive.style.opacity = 1; }
+function gradCanvas(z, a, b) {
+  const [x0, y0, x1, y1] = z.box, w = x1 - x0, h = y1 - y0; const t = document.createElement('canvas'); t.width = w; t.height = h; const tx = t.getContext('2d');
+  const g = tx.createLinearGradient(a[0] - x0, a[1] - y0, b[0] - x0, b[1] - y0); g.addColorStop(0, color); g.addColorStop(1, mix(color, '#ffffff', .88));
+  tx.fillStyle = g; tx.fillRect(0, 0, w, h);
+  tx.globalCompositeOperation = 'destination-in'; tx.drawImage(z.c, x0, y0, w, h, 0, 0, w, h);
+  if (lockCanvas) { tx.globalCompositeOperation = 'destination-out'; tx.drawImage(lockCanvas, x0, y0, w, h, 0, 0, w, h); }
+  return t;
+}
+function gradPreview(a, b) { const z = stroke ? stroke.z : null; if (!z) return; xLive.clearRect(0, 0, W, H); xLive.drawImage(gradCanvas(z, a, b), z.box[0], z.box[1]); }
+function gradCommit(z, a, b) {
+  const [x0, y0, x1, y1] = z.box; pushUndo('color', x0, y0, x1 - x0, y1 - y0);
+  xColor.save(); xColor.globalAlpha = S().opa / 100; xColor.drawImage(gradCanvas(z, a, b), x0, y0); xColor.restore();
+  cLive.style.opacity = 1; SFX.blip('fill'); buzz(18); queueSave();
 }
 /* gota irregular: un contorno con lóbulos suaves, nunca dos iguales */
 function dropBlob(X, bx, by, q) {
@@ -775,6 +850,14 @@ function startStroke(e) {
   if (brush === 'gotero') { pickColor(x, y); return; }
   if (brush === 'balde') { if (page.nobucket) { toast('En esta página se pinta a mano: elija un lápiz'); return; } bucket(x, y); return; }
   if (brush === 'textura') { if (page.nobucket) { toast('En esta página se pinta a mano: elija un lápiz'); return; } texFill(x, y); return; }
+  if (brush === 'degradado') {
+    if (page.nobucket || !labels) { toast('En esta página se pinta a mano: elija un lápiz'); return; }
+    const L = labelAt(x, y); if (!L) return; const z = zoneMask(L);
+    stroke = { brush, s, grad: true, L, z, p0: [x, y], last: [x, y], box: z.box.slice(), id: e.pointerId, layer: 'color' };
+    cLive.style.opacity = s.opa / 100; cLive.style.mixBlendMode = 'normal'; cLive.style.zIndex = '';
+    if (gradA && gradA.L === L && cur === gradA.n) gradPreview(gradA.p, [x, y]); else gradMark(x, y);
+    return;
+  }
   if (brush === 'teclado') { openKeyboard(x, y); return; }
   if (FREE.includes(brush)) {
     const hl = brush === 'resaltador';
@@ -886,6 +969,7 @@ function radius(e) {
 }
 function moveStroke(e) {
   if (!stroke) return;
+  if (stroke.grad) { const [x, y] = toPage(e); stroke.last = [x, y]; if (Math.hypot(x - stroke.p0[0], y - stroke.p0[1]) > 10) { stroke.dragged = true; gradPreview(stroke.p0, [x, y]); } return; }
   const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
   const b0 = stroke.box.slice();
   for (const ev of evs) {
@@ -894,7 +978,7 @@ function moveStroke(e) {
     if (stroke.sm) { x = stroke.sm[0] + (x - stroke.sm[0]) * k; y = stroke.sm[1] + (y - stroke.sm[1]) * k; }
     stroke.sm = [x, y];
     const [lx, ly] = stroke.last, dx = x - lx, dy = y - ly, d = Math.hypot(dx, dy);
-    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'chispeado' ? 0.3 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'magia' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
+    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'chispeado' ? 0.3 : stroke.brush === 'fibras' ? 0.1 : stroke.brush === 'sombreado' ? 0.3 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'magia' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
     const dir = Math.atan2(dy, dx);
     let t = sp - stroke.dist;
     while (t <= d) { dab(lx + dx * t / d, ly + dy * t / d, r, ev.pressure, dir); t += sp; }
@@ -909,6 +993,12 @@ function endStroke() {
   SFX.stop();
   if (!stroke) return;
   if (stroke.hold) clearInterval(stroke.hold);
+  if (stroke.grad) {
+    const st = stroke; stroke = null; xLive.clearRect(0, 0, W, H);
+    if (st.dragged) { gradA = null; gradCommit(st.z, st.p0, st.last); return; }
+    if (gradA && gradA.L === st.L && gradA.n === cur) { const a = gradA.p; gradA = null; gradCommit(st.z, a, st.p0); return; }
+    gradA = { L: st.L, p: st.p0, n: cur }; gradMark(st.p0[0], st.p0[1]); toast('Ahora toque donde el color se aclara (o arrastre de oscuro a claro)'); return;
+  }
   if (stroke.brush === 'chispeado' && !stroke.held && performance.now() - stroke.t0 < 320 && Math.hypot(stroke.last[0] - stroke.x0, stroke.last[1] - stroke.y0) < 12) { splash(stroke.x0, stroke.y0, radius({ pointerType: 'touch' })); clipLive(stroke.box); }
   if (stroke.wc) { if (stroke.raf) cancelAnimationFrame(stroke.raf); wcRender(); clipLive(stroke.box); }
   const st = stroke; stroke = null;
@@ -1252,6 +1342,7 @@ const CUR_ICON = {   // [svg, punta x, punta y]: la punta del dibujo cae justo d
   balde: ['<svg viewBox="0 0 32 32"><g transform="rotate(200 16 11)"><path d="M8 5h16l-2.2 13H10.2z" fill="#fff"/><path d="M8 5h16l-2.2 13H10.2zM9.5 5c0-5 13-5 13 0"/></g><path d="M16 21.5c-2.6 3.4-3.6 5.4-3.6 6.6a3.6 3.6 0 0 0 7.2 0c0-1.2-1-3.2-3.6-6.6z" fill="var(--c)" stroke-width="1.3"/></svg>', 16, 31.7],
   textura: ['<svg viewBox="0 0 32 32"><rect x="14" y="14" width="16" height="16" rx="2.5" fill="#fff"/><path d="M14 19.3h16M14 24.7h16M19.3 14v16M24.7 14v16" stroke="var(--c)" stroke-width="1.6"/><rect x="14" y="14" width="16" height="16" rx="2.5"/><path d="M1.5 1.5v17l4.6-4.3 3.3 7.2 3-1.4-3.3-7h6.4z" fill="#fff"/></svg>', 1.5, 1.5],
   gotero: ['<svg viewBox="0 0 32 32"><path d="M19 5l8 8M16.5 7.5l8 8L12 28H4v-8z" fill="#fff"/><path d="M4 28l-1.6 1.6" /><circle cx="2.6" cy="29.4" r="2.2" fill="var(--c)" stroke-width="1"/></svg>', 2.6, 29.4],
+  degradado: ['<svg viewBox="0 0 32 32"><defs><linearGradient id="cg" x1="0" x2="1"><stop offset="0" stop-color="var(--c)"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><rect x="12" y="14" width="18" height="14" rx="3" fill="url(#cg)"/><rect x="12" y="14" width="18" height="14" rx="3"/><path d="M1.5 1.5v17l4.6-4.3 3.3 7.2 3-1.4-3.3-7h6.4z" fill="#fff"/></svg>', 1.5, 1.5],
   teclado: ['<svg viewBox="0 0 32 32"><path d="M11 5h10M16 5v22M11 27h10" stroke="#fff" stroke-width="4"/><path d="M11 5h10M16 5v22M11 27h10"/></svg>', 16, 16]
 };
 const ERASE_ICON = '<svg viewBox="0 0 32 32"><path d="M4 22 18 8a2.5 2.5 0 0 1 3.5 0l5 5a2.5 2.5 0 0 1 0 3.5L13 30H8z" fill="#fff"/><path d="M4 22 18 8a2.5 2.5 0 0 1 3.5 0l5 5a2.5 2.5 0 0 1 0 3.5L13 30H8z"/><path d="M4 22l8 8" /><path d="M10.5 15.5l9 9" stroke="#E5578E" stroke-width="2.4"/></svg>';
