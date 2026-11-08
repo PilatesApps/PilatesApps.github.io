@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Muscle Atlas · Digital Coloring Book</title>
+<meta name="theme-color" content="#3F4A57">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Atlas Muscular">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <button class="ib" id="btnHome" aria-label="Plate library"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+  <div class="ttl"><b>Muscle Atlas</b><span id="pgName">Digital Coloring Book</span></div>
+  <button class="pgbtn" id="pgBtn" aria-label="See all plates"><span id="pgLabel">1 / 32</span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+  <button class="ib" id="btnMusic" aria-label="Music for coloring"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
+  <button class="instbtn" id="btnInstall" hidden><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>Install</span></button>
+  <button class="ib" id="btnShare" aria-label="Share plate"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
+</header>
+
+<main id="viewport">
+  <div id="stage">
+    <img id="pageImg" alt="" draggable="false">
+    <canvas id="cWipe"></canvas>
+    <canvas id="cColor"></canvas>
+    <canvas id="cLive"></canvas>
+    <img id="topImg" alt="" draggable="false" hidden>
+    <canvas id="cTop"></canvas>
+    <canvas id="cInk"></canvas>
+    <div id="texts"></div>
+    <div id="hot"></div>
+  </div>
+  <div id="toast" hidden></div>
+  <div class="zoombar" role="group" aria-label="Zoom">
+    <button id="zIn" aria-label="Zoom in"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6M10.5 7.5v6M7.5 10.5h6"/></svg></button>
+    <button id="zOut" aria-label="Zoom out"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6M7.5 10.5h6"/></svg></button>
+    <button id="zFit" aria-label="View full page"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+  <div id="musicChip" hidden><span class="eq"><i></i><i></i><i></i></span><span id="musicChipName">Soft piano</span></div>
+</main>
+
+<nav class="bar" id="bar">
+  <button class="nv" id="btnPrev" aria-label="Previous page"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+  <button class="dk" id="dkTool" aria-label="Tools"><canvas id="dkToolIcon" width="88" height="44"></canvas><span id="dkToolName">Marker</span></button>
+  <button class="dk" id="dkColor" aria-label="Colors"><span class="dsw" id="dkSwatch"></span><span id="dkColorName">Color</span></button>
+  <button class="dk tapebtn" id="dkTape" aria-label="Stay inside"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 6v12M17 6v12"/></svg><span>Stay inside</span></button>
+  <button class="dk lockbtn" id="dkLock" aria-label="Lock plate"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path id="lockArc" d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span id="lockLabel">Lock</span></button>
+  <button class="dk" id="dkUndo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span>Undo</span></button>
+  <button class="dk" id="storyBtn" hidden aria-label="Listen to the story"><svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg><span id="storyLabel">Listen</span><i id="storyBar"></i></button>
+  <button class="dk" id="dkMore" aria-label="More options"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg><span>More</span></button>
+  <button class="nv" id="btnNext" aria-label="Next page"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+</nav>
+
+<section id="tools">
+  <div class="sheethead"><span class="grab"></span><b id="sheetTitle"></b><button class="ib" id="btnCloseTools" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="sec" data-sec="tool">
+    <h3>Tool</h3>
+    <div class="grid brushes" id="brushRow"></div>
+    <div class="sliders" id="sliderRow">
+      <label><span>Size</span><input type="range" id="sSize" min="1" max="120" value="18"><output id="oSize">18</output></label>
+      <label><span>Opacity</span><input type="range" id="sOpa" min="5" max="100" value="85"><output id="oOpa">85%</output></label>
+      <label><span>Hardness</span><input type="range" id="sHard" min="0" max="100" value="70"><output id="oHard">70%</output></label>
+    </div>
+  </div>
+  <div class="sec" data-sec="color">
+    <h3>Color</h3>
+    <div class="grid colors" id="colorRow"></div>
+  </div>
+  <div class="sec" data-sec="more">
+    <h3>Options</h3>
+    <button class="opt" id="btnTape" role="switch"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 6v12M17 6v12"/></svg><span class="ot"><b>Stay inside</b><small>The color stays inside the muscle</small></span><i class="sw2"></i></button>
+    <button class="opt" id="btnSound" role="switch"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg><span class="ot"><b>Painting sounds</b><small>And vibration on Android</small></span><i class="sw2"></i></button>
+    <button class="opt" id="btnLock" role="switch"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="ot"><b>Lock this plate</b><small>What you painted is protected: it cannot be touched or erased</small></span><i class="sw2"></i></button>
+    <div class="optrow">
+      <button class="pill" id="btnUndo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Undo</button>
+      <button class="pill" id="btnRedo"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>Redo</button>
+    </div>
+    <div class="optrow">
+      <button class="pill" id="btnGuide"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg>How to use</button>
+      <button class="pill warn" id="btnClear"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Clear plate</button>
+    </div>
+    <div class="confirm" id="confirmClear" hidden>Clear everything painted on this plate? <button class="pill danger" id="clearYes">Yes, clear</button><button class="pill" id="clearNo">No</button></div>
+  </div>
+</section>
+
+<div id="home" hidden>
+  <div class="hwrap">
+    <div class="hhead">
+      <div><b>Muscle Atlas</b><span>Digital Coloring Book · 2026 Digital Edition</span></div>
+      <button class="ib" id="btnCloseHome" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <button class="cont" id="btnContinue"><span class="cthumb"><canvas id="contThumb" width="120" height="155"></canvas></span><span><small>Continue where you left off</small><b id="contName">Cover</b></span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+    <div id="homeGrid"></div>
+    <p class="hnote">Units 4 to 17: coming soon</p>
+  </div>
+</div>
+
+<div id="music" hidden>
+  <div class="mpanel">
+    <div class="mhead"><b>Music for coloring</b><button class="ib" id="btnCloseMusic" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <p class="mnote">Plays inside the app, even offline.</p>
+    <div id="trackList"></div>
+    <label class="vol"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/></svg><input type="range" id="mVol" min="0" max="100" value="60"></label>
+    <button class="pill mstop" id="mStop"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop music</button>
+    <div class="mext"><small>Or play your own music:</small>
+      <div class="mlinks">
+        <a class="mlink amz" href="https://music.amazon.com/search/yoga%20relax%20music" target="_blank" rel="noopener">Amazon Music</a>
+        <a class="mlink spo" href="https://open.spotify.com/search/yoga%20relax" target="_blank" rel="noopener">Spotify</a>
+        <a class="mlink ytm" href="https://music.youtube.com/search?q=yoga+relax+music" target="_blank" rel="noopener">YouTube Music</a>
+      </div>
+      <small class="mtip">Open it, play your playlist and come back here to paint: the music keeps going.</small>
+    </div>
+  </div>
+</div>
+
+<div id="guide" hidden>
+  <div class="gpanel">
+    <div class="gslides" id="gSlides"></div>
+    <div class="gdots" id="gDots"></div>
+    <div class="gbtns"><button class="pill" id="gSkip">Skip</button><button class="pill on" id="gNext">Next</button></div>
+  </div>
+</div>
+
+<div id="instBox" hidden><div class="ipanel"><b>Install the Muscle Atlas</b><p id="instText"></p><button class="pill" id="instClose">Got it</button></div></div>
+<div id="kbd" hidden><textarea id="kbdText" rows="3" placeholder="Write here"></textarea><button id="kbdOk">Done</button></div>
+<input type="color" id="colorPick" hidden>
+<script src="app.js"></script>
+</body>
+</html>
