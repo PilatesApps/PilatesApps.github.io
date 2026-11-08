@@ -490,13 +490,17 @@ function buildLock() {
   let seed = cur * 97 + 13; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const blobs = (page.circles || []).map(c => [(c[0] + c[2]) * PT / 2, (c[1] + c[3]) * PT / 2, (c[2] - c[0]) * PT / 2]);
   for (const r of page.lock || []) if (r[4]) { const rad = (r[3] - r[1]) * PT / 2; blobs.push([r[0] * PT + rad, r[1] * PT + rad, rad]); }   // bolitas de color al lado de los cuadros
-  for (const [cx, cy, R] of blobs) {
-    const N = 40, amp = [], ph = [rnd() * 7, rnd() * 7, rnd() * 7]; x.beginPath();
-    for (let i = 0; i <= N; i++) { const a = i / N * Math.PI * 2;
-      const k = 1.32 + 0.07 * Math.sin(3 * a + ph[0]) + 0.05 * Math.sin(5 * a + ph[1]) + 0.04 * Math.sin(8 * a + ph[2]) + (rnd() - 0.5) * 0.03;
+  for (const [cx, cy, R] of blobs) {   // mancha de pintura: borde orgánico, lóbulos y salpicaduras
+    const N = 72, H = [2, 3, 4, 5, 7, 9].map(f => [f, (0.035 + rnd() * 0.07) / Math.sqrt(f / 2), rnd() * 7]);
+    x.beginPath();
+    for (let i = 0; i <= N; i++) { const a = i / N * Math.PI * 2; let k = 1.42; for (const [f, am, p] of H) k += am * Math.sin(f * a + p);
       const px = cx + Math.cos(a) * R * k, py = cy + Math.sin(a) * R * k; i ? x.lineTo(px, py) : x.moveTo(px, py); }
     x.closePath(); x.fill();
-    for (let j = 0; j < 2; j++) { const a = rnd() * 7, d = R * (1.45 + rnd() * 0.25), r = R * (0.08 + rnd() * 0.08); x.beginPath(); x.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, r, 0, 7); x.fill(); }
+    const nd = 4 + (rnd() * 4 | 0);
+    for (let j = 0; j < nd; j++) { const a = rnd() * 7, d = R * (1.65 + rnd() * 0.8), r = R * (0.05 + rnd() * 0.12); x.beginPath(); x.ellipse(cx + Math.cos(a) * d, cy + Math.sin(a) * d, r, r * (0.7 + rnd() * 0.3), a, 0, 7); x.fill(); }
+    if (rnd() < 0.7) { const a = rnd() * 7, d0 = R * 1.3, d1 = R * (1.9 + rnd() * 0.4), w = R * (0.1 + rnd() * 0.08);   // chorrito
+      x.beginPath(); x.moveTo(cx + Math.cos(a - 0.15) * d0, cy + Math.sin(a - 0.15) * d0); x.quadraticCurveTo(cx + Math.cos(a) * d1, cy + Math.sin(a) * d1, cx + Math.cos(a + 0.15) * d0, cy + Math.sin(a + 0.15) * d0); x.fill();
+      x.beginPath(); x.arc(cx + Math.cos(a) * d1, cy + Math.sin(a) * d1, w, 0, 7); x.fill(); }
   }
 }
 /* máscara de un músculo (zona) */
