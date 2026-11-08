@@ -395,6 +395,6 @@ body.hand #viewport{cursor:grab}
   linear-gradient(#1c1c1c,#1c1c1c) 0 50%/5px 1px no-repeat,linear-gradient(#1c1c1c,#1c1c1c) 100% 50%/5px 1px no-repeat;
   filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)}
 #brushDot b{position:absolute;width:32px;height:32px;filter:drop-shadow(0 1px 1.2px rgba(0,0,0,.35))}
-#brushDot b svg{width:32px;height:32px;fill:none;stroke:#1c1c1c;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;overflow:visible}
+#brushDot b svg{fill:none;stroke:#1c1c1c;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;overflow:visible}
 #brushDot.er .ring{background:rgba(255,255,255,.28);box-shadow:0 0 0 1px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.95)}
 @media (hover:hover){body.tools:not(.hand):not(.sheet) #viewport{cursor:none}}

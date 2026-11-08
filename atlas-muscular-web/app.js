@@ -1339,7 +1339,7 @@ function buildHotspots() {
 /* cursor de pintar: aro fino del ancho real del pincel + cruz al centro (como en Paint); balde, textura, cuentagotas y teclado con su símbolo */
 const dot = document.createElement('div'); dot.id = 'brushDot'; dot.hidden = true; document.body.appendChild(dot);
 const CUR_ICON = {   // [svg, punta x, punta y]: la punta del dibujo cae justo donde actúa la herramienta
-  balde: ['<svg viewBox="0 0 32 32"><g transform="rotate(200 16 11)"><path d="M8 5h16l-2.2 13H10.2z" fill="#fff"/><path d="M8 5h16l-2.2 13H10.2zM9.5 5c0-5 13-5 13 0"/></g><path d="M16 21.5c-2.6 3.4-3.6 5.4-3.6 6.6a3.6 3.6 0 0 0 7.2 0c0-1.2-1-3.2-3.6-6.6z" fill="var(--c)" stroke-width="1.3"/></svg>', 16, 31.7],
+  balde: ['<svg viewBox="0 0 32 32" style="stroke-width:1.15"><g transform="rotate(200 16 9)"><path d="M10 4h12l-1.6 9.5h-8.8z" fill="#fff"/><path d="M10 4h12l-1.6 9.5h-8.8zM11 4c0-3.6 10-3.6 10 0"/></g><path d="M16 31.6 13.9 25.4a2.2 2.2 0 1 1 4.2 0z" fill="var(--c)" stroke-width=".9"/></svg>', 16 * .72, 31.6 * .72, 23],
   textura: ['<svg viewBox="0 0 32 32"><rect x="14" y="14" width="16" height="16" rx="2.5" fill="#fff"/><path d="M14 19.3h16M14 24.7h16M19.3 14v16M24.7 14v16" stroke="var(--c)" stroke-width="1.6"/><rect x="14" y="14" width="16" height="16" rx="2.5"/><path d="M1.5 1.5v17l4.6-4.3 3.3 7.2 3-1.4-3.3-7h6.4z" fill="#fff"/></svg>', 1.5, 1.5],
   gotero: ['<svg viewBox="0 0 32 32"><path d="M19 5l8 8M16.5 7.5l8 8L12 28H4v-8z" fill="#fff"/><path d="M4 28l-1.6 1.6" /><circle cx="2.6" cy="29.4" r="2.2" fill="var(--c)" stroke-width="1"/></svg>', 2.6, 29.4],
   degradado: ['<svg viewBox="0 0 32 32"><defs><linearGradient id="cg" x1="0" x2="1"><stop offset="0" stop-color="var(--c)"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><rect x="12" y="14" width="18" height="14" rx="3" fill="url(#cg)"/><rect x="12" y="14" width="18" height="14" rx="3"/><path d="M1.5 1.5v17l4.6-4.3 3.3 7.2 3-1.4-3.3-7h6.4z" fill="#fff"/></svg>', 1.5, 1.5],
@@ -1358,7 +1358,7 @@ function showDot(e) {
     dotKey = key;
     dot.className = ic ? 'icon' : er ? 'er' : '';
     let h = '';
-    if (ic) h = `<b style="left:${-ic[1]}px;top:${-ic[2]}px">${ic[0]}</b>`;
+    if (ic) { const z = ic[3] || 32; h = `<b style="left:${-ic[1]}px;top:${-ic[2]}px;width:${z}px;height:${z}px">${ic[0].replace('<svg ', `<svg width="${z}" height="${z}" `)}</b>`; }
     else if (er) { const r = Math.max(5, d / 2), o = r * .707; h = `<i class="ring" style="width:${2 * r}px;height:${2 * r}px;margin:${-r}px 0 0 ${-r}px"></i><b style="left:${o - 6}px;top:${-o - 26}px">${ERASE_ICON}</b>`; }
     else h = (d >= 7 ? `<i class="ring" style="width:${d}px;height:${d}px;margin:${-d / 2}px 0 0 ${-d / 2}px"></i>` : '') + '<i class="cross"></i>';
     dot.innerHTML = h; dot.style.setProperty('--c', c);
