@@ -861,6 +861,21 @@ function swap(from, to) {
 }
 $('#btnUndo').onclick = () => { if (isLocked()) { toast('Plate locked'); return; } swap(undo, redo); };
 $('#btnClear').onclick = () => { if (isLocked()) { toast('Plate locked'); return; } $('#confirmClear').hidden = false; };
+// borrar todo el libro: tres confirmaciones
+let wipeStep = 0;
+const WIPE = ['This will erase <b>the whole book</b>: everything painted and written on <b>every plate</b>. Do you want to continue?',
+  'Are you sure? <b>This cannot be undone.</b> All your plates will be blank.',
+  'Final confirmation: tap <b>Erase all</b> to leave the whole book blank.'];
+function wipeRender() { $('#wipeText').innerHTML = WIPE[wipeStep]; $('#wipeSteps').innerHTML = WIPE.map((_, i) => `<i class="${i <= wipeStep ? 'on' : ''}"></i>`).join(''); $('#wipeYes').textContent = wipeStep < 2 ? `Confirm (${wipeStep + 1} of 3)` : 'Erase all'; }
+$('#btnWipeAll').onclick = () => { wipeStep = 0; wipeRender(); $('#wipeBox').hidden = false; };
+$('#wipeNo').onclick = () => { $('#wipeBox').hidden = true; };
+$('#wipeYes').onclick = async () => {
+  if (wipeStep < 2) { wipeStep++; wipeRender(); return; }
+  try { const d = await db(); await new Promise(ok => { const t = d.transaction('p', 'readwrite'); t.objectStore('p').clear(); t.oncomplete = ok; t.onerror = ok; }); } catch (e) {}
+  locks = {}; store.set('locks', locks); clearTimeout(saveT); dirty = false;
+  xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xMask.clearRect(0, 0, W, H); xWipe.clearRect(0, 0, W, H); wipeUsed = false; texts = {}; renderTexts(); undo.length = 0; redo.length = 0;
+  if (typeof renderWipe === 'function') renderWipe(); syncLock(); $('#wipeBox').hidden = true; closeHome(); toast('Book cleared: every plate is blank again');
+};
 $('#clearNo').onclick = () => { $('#confirmClear').hidden = true; };
 $('#clearYes').onclick = () => {
   pushUndo('color', 0, 0, W, H); xColor.clearRect(0, 0, W, H);
