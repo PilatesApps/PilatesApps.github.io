@@ -851,7 +851,7 @@ $('#clearYes').onclick = () => {
   pushUndo('color', 0, 0, W, H); xColor.clearRect(0, 0, W, H);
   pushUndo('ink', 0, 0, W, H); xInk.clearRect(0, 0, W, H);
   if (wipeUsed) { pushUndo('wipe', 0, 0, W, H); xMask.clearRect(0, 0, W, H); renderWipe(); }
-  texts = {}; renderTexts(); $('#confirmClear').hidden = true; queueSave(); toast('Plate cleared');
+  texts = {}; renderTexts(); $('#confirmClear').hidden = true; closeSheet(); queueSave(); toast('Plate cleared');
 };
 $('#btnRedo').onclick = () => swap(redo, undo);
 
@@ -944,8 +944,11 @@ async function idbKeys() { try { const d = await db(); return await new Promise(
 const GUIDE = [
   ['<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>', 'Choose and paint', 'Tap <b>the tool</b> and <b>the color</b> below. With <b>Stay inside</b> on, the color stays inside the muscle you started painting.'],
   ['<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'Pinch with two fingers to zoom', 'Pinch to zoom and move with two fingers. <b>Tap with two fingers</b> to undo the last stroke.'],
-  ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'All your plates', 'Swipe sideways or use the arrows to turn the page. Tap <b>the page number</b> to see all the plates and what you have painted.'],
-  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Music, and it saves itself', 'Tap <b>the music note</b> for relaxing music. Everything you paint <b>saves itself</b> on this device.']
+  ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'All your plates', 'Swipe sideways or use <b>Previous</b> and <b>Next</b>, above the plate. Tap <b>the page number</b> to see all the plates and what you have painted.'],
+  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Music, and it saves itself', 'Tap <b>the music note</b> for relaxing music. Everything you paint <b>saves itself</b> on this device.'],
+  ['<path d="M4 19.5V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>', 'Learn by painting', 'Before coloring, find <b>where the muscle starts</b> (its origin) and <b>where it ends</b> (its insertion). Paint it end to end, follow the direction of its fibers and fill in the table: <b>muscle, origin, insertion and action</b>. Your hand and your eye learn together.'],
+  ['<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.2 5.2 0 0 0 22 9.2C22 5.8 17.5 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>', 'Free your inner artist', 'There is no right way to paint a muscle. Mix watercolor with pencil, invent your own palette, draw on the <b>free canvas</b>. When you paint the body creatively, <b>you remember it better</b> and teach it with more passion.'],
+  ['<path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>', 'Share your work', 'When your plate is ready, tap <b>the up arrow</b> at the top right and share it on WhatsApp or social media with your classmates. Your plate carries the Muscle Atlas mark. Inspire others to learn by painting!']
 ];
 let gi = 0;
 function showGuide() {
