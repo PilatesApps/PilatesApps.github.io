@@ -1161,7 +1161,7 @@ const MUSIC = (() => {
     ['lluvia', 'Lluvia', 'Gotas serenas y sapitos lejanos', '🌧'],
     ['mar', 'Mar', 'Olas lentas y lejanas', '🌊'],
     ['cuencos', 'Cuencos de cristal', 'Vibración que relaja', '🔔'],
-    ['indie', 'Guitarra yoga', 'Arpegios suaves y fluidos', '🌿'],
+    ['indie', 'Indie relax', 'Guitarra, handpan, tambor y campanitas', '🌿'],
     ['mantra', 'Mantra Om', 'Om, tanpura y sitar suave', '🧘'],
     ['cuerdas', 'Arpa y violines', 'Cuerdas suaves que relajan', '🎻'],
   ];
@@ -1305,15 +1305,26 @@ const MUSIC = (() => {
       strike(); every(strike, 5200);
     },
     indie() {
-      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 800; const bus = ac.createGain(); bus.gain.value = 0.6; lp.connect(bus); bus.connect(master); bus.connect(verb); keep(lp, bus);
+      // indie/folk de yoga: rasgueo suave de guitarra, handpan, tambor de mano, shaker y campanitas; cambia por secciones
       const PROG = [[52, 59, 64, 67, 71, 76], [48, 55, 64, 67, 72, 76], [43, 50, 59, 62, 67, 71], [45, 52, 60, 64, 69, 72]];
-      let ci = 0;
-      const bar = () => { const t0 = ac.currentTime + 0.05, ch = PROG[ci++ % 4], step = 0.375;
-        for (const m of ch.slice(0, 2)) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = hz(m);
-          g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.025, t0 + 1.2); g.gain.linearRampToValueAtTime(0, t0 + 6.4); o.connect(g).connect(lp); o.start(t0); o.stop(t0 + 6.5); }
-        const pat = Math.random() < 0.5 ? [0, 2, 3, 4, 5, 4, 3, 2, 1, 2, 3, 4, 5, 4, 3, 2] : [0, 3, 2, 4, 3, 5, 4, 3, 1, 3, 2, 4, 3, 5, 4, 2];
-        pat.forEach((k, i) => pluck(ch[k], t0 + i * step + (Math.random() - 0.5) * 0.02, 0.09 + Math.random() * 0.04)); };
-      bar(); every(bar, 6000);
+      const HP = [50, 57, 60, 62, 64, 67, 69, 72];   // escala del handpan (re menor suave)
+      const handpan = (m, t, v) => { for (const [k, a, d] of [[1, v, 3.2], [2, v * 0.35, 1.8], [3, v * 0.12, 1.1]]) { const o = ac.createOscillator(), g = ac.createGain();
+          o.frequency.value = hz(m) * k; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0005, t + d); o.connect(g); g.connect(master); g.connect(verb); o.start(t); o.stop(t + d + 0.1); } };
+      const drum = (t, low) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(low ? 95 : 180, t); o.frequency.exponentialRampToValueAtTime(low ? 55 : 120, t + 0.18);
+          g.gain.setValueAtTime(low ? 0.16 : 0.07, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3); o.connect(g).connect(master); o.start(t); o.stop(t + 0.32); };
+      const shaker = (t, v) => { const n = noise('white'), hp = ac.createBiquadFilter(), g = ac.createGain(); hp.type = 'highpass'; hp.frequency.value = 6000;
+          g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12); n.connect(hp).connect(g).connect(master); n.start(t); n.stop(t + 0.14); };
+      const strum = (ch, t, v, down) => { const ns = down ? ch : [...ch].reverse(); ns.forEach((m, i) => pluck(m, t + i * 0.018, v)); };
+      let ci = 0, sec = 0;
+      const bar = () => { const t0 = ac.currentTime + 0.05, ch = PROG[ci++ % 4], b = 0.5;   // 8 tiempos de 0,5 s
+        if (ci % 8 === 1) sec = Math.random() * 3 | 0;   // cada 8 compases cambia el arreglo
+        const pat = [[0, 1, 0.12], [1.5, 0, 0.07], [2, 1, 0.1], [3, 0, 0.07], [3.5, 1, 0.06], [4, 1, 0.11], [5.5, 0, 0.07], [6, 1, 0.1], [7, 0, 0.07]];
+        if (sec !== 2) pat.forEach(([k, d, v]) => strum(ch, t0 + k * b, v, d));
+        else [0, 2, 3, 5, 6, 7, 4, 2].forEach((k, i) => pluck(ch[k % 6], t0 + i * b, 0.1));
+        if (sec !== 1) { [0, 3, 4, 6].forEach(i => drum(t0 + i * b, i % 4 === 0)); for (let i = 0; i < 16; i++) shaker(t0 + i * b / 2, i % 2 ? 0.012 : 0.02); }
+        const k = sec === 1 ? 6 : 3; for (let i = 0; i < k; i++) if (Math.random() < 0.8) handpan(HP[Math.random() * HP.length | 0], t0 + (Math.random() * 8 | 0) * b, 0.05);
+        if (Math.random() < 0.25) for (let i = 0; i < 4; i++) note(84 + [0, 4, 7, 12][i], t0 + 2 + i * 0.12, 2, 0.008); };
+      bar(); every(bar, 4000);
     },
     mantra() {
       const bus = ac.createGain(); bus.gain.value = 0.9; bus.connect(master); bus.connect(verb); keep(bus);
