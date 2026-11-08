@@ -89,15 +89,18 @@ function setupInstall() {
   if (e !== 'desktop' || installEvt) showInstall();
   $('#btnInstall').onclick = async () => {
     if (installEvt) { installEvt.prompt(); const r = await installEvt.userChoice; installEvt = null; if (r.outcome === 'accepted') $('#btnInstall').hidden = true; return; }
+    const ipad = /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const T = {
-      inapp: 'This link opened inside another app (WhatsApp, Instagram...) where it cannot be installed. Tap the three dots at the top and choose <b>Open in Chrome</b> (or <b>Open in Safari</b> on iPhone). The Install button will appear there.',
-      ios: 'On iPhone: tap the <b>Share</b> button (the square with the up arrow, at the bottom in Safari) and then <b>Add to Home Screen</b>.',
-      'ios-other': 'On iPhone, installation is done from <b>Safari</b>. Copy the link, open it in Safari, tap <b>Share</b> and then <b>Add to Home Screen</b>.',
-      samsung: 'In Samsung Internet: tap the menu (the three lines at the bottom), then <b>Add page to</b> and <b>Home screen</b>. Or open the link in Chrome and use the Install button.',
-      android: 'In Chrome: tap the <b>three dots</b> at the top right and choose <b>Install app</b> or <b>Add to Home screen</b>.',
-      desktop: 'In Chrome or Edge: tap the install icon in the address bar, or the menu and <b>Install Muscle Atlas</b>.'
+      inapp: '<p>This link opened inside another app (WhatsApp, Instagram...) where it cannot be installed.</p><ol><li>Tap the <b>three dots</b> <span class="ico"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span> at the top.</li><li>Choose <b>Open in Chrome</b> (or <b>Open in Safari</b> on iPhone).</li><li>There, tap the yellow <b>Install</b> button.</li></ol>',
+      ios: ipad
+        ? '<p>On iPad, in <b>Safari</b>:</p><ol><li>At the top right, next to the address, tap <b>Share</b> <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span> (the square with the up arrow).</li><li>Scroll down the list and tap <b>Add to Home Screen</b> <span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg></span>.</li><li>At the top right, tap <b>Add</b>.</li></ol>'
+        : '<p>On iPhone, in <b>Safari</b>:</p><ol><li>Go to the <b>bottom of the screen</b>, to the Safari bar, and tap the <b>three dots</b> <span class="ico"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span> on the right.<br><small>If your iPhone shows the <b>Share</b> <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span> button at the bottom center, tap it directly and go to step 3.</small></li><li>Tap <b>Share</b> <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span>.</li><li>Scroll down the list and tap <b>Add to Home Screen</b> <span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg></span>.</li><li>At the top right, tap <b>Add</b>. The Atlas icon appears on your screen.</li></ol>',
+      'ios-other': '<p>On iPhone or iPad, <b>Safari</b> is easiest:</p><ol><li>Copy the link and open it in <b>Safari</b>.</li><li>At the bottom, tap the <b>three dots</b> <span class="ico"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span> and then <b>Share</b> <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span>.</li><li>Tap <b>Add to Home Screen</b> <span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg></span> and then <b>Add</b>.</li></ol>',
+      samsung: '<ol><li>Tap the menu (the <b>three lines</b> at the bottom right).</li><li>Tap <b>Add page to</b> and then <b>Home screen</b>.</li></ol><p>Or open the link in Chrome and use the yellow <b>Install</b> button.</p>',
+      android: '<ol><li>In Chrome, tap the <b>three dots</b> <span class="ico"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span> at the top right.</li><li>Choose <b>Install app</b> or <b>Add to Home screen</b>.</li><li>Confirm with <b>Install</b>.</li></ol>',
+      desktop: '<ol><li>In Chrome or Edge, tap the install icon in the address bar.</li><li>Or open the menu and choose <b>Install Muscle Atlas</b>.</li></ol>'
     };
-    $('#instText').innerHTML = T[e] + '<br><br>Once installed, it works <b>offline</b>.';
+    $('#instText').innerHTML = T[e] + '<p>Once installed, it works <b>offline</b>.</p>';
     $('#instBox').hidden = false;
   };
   $('#instClose').onclick = () => { $('#instBox').hidden = true; };

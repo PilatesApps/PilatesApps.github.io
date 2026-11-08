@@ -252,3 +252,32 @@ body.textmode #dkLock{display:none}
 .dsw.erase{background:#fff!important;display:grid;place-items:center}.dsw.erase svg{width:17px;height:17px;fill:none;stroke:#3F4A57;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .glabel.erasing{color:#B5562A;font-weight:600}
 #texts .tx.circ{display:flex;align-items:center;justify-content:center;text-align:center;padding:0;line-height:1;overflow:visible;padding-bottom:.08em}
+
+/* ---------- aire arriba y abajo, fondo con marca de agua, pasar página fuera de la barra (Gus, 8 nov) ---------- */
+:root{--gapT:12px;--gapB:10px;--pgH:46px}
+html,body{background:#EEECE9 url(bg_wm.jpg) center/100% 100% no-repeat}
+.top{height:calc(var(--topH) + var(--sat) + var(--gapT));padding-top:calc(var(--sat) + var(--gapT))}
+#pager{position:fixed;left:0;right:0;top:calc(var(--topH) + var(--sat) + var(--gapT));height:var(--pgH);z-index:19;display:flex;align-items:center;justify-content:space-between;
+  padding:6px max(10px,env(safe-area-inset-right,0px)) 0 max(10px,env(safe-area-inset-left,0px))}
+#pager .pgnav{display:flex;align-items:center;gap:4px;height:36px;padding:0 14px;border-radius:18px;background:#fff;color:var(--chrome);font-weight:600;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+#pager .pgnav svg{width:20px;height:20px;stroke-width:2.4}
+#pager .pgnav:disabled{opacity:.35}
+#pager .pghint{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--chrome);opacity:.7}
+#viewport{top:calc(var(--topH) + var(--sat) + var(--gapT) + var(--pgH));bottom:calc(var(--barH) + var(--sab) + var(--gapB) * 2);background:transparent}
+@media (max-width:899px){
+  .bar{left:10px;right:10px;bottom:calc(var(--sab) + var(--gapB));height:var(--barH);padding:0 6px;border:0;border-radius:18px;box-shadow:0 4px 18px rgba(0,0,0,.14);justify-content:space-around}
+  #tools{bottom:calc(var(--barH) + var(--sab) + var(--gapB) * 2)}
+}
+@media (min-width:900px){
+  #pager{left:var(--side);justify-content:center;gap:18px}
+  #tools{top:calc(var(--topH) + var(--sat) + var(--gapT))}
+  #viewport{bottom:calc(var(--barH) + var(--sab))}
+}
+.instbtn span{display:inline!important}
+.instbtn{padding:7px 12px!important;font-size:13px!important;box-shadow:0 0 0 2px rgba(242,194,48,.35)}
+.instbtn svg{width:17px!important;height:17px!important}
+#instText ol{margin:10px 0 6px;padding-left:22px}
+#instText li{margin:7px 0}
+#instText .ico{display:inline-grid;place-items:center;width:26px;height:22px;border:1.5px solid #9AA3AD;border-radius:6px;vertical-align:-5px;margin:0 2px}
+#instText .ico svg{width:15px;height:15px}
+#instText p{margin:8px 0}
