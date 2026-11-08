@@ -36,6 +36,7 @@ const BRUSHES = [
   { id: 'acuarela', name: 'Acuarela', size: 34, opa: 80, hard: 10 },
   { id: 'oleo', name: 'Óleo', size: 30, opa: 100, hard: 90 },
   { id: 'aero', name: 'Aerógrafo', size: 50, opa: 25, hard: 0 },
+  { id: 'chispeado', name: 'Chispeado', size: 44, opa: 100, hard: 60 },
   { id: 'balde', name: 'Balde', size: 0, opa: 90, hard: 100 },
   { id: 'textura', name: 'Textura', size: 40, opa: 100, hard: 100 },
   { id: 'borrador', name: 'Borrador', size: 26, opa: 100, hard: 80 },
@@ -251,6 +252,7 @@ function preview(id) {
   else if (id === 'carboncillo') { wave(9); x.globalCompositeOperation = 'destination-in'; x.drawImage(GRAIN.carboncillo, 0, 0); }
   else if (id === 'acuarela') { x.globalAlpha = .35; wave(15); x.globalAlpha = .7; x.lineWidth = 1.5; x.beginPath(); x.moveTo(10, 23); x.bezierCurveTo(30, -1, 55, 33, 78, 7); x.stroke(); x.beginPath(); x.moveTo(10, 37); x.bezierCurveTo(30, 13, 55, 47, 78, 21); x.stroke(); x.globalAlpha = .5; for (const [a, b, r] of [[22, 40, 2.5], [64, 36, 2], [80, 26, 1.6]]) { x.beginPath(); x.arc(a, b, r, 0, 7); x.fill(); } }
   else if (id === 'oleo') { wave(11); x.strokeStyle = '#fff'; x.globalAlpha = .55; x.lineWidth = 1.4; x.beginPath(); x.moveTo(10, 27); x.bezierCurveTo(30, 3, 55, 37, 78, 11); x.stroke(); x.strokeStyle = '#1d232b'; x.globalAlpha = .6; x.beginPath(); x.moveTo(12, 34); x.bezierCurveTo(32, 10, 56, 44, 78, 18); x.stroke(); }
+  else if (id === 'chispeado') { const R = seeded(7); x.fillStyle = '#3F4A57'; for (let i = 0; i < 26; i++) { const a = 14 + R() * 60, b = 8 + R() * 28, q = R() < .15 ? 3.2 + R() * 2.5 : .6 + R() * 1.6; x.beginPath(); x.arc(a, b, q, 0, 7); x.fill(); } x.beginPath(); x.moveTo(52, 20); x.lineTo(52.6, 34); x.arc(53.3, 34, 1.2, Math.PI, 0, true); x.lineTo(54.2, 20); x.fill(); }
   else if (id === 'aero') { const g = x.createRadialGradient(44, 22, 2, 44, 22, 18); g.addColorStop(0, 'rgba(63,74,87,.55)'); g.addColorStop(1, 'rgba(63,74,87,0)'); x.fillStyle = g; x.fillRect(0, 0, 88, 44); for (let i = 0; i < 70; i++) { const a = Math.random() * 7, d = Math.abs((Math.random() + Math.random() - 1)) * 20; x.globalAlpha = .6; x.fillRect(44 + Math.cos(a) * d, 22 + Math.sin(a) * d, 1, 1); } }
   else if (id === 'balde') { x.font = '28px sans-serif'; x.textAlign = 'center'; x.fillText('🪣', 44, 33); }
   else if (id === 'textura') { const q = [['rayas', '#2F62D6', 20, 6], ['puntos', '#F2C230', 44, 6], ['flores', '#1E9E4A', 20, 22], ['cuadros', '#E8732A', 44, 22]]; for (const [tid, tc, qx, qy] of q) { x.fillStyle = x.createPattern(texTile(tid, tc, .2), 'repeat'); x.fillRect(qx, qy, 24, 16); } x.strokeStyle = '#3F4A57'; x.lineWidth = 1.5; x.strokeRect(20.5, 6.5, 47, 31); }
@@ -283,7 +285,7 @@ function openSheet(sec) {
 function closeSheet() { document.body.classList.remove('sheet'); document.querySelectorAll('.dk').forEach(d => d.classList.remove('on')); }
 function buildBrushes() {
   const row = $('#brushRow'); row.innerHTML = '';
-  const GROUPS = [['Pintar', ['marcador', 'lapiz', 'creyon', 'tiza', 'carboncillo', 'acuarela', 'oleo', 'aero', 'balde', 'textura']],
+  const GROUPS = [['Pintar', ['marcador', 'lapiz', 'creyon', 'tiza', 'carboncillo', 'acuarela', 'oleo', 'aero', 'chispeado', 'balde', 'textura']],
                   ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
                   ['Borrar', ['borrador', 'magia']]];
   for (const [gname, ids] of GROUPS) {
@@ -690,6 +692,48 @@ function dab(x, y, r, p, dir) {
       }
       X.restore(); break;
     }
+    case 'chispeado': {
+      // pintura chispeada (estilo Pollock): manchas irregulares, gotas en forma de lágrima que salen en todas direcciones, hilos y chorreados
+      const k = 0.35 + hard * 0.9; X.save(); X.fillStyle = color; X.strokeStyle = color; X.lineCap = 'round';
+      const blob = (bx, by, q) => {   // mancha irregular: varios lóbulos
+        const lobes = 3 + (Math.random() * 4 | 0), ph = Math.random() * 7, amp = .18 + Math.random() * .3;
+        X.beginPath(); for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2, m = q * (1 + amp * Math.sin(a * lobes + ph) + (Math.random() - .5) * .12); i ? X.lineTo(bx + Math.cos(a) * m, by + Math.sin(a) * m) : X.moveTo(bx + Math.cos(a) * m, by + Math.sin(a) * m); } X.fill();
+        grow(bx - q * 1.6, by - q * 1.6, bx + q * 1.6, by + q * 1.6); };
+      const tear = (bx, by, q, ang, len) => {   // gota en lágrima: cabeza redonda y cola que apunta hacia donde viene
+        const ex = bx - Math.cos(ang) * len, ey = by - Math.sin(ang) * len, nx = -Math.sin(ang), ny = Math.cos(ang);
+        X.beginPath(); X.moveTo(ex, ey); X.quadraticCurveTo(bx + nx * q * 1.1 - Math.cos(ang) * q, by + ny * q * 1.1 - Math.sin(ang) * q, bx + nx * q, by + ny * q);
+        X.arc(bx, by, q, ang + Math.PI / 2, ang - Math.PI / 2, true);
+        X.quadraticCurveTo(bx - nx * q * 1.1 - Math.cos(ang) * q, by - ny * q * 1.1 - Math.sin(ang) * q, ex, ey); X.fill();
+        grow(Math.min(bx, ex) - q - 2, Math.min(by, ey) - q - 2, Math.max(bx, ex) + q + 2, Math.max(by, ey) + q + 2); };
+      const n = Math.random() < k ? 1 + (Math.random() * 2 * k | 0) : 0;
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 7, d = Math.pow(Math.random(), 1.4) * r * 1.8, bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d;
+        const big = Math.random() < .14, q = Math.max(0.7, r * (big ? 0.16 + Math.random() * .24 : 0.025 + Math.random() * 0.07));
+        if (big) {
+          blob(bx, by, q);
+          const m = 5 + (Math.random() * 9 | 0);            // salpicadura: lágrimas y hilos disparados en todas direcciones
+          for (let j = 0; j < m; j++) {
+            const b = Math.random() * 7, e = q * (1.2 + Math.random() * 2.4), tq = Math.max(.5, q * (0.07 + Math.random() * .16));
+            if (Math.random() < .7) tear(bx + Math.cos(b) * e, by + Math.sin(b) * e, tq, b, tq * (2 + Math.random() * 5));
+            else { X.lineWidth = Math.max(.5, tq * .6); X.beginPath(); X.moveTo(bx + Math.cos(b) * q * .8, by + Math.sin(b) * q * .8); X.lineTo(bx + Math.cos(b) * e * 1.3, by + Math.sin(b) * e * 1.3); X.stroke(); grow(bx - e * 1.4, by - e * 1.4, bx + e * 1.4, by + e * 1.4); }
+          }
+          if (Math.random() < .2) {                         // chorrea hacia abajo
+            const L = q * (1.5 + Math.random() * 3.5), wv = q * (0.42 + Math.random() * .2);
+            X.beginPath(); X.moveTo(bx - wv * .5, by); X.lineTo(bx - wv * .5, by + L); X.arc(bx, by + L, wv * .5, Math.PI, 0, true); X.lineTo(bx + wv * .5, by); X.fill(); X.beginPath(); X.ellipse(bx, by + L - wv * .2, wv * .8, wv, 0, 0, 7); X.fill(); grow(bx - q, by, bx + q, by + L + q);
+          }
+        } else if (Math.random() < .55) tear(bx, by, q, a + (Math.random() - .5) * 1.2, q * (1.5 + Math.random() * 4));   // gota que sale volando
+        else blob(bx, by, q);
+      }
+      for (let i = 0; i < 2 + (Math.random() * 4 * k | 0); i++) { const a = Math.random() * 7, d = Math.random() * r * 1.6; X.beginPath(); X.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, Math.max(.5, r * (0.01 + Math.random() * .03)), 0, 7); X.fill(); }   // rocío fino
+      grow(x - r * 1.7, y - r * 1.7, x + r * 1.7, y + r * 1.7);
+      if (Math.random() < 0.22 * k) {                       // hilo de pintura que serpentea en cualquier dirección
+        const len = r * (0.5 + Math.random() * 1.6), w2 = Math.max(.6, r * (0.012 + Math.random() * .03)), ox = (Math.random() - .5) * r, oy = (Math.random() - .5) * r, th = dir + (Math.random() - .5) * 3;
+        X.lineWidth = w2; X.beginPath(); X.moveTo(x + ox, y + oy);
+        X.bezierCurveTo(x + ox + Math.cos(th) * len * .33 + (Math.random() - .5) * r * .8, y + oy + Math.sin(th) * len * .33 + (Math.random() - .5) * r * .8, x + ox + Math.cos(th) * len * .66 + (Math.random() - .5) * r * .8, y + oy + Math.sin(th) * len * .66 + (Math.random() - .5) * r * .8, x + ox + Math.cos(th) * len, y + oy + Math.sin(th) * len); X.stroke();
+        grow(x - len - r, y - len - r, x + len + r, y + len + r);
+      }
+      X.restore(); break;
+    }
     case 'aero': {
       const g = X.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(color, .07)); g.addColorStop(1, rgba(color, 0));
       X.fillStyle = g; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill();
@@ -752,7 +796,7 @@ function startStroke(e) {
   }
   stroke = { brush, s, layer: eraseInk ? 'ink' : layer, zone, wzone, eraseInk, ink: '#1F3B73', pts: [[x, y]], box: [x, y, x, y], last: [x, y], dist: 0, id: e.pointerId };
   cLive.style.opacity = (stroke.brush === 'borrador' ? 0 : s.opa / 100);
-  cLive.style.mixBlendMode = stroke.layer === 'ink' ? 'normal' : 'multiply'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';
+  cLive.style.mixBlendMode = stroke.brush === 'acuarela' ? 'multiply' : 'normal'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';   // se ve igual que como queda, también encima de texturas y fotos oscuras
   cLive.style.filter = '';
   if (stroke.brush === 'acuarela') { WC.x.clearRect(0, 0, W, H); stroke.wc = true; }
   if (brush === 'borrador') stroke.snap = snapLayers(stroke.layer);
@@ -816,7 +860,7 @@ function moveStroke(e) {
     if (stroke.sm) { x = stroke.sm[0] + (x - stroke.sm[0]) * k; y = stroke.sm[1] + (y - stroke.sm[1]) * k; }
     stroke.sm = [x, y];
     const [lx, ly] = stroke.last, dx = x - lx, dy = y - ly, d = Math.hypot(dx, dy);
-    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'magia' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
+    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'chispeado' ? 0.35 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'magia' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
     const dir = Math.atan2(dy, dx);
     let t = sp - stroke.dist;
     while (t <= d) { dab(lx + dx * t / d, ly + dy * t / d, r, ev.pressure, dir); t += sp; }
@@ -1168,25 +1212,29 @@ function buildHotspots() {
 
 /* cursor de pintar: aro fino del ancho real del pincel + cruz al centro (como en Paint); balde, textura, cuentagotas y teclado con su símbolo */
 const dot = document.createElement('div'); dot.id = 'brushDot'; dot.hidden = true; document.body.appendChild(dot);
-const CUR_ICON = {
-  balde: '<svg viewBox="0 0 24 24"><path d="M5 9.5 12 3l7.5 7.5L13 17z" fill="#fff"/><path d="M5 9.5 12 3l7.5 7.5L13 17zM5 9.5h14.5"/><path d="M19.5 10.5c1.2 2 1.8 3.4 1.8 4.3a1.8 1.8 0 0 1-3.6 0c0-.9.6-2.3 1.8-4.3z" fill="var(--c)"/></svg>',
-  textura: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" fill="#fff"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke="var(--c)" stroke-width="1.6"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>',
-  gotero: '<svg viewBox="0 0 24 24"><path d="m14 4 6 6M12 6l6 6-9 9H3v-6z" fill="#fff"/></svg>',
-  teclado: '<svg viewBox="0 0 24 24"><path d="M9 4h6M12 4v16M9 20h6"/></svg>'
+const CUR_ICON = {   // [svg, punta x, punta y]: la punta del dibujo cae justo donde actúa la herramienta
+  balde: ['<svg viewBox="0 0 32 32"><g transform="rotate(200 16 11)"><path d="M8 5h16l-2.2 13H10.2z" fill="#fff"/><path d="M8 5h16l-2.2 13H10.2zM9.5 5c0-5 13-5 13 0"/></g><path d="M16 21.5c-2.6 3.4-3.6 5.4-3.6 6.6a3.6 3.6 0 0 0 7.2 0c0-1.2-1-3.2-3.6-6.6z" fill="var(--c)" stroke-width="1.3"/></svg>', 16, 31.7],
+  textura: ['<svg viewBox="0 0 32 32"><rect x="14" y="14" width="16" height="16" rx="2.5" fill="#fff"/><path d="M14 19.3h16M14 24.7h16M19.3 14v16M24.7 14v16" stroke="var(--c)" stroke-width="1.6"/><rect x="14" y="14" width="16" height="16" rx="2.5"/><path d="M1.5 1.5v17l4.6-4.3 3.3 7.2 3-1.4-3.3-7h6.4z" fill="#fff"/></svg>', 1.5, 1.5],
+  gotero: ['<svg viewBox="0 0 32 32"><path d="M19 5l8 8M16.5 7.5l8 8L12 28H4v-8z" fill="#fff"/><path d="M4 28l-1.6 1.6" /><circle cx="2.6" cy="29.4" r="2.2" fill="var(--c)" stroke-width="1"/></svg>', 2.6, 29.4],
+  teclado: ['<svg viewBox="0 0 32 32"><path d="M11 5h10M16 5v22M11 27h10" stroke="#fff" stroke-width="4"/><path d="M11 5h10M16 5v22M11 27h10"/></svg>', 16, 16]
 };
+const ERASE_ICON = '<svg viewBox="0 0 32 32"><path d="M4 22 18 8a2.5 2.5 0 0 1 3.5 0l5 5a2.5 2.5 0 0 1 0 3.5L13 30H8z" fill="#fff"/><path d="M4 22 18 8a2.5 2.5 0 0 1 3.5 0l5 5a2.5 2.5 0 0 1 0 3.5L13 30H8z"/><path d="M4 22l8 8" /><path d="M10.5 15.5l9 9" stroke="#E5578E" stroke-width="2.4"/></svg>';
 let dotT = null, dotKey = '';
 function showDot(e) {
   if (!page || hand || spaceDown || pointers.size > 1 || document.body.classList.contains('sheet')) { dot.hidden = true; return; }
-  const icon = CUR_ICON[brush], er = ERASERS.includes(brush);
+  const ic = CUR_ICON[brush], er = ERASERS.includes(brush);
   const sc = stage.getBoundingClientRect().width / W;
-  const d = icon ? 0 : Math.max(2, S().size * sc);
-  const c = brush === 'resaltador' ? hlColor : brush === 'boligrafo' ? penColor : er ? '#3F4A57' : color;
+  const d = ic ? 0 : Math.max(2, S().size * sc);
+  const c = brush === 'resaltador' ? hlColor : brush === 'boligrafo' ? penColor : color;
   const key = brush + '|' + Math.round(d) + '|' + c;
   if (key !== dotKey) {
     dotKey = key;
-    dot.className = icon ? 'icon' : er ? 'er' : '';
-    dot.innerHTML = (d >= 7 ? `<i class="ring" style="width:${d}px;height:${d}px;margin:${-d / 2}px 0 0 ${-d / 2}px"></i>` : '') + '<i class="cross"></i>' + (icon ? `<b>${icon}</b>` : '');
-    dot.style.setProperty('--c', c);
+    dot.className = ic ? 'icon' : er ? 'er' : '';
+    let h = '';
+    if (ic) h = `<b style="left:${-ic[1]}px;top:${-ic[2]}px">${ic[0]}</b>`;
+    else if (er) { const r = Math.max(5, d / 2), o = r * .707; h = `<i class="ring" style="width:${2 * r}px;height:${2 * r}px;margin:${-r}px 0 0 ${-r}px"></i><b style="left:${o - 6}px;top:${-o - 26}px">${ERASE_ICON}</b>`; }
+    else h = (d >= 7 ? `<i class="ring" style="width:${d}px;height:${d}px;margin:${-d / 2}px 0 0 ${-d / 2}px"></i>` : '') + '<i class="cross"></i>';
+    dot.innerHTML = h; dot.style.setProperty('--c', c);
   }
   dot.style.transform = `translate(${e.clientX}px,${e.clientY}px)`;
   dot.hidden = false; clearTimeout(dotT);
