@@ -2006,7 +2006,7 @@ function storyUI() {
   const playing = !story.paused && story.dataset.p == cur;
   b.classList.toggle('on', playing);
   $('#storyLabel').textContent = playing ? 'Pausar' : (story.dataset.p == cur && story.currentTime > 1 ? 'Seguir' : 'Escuchar');
-  $('#storyPanel').hidden = !(story.dataset.p == cur && (playing || story.currentTime > 0.5));
+  b.classList.toggle('act', story.dataset.p == cur && (playing || story.currentTime > 0.5));
 }
 const mmss = t => { t = Math.max(0, t | 0); return `${t / 60 | 0}:${String(t % 60).padStart(2, '0')}`; };
 let seeking = false;
@@ -2017,13 +2017,22 @@ $('#spFwd').onclick = () => { if (story.duration) story.currentTime = Math.min(s
 $('#spPlay').onclick = () => $('#storyBtn').onclick();
 $('#spClose').onclick = () => { story.pause(); story.currentTime = 0; storyUI(); };
 ['spSeek', 'spBack', 'spFwd', 'spPlay', 'spClose'].forEach(id => document.getElementById(id).addEventListener('pointerdown', e => e.stopPropagation()));
+/* la barrita del botón se puede arrastrar con su bolita para adelantar o atrasar */
+let skipClick = false;
+const trackSeek = e => { const r = $('#storyTrack').getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  if (story.duration) { story.currentTime = f * story.duration; $('#storyBar').style.width = f * 100 + '%'; $('#storyKnob').style.left = f * 100 + '%'; } };
+$('#storyTrack').addEventListener('pointerdown', e => { if (!$('#storyBtn').classList.contains('act')) return; e.stopPropagation(); e.preventDefault(); skipClick = true; $('#storyTrack').setPointerCapture(e.pointerId); $('#storyTrack').classList.add('drag'); trackSeek(e); });
+$('#storyTrack').addEventListener('pointermove', e => { if ($('#storyTrack').classList.contains('drag')) trackSeek(e); });
+const trackEnd = () => { $('#storyTrack').classList.remove('drag'); setTimeout(() => skipClick = false, 50); };
+$('#storyTrack').addEventListener('pointerup', trackEnd); $('#storyTrack').addEventListener('pointercancel', trackEnd);
 $('#storyBtn').onclick = () => {
+  if (skipClick) return;
   const st = STORIES[cur]; if (!st) return;
   if (story.dataset.p != cur) { story.src = st.src; story.dataset.p = cur; }
   if (story.paused) { if (MUSIC.cur) MUSIC.stop(); story.play().catch(() => toast('No se pudo reproducir el audio')); } else story.pause();
 };
 story.addEventListener('play', storyUI); story.addEventListener('pause', storyUI); story.addEventListener('ended', () => { story.currentTime = 0; storyUI(); });
-story.addEventListener('timeupdate', () => { const p = story.duration ? story.currentTime / story.duration : 0; $('#storyBar').style.width = (p * 100) + '%';
+story.addEventListener('timeupdate', () => { const p = story.duration ? story.currentTime / story.duration : 0; $('#storyBar').style.width = (p * 100) + '%'; if (!$('#storyTrack').classList.contains('drag')) $('#storyKnob').style.left = (p * 100) + '%';
   if (!seeking) { $('#spSeek').value = Math.round(p * 1000); if (story.duration) $('#spTime').textContent = `${mmss(story.currentTime)} / ${mmss(story.duration)}`; }
   $('#spPlay').classList.toggle('on', !story.paused); });
 /* ---------------- arranque ---------------- */
