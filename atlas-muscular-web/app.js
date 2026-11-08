@@ -693,34 +693,22 @@ function dab(x, y, r, p, dir) {
       X.restore(); break;
     }
     case 'chispeado': {
-      // pintura chispeada al estilo Pollock: un chorro de pintura que corre con el gesto (grueso y fino, con cortes),
-      // hilos sueltos que se enroscan, gotas redondas y el rocío fino del cepillo de dientes
-      const st = stroke, k = 0.35 + hard * 0.9; X.save(); X.lineCap = 'round'; X.lineJoin = 'round';
-      if (!st.sp) st.sp = { ph: Math.random() * 100, on: true, last: null, shade: [mix(color, '#ffffff', .18), color, mix(color, '#000000', .18)] };
-      const sp = st.sp; sp.ph += 0.09 + Math.random() * .05;
-      const jx = x + Math.sin(sp.ph * 1.7) * r * .35, jy = y + Math.cos(sp.ph * 1.3) * r * .35;   // el chorro serpentea alrededor del gesto
-      if (sp.on ? Math.random() < .012 : Math.random() < .12) sp.on = !sp.on;                                                  // el chorro se corta y vuelve
-      if (sp.last && sp.on) {
-        const w = r * (0.06 + 0.32 * Math.pow(0.5 + 0.5 * Math.sin(sp.ph * 2.3) * Math.sin(sp.ph * .9 + 1), 2));
-        X.strokeStyle = color; X.lineWidth = Math.max(.7, w); X.beginPath(); X.moveTo(sp.last[0], sp.last[1]); X.lineTo(jx, jy); X.stroke();
-        if (w > r * .1 && Math.random() < .05) { X.fillStyle = color; X.beginPath(); X.arc(jx, jy, w * (0.7 + Math.random() * .6), 0, 7); X.fill(); }   // charquito donde cayó más pintura
+      // pintura chispeada: muchas gotas irregulares, grandes y pequeñas, con gotitas alrededor y un rocío suave
+      const k = 0.35 + hard * 0.9; X.save();
+      const sh = stroke.sh || (stroke.sh = [mix(color, '#ffffff', .15), color, color, mix(color, '#000000', .15)]);
+      const n = Math.random() < k * .8 ? 1 + (Math.random() * 2.2 * k | 0) : 0;
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 7, d = Math.pow(Math.random(), 1.3) * r * 1.7, bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d;
+        const t = Math.random(), q = Math.max(.8, r * (t < .24 ? 0.2 + Math.random() * .32 : t < .55 ? 0.08 + Math.random() * .1 : 0.025 + Math.random() * .045));
+        X.fillStyle = sh[Math.random() * 4 | 0]; dropBlob(X, bx, by, q);
+        if (q > r * .17) for (let j = 0; j < 3 + (Math.random() * 6 | 0); j++) {   // gotitas que quedan pegadas alrededor de la gota grande
+          const b = Math.random() * 7, e = q * (1.25 + Math.random() * 1.3), tq = Math.max(.5, q * (0.06 + Math.random() * .16));
+          X.beginPath(); X.ellipse(bx + Math.cos(b) * e, by + Math.sin(b) * e, tq * (1 + Math.random() * .7), tq, b, 0, 7); X.fill();
+        }
+        grow(bx - q * 3, by - q * 3, bx + q * 3, by + q * 3);
       }
-      sp.last = [jx, jy];
-      if (Math.random() < 0.12 * k) {                       // hilo suelto que se enrosca (latigazo de pintura)
-        const th = Math.random() * 7, len = r * (0.8 + Math.random() * 2), w2 = Math.max(.8, r * (0.02 + Math.random() * .05)), ox = (Math.random() - .5) * r, oy = (Math.random() - .5) * r;
-        X.strokeStyle = sp.shade[Math.random() * 3 | 0]; X.lineWidth = w2; X.beginPath(); X.moveTo(x + ox, y + oy);
-        X.bezierCurveTo(x + ox + Math.cos(th) * len * .5 + Math.cos(th + 1.6) * len * .6, y + oy + Math.sin(th) * len * .5 + Math.sin(th + 1.6) * len * .6,
-          x + ox + Math.cos(th) * len * .8 - Math.cos(th + 1.6) * len * .5, y + oy + Math.sin(th) * len * .8 - Math.sin(th + 1.6) * len * .5, x + ox + Math.cos(th) * len, y + oy + Math.sin(th) * len); X.stroke();
-        grow(x - len - r, y - len - r, x + len + r, y + len + r);
-      }
-      X.fillStyle = color;
-      if (Math.random() < 0.3 * k) {                        // gota redonda suelta
-        const a = Math.random() * 7, d = r * (0.3 + Math.random() * 1.3), q = Math.max(.8, r * (0.03 + Math.random() * .07));
-        X.beginPath(); X.ellipse(x + Math.cos(a) * d, y + Math.sin(a) * d, q, q * (0.8 + Math.random() * .25), Math.random() * 3, 0, 7); X.fill();
-      }
-      const mist = 6 + (Math.random() * 12 * k | 0);         // cepillo de dientes: rocío fino y parejo
-      for (let i = 0; i < mist; i++) { const a = Math.random() * 7, d = Math.sqrt(Math.random()) * r * 1.5; X.globalAlpha = .55 + Math.random() * .45; X.fillStyle = sp.shade[Math.random() * 3 | 0]; X.beginPath(); X.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, .45 + Math.random() * Math.max(.6, r * .018), 0, 7); X.fill(); }
-      X.globalAlpha = 1; grow(x - r * 1.6, y - r * 1.6, x + r * 1.6, y + r * 1.6);
+      for (let i = 0; i < (2 + Math.random() * 4 * k | 0); i++) { const a = Math.random() * 7, d = Math.sqrt(Math.random()) * r * 1.6; X.globalAlpha = .55 + Math.random() * .45; X.fillStyle = sh[Math.random() * 4 | 0]; X.beginPath(); X.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, .45 + Math.random() * Math.max(.5, r * .016), 0, 7); X.fill(); }   // rocío suave
+      X.globalAlpha = 1; grow(x - r * 1.8, y - r * 1.8, x + r * 1.8, y + r * 1.8);
       X.restore(); break;
     }
     case 'aero': {
@@ -732,6 +720,37 @@ function dab(x, y, r, p, dir) {
     }
   }
   const pad = r + 6; grow(x - pad, y - pad, x + pad, y + pad);
+}
+/* gota irregular: un contorno con lóbulos suaves, nunca dos iguales */
+function dropBlob(X, bx, by, q) {
+  const lobes = 2 + (Math.random() * 3 | 0), ph = Math.random() * 7, amp = .05 + Math.random() * .11, ph2 = Math.random() * 7, sq = .8 + Math.random() * .3, rot = Math.random() * 7;
+  X.beginPath(); for (let i = 0; i <= 30; i++) { const a = i / 30 * Math.PI * 2, m = q * (1 + amp * Math.sin(a * lobes + ph) + amp * .6 * Math.sin(a * (lobes + 3) + ph2)), ex = Math.cos(a) * m, ey = Math.sin(a) * m * sq, px = bx + ex * Math.cos(rot) - ey * Math.sin(rot), py = by + ex * Math.sin(rot) + ey * Math.cos(rot); i ? X.lineTo(px, py) : X.moveTo(px, py); } X.closePath(); X.fill();
+}
+/* toque con el chispeado: una salpicadura distinta cada vez, fina y gruesa, irregular */
+function splash(x, y, r) {
+  const X = xLive, hard = stroke.s.hard / 100, k = 0.4 + hard * .9, sh = [mix(color, '#ffffff', .2), color, color, mix(color, '#000000', .2)];
+  X.save(); X.lineCap = 'round';
+  const big = Math.random();
+  const blob = (bx, by, q) => { const lobes = 3 + (Math.random() * 4 | 0), ph = Math.random() * 7, amp = .12 + Math.random() * .22; X.beginPath(); for (let i = 0; i <= 26; i++) { const a = i / 26 * Math.PI * 2, m = q * (1 + amp * Math.sin(a * lobes + ph) + (Math.random() - .5) * .08); i ? X.lineTo(bx + Math.cos(a) * m, by + Math.sin(a) * m) : X.moveTo(bx + Math.cos(a) * m, by + Math.sin(a) * m); } X.fill(); };
+  X.fillStyle = color;
+  if (big < .6) dropBlob(X, x + (Math.random() - .5) * r * .3, y + (Math.random() - .5) * r * .3, r * (0.25 + Math.random() * .35));   // gota grande irregular (no siempre)
+  for (let i = 0; i < (Math.random() * 4 | 0); i++) { const a = Math.random() * 7, d = r * (0.4 + Math.random() * 1.2), q = r * (0.09 + Math.random() * .18); X.fillStyle = sh[Math.random() * 4 | 0]; dropBlob(X, x + Math.cos(a) * d, y + Math.sin(a) * d, q); }
+  const dirB = Math.random() * 7, spread = Math.random() < .5 ? Math.PI * 2 : 1.4 + Math.random() * 1.6;   // a veces sale hacia un lado, como un golpe de pincel
+  const n = (14 + Math.random() * 30 * k) | 0;
+  for (let i = 0; i < n; i++) {
+    const a = dirB + (Math.random() - .5) * spread, d = r * (0.15 + Math.pow(Math.random(), .8) * 1.9), q = Math.max(.6, r * (0.02 + Math.pow(Math.random(), 2.2) * .18) * (1.25 - d / (r * 2.4)));
+    X.fillStyle = sh[Math.random() * 4 | 0]; const bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d, el = 1 + Math.min(2.2, d / r) * Math.random();
+    X.beginPath(); X.ellipse(bx, by, q * el, q, a, 0, 7); X.fill();
+  }
+  for (let i = 0; i < (Math.random() * 3 * k | 0); i++) {   // uno o dos hilos que salen con fuerza
+    const a = dirB + (Math.random() - .5) * spread, L = r * (0.6 + Math.random() * 1.3), w = Math.max(.6, r * (0.012 + Math.random() * .03)), bend = (Math.random() - .5) * r * .8;
+    X.strokeStyle = sh[Math.random() * 4 | 0]; X.lineWidth = w; X.beginPath(); X.moveTo(x + Math.cos(a) * r * .15, y + Math.sin(a) * r * .15);
+    X.quadraticCurveTo(x + Math.cos(a) * L * .5 - Math.sin(a) * bend, y + Math.sin(a) * L * .5 + Math.cos(a) * bend, x + Math.cos(a) * L, y + Math.sin(a) * L); X.stroke();
+    X.fillStyle = X.strokeStyle; X.beginPath(); X.arc(x + Math.cos(a) * L, y + Math.sin(a) * L, w * 1.4, 0, 7); X.fill();
+  }
+  const m = (40 + Math.random() * 90 * k) | 0;              // rocío de cepillo de dientes
+  for (let i = 0; i < m; i++) { const a = dirB + (Math.random() - .5) * (spread + .6), d = r * Math.sqrt(Math.random()) * 2.2; X.globalAlpha = .5 + Math.random() * .5; X.fillStyle = sh[Math.random() * 4 | 0]; X.beginPath(); X.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, .4 + Math.random() * Math.max(.5, r * .02), 0, 7); X.fill(); }
+  X.restore(); grow(x - r * 2.6, y - r * 2.6, x + r * 2.6, y + r * 2.6);
 }
 function grow(a, b, c, d) { const s = stroke; s.box[0] = Math.min(s.box[0], a); s.box[1] = Math.min(s.box[1], b); s.box[2] = Math.max(s.box[2], c); s.box[3] = Math.max(s.box[3], d); }
 function clipLive(box) {
@@ -784,6 +803,24 @@ function startStroke(e) {
     if (L) zone = zoneMask(L);   // el borrador sobre una raya borra libre
   }
   stroke = { brush, s, layer: eraseInk ? 'ink' : layer, zone, wzone, eraseInk, ink: '#1F3B73', pts: [[x, y]], box: [x, y, x, y], last: [x, y], dist: 0, id: e.pointerId };
+  if (brush === 'chispeado') {   // dedo apoyado y quieto: la pintura se acumula y, pasados 3 segundos, chorrea hacia abajo
+    const me = stroke; me.t0 = performance.now(); me.x0 = x; me.y0 = y;
+    me.hold = setInterval(() => {
+      if (stroke !== me) { clearInterval(me.hold); return; }
+      const t = performance.now() - me.t0, r = radius({ pointerType: 'touch' }), [hx, hy] = me.last;
+      if (me.hp && Math.hypot(hx - me.hp[0], hy - me.hp[1]) > 6) { me.hp = null; me.t0 = performance.now(); me.drips = null; return; }   // si se mueve, vuelve a contar
+      if (t < 400) return; me.held = true; me.hp = me.hp || [hx, hy];
+      const X = xLive; X.save(); X.fillStyle = color;
+      const pq = r * Math.min(.38, .12 + (t - 400) / 2600 * .26); dropBlob(X, me.hp[0], me.hp[1], pq); grow(me.hp[0] - pq * 1.5, me.hp[1] - pq * 1.5, me.hp[0] + pq * 1.5, me.hp[1] + pq * 1.5);
+      if (t > 3000) {
+        if (!me.drips) me.drips = Array.from({ length: 2 + (Math.random() * 3 | 0) }, () => ({ x: me.hp[0] + (Math.random() - .5) * pq * 1.4, y: me.hp[1] + pq * .3, w: pq * (0.18 + Math.random() * .22), v: .6 + Math.random() * 1.6, L: 0, max: r * (1.5 + Math.random() * 4) }));
+        X.strokeStyle = color; X.lineCap = 'round';
+        for (const d of me.drips) { if (d.L >= d.max) continue; const ny = d.y + d.v * 2.2, nx = d.x + (Math.random() - .5) * .5; X.lineWidth = d.w * (1 - d.L / d.max * .35); X.beginPath(); X.moveTo(d.x, d.y); X.lineTo(nx, ny); X.stroke();
+          d.x = nx; d.y = ny; d.L += d.v * 2.2; X.beginPath(); X.ellipse(d.x, d.y, d.w * .75, d.w * .95, 0, 0, 7); X.fill(); grow(d.x - d.w * 2, d.y - d.w * 2, d.x + d.w * 2, d.y + d.w * 2); }
+      }
+      X.restore(); clipLive(me.box);
+    }, 45);
+  }
   cLive.style.opacity = (stroke.brush === 'borrador' ? 0 : s.opa / 100);
   cLive.style.mixBlendMode = stroke.brush === 'acuarela' ? 'multiply' : 'normal'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';   // se ve igual que como queda, también encima de texturas y fotos oscuras
   cLive.style.filter = '';
@@ -849,7 +886,7 @@ function moveStroke(e) {
     if (stroke.sm) { x = stroke.sm[0] + (x - stroke.sm[0]) * k; y = stroke.sm[1] + (y - stroke.sm[1]) * k; }
     stroke.sm = [x, y];
     const [lx, ly] = stroke.last, dx = x - lx, dy = y - ly, d = Math.hypot(dx, dy);
-    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'chispeado' ? 0.14 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'magia' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
+    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'chispeado' ? 0.3 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'magia' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
     const dir = Math.atan2(dy, dx);
     let t = sp - stroke.dist;
     while (t <= d) { dab(lx + dx * t / d, ly + dy * t / d, r, ev.pressure, dir); t += sp; }
@@ -863,6 +900,8 @@ function moveStroke(e) {
 function endStroke() {
   SFX.stop();
   if (!stroke) return;
+  if (stroke.hold) clearInterval(stroke.hold);
+  if (stroke.brush === 'chispeado' && !stroke.held && performance.now() - stroke.t0 < 320 && Math.hypot(stroke.last[0] - stroke.x0, stroke.last[1] - stroke.y0) < 12) { splash(stroke.x0, stroke.y0, radius({ pointerType: 'touch' })); clipLive(stroke.box); }
   if (stroke.wc) { if (stroke.raf) cancelAnimationFrame(stroke.raf); wcRender(); clipLive(stroke.box); }
   const st = stroke; stroke = null;
   const box = st.box.map((v, i) => Math.max(0, Math.min(i % 2 ? H : W, Math.round(v))));
@@ -891,7 +930,7 @@ function endStroke() {
   xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = '';
   queueSave();
 }
-function cancelStroke() { SFX.stop(); if (stroke) { stroke = null; xLive.clearRect(0, 0, W, H); } }
+function cancelStroke() { SFX.stop(); if (stroke) { if (stroke.hold) clearInterval(stroke.hold); stroke = null; xLive.clearRect(0, 0, W, H); } }
 
 function bucket(x, y) {
   const L = labelAt(x, y); if (!L) return;
