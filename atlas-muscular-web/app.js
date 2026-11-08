@@ -423,8 +423,10 @@ function toPage(e) {
 }
 
 /* ---------------- páginas ---------------- */
+let MAP = {};
 async function loadMeta() {
   META = await (await fetch('pages.json')).json(); N = META.length;
+  try { MAP = await (await fetch('map.json')).json(); } catch (e) { MAP = {}; }
 }
 function pageFile(n, suf) { return `pages/p${String(n).padStart(2, '0')}${suf}`; }
 function loadImg(src) { return new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; }); }
@@ -1053,6 +1055,8 @@ viewport.addEventListener('pointerdown', e => {
   const onHot = e.target.closest('#hot a');
   const drawing = page && !onHot;
   if (e.pointerType === 'mouse' && (e.button === 1 || e.button === 2 || e.altKey || spaceDown)) { e.preventDefault(); swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now(), pan: true }; return; }
+  if (location.hash === '#mapa' && labels && page.plate) { const [mx2, my2] = toPage(e), Lz = labelAt(mx2, my2); const nm = ((MAP[cur] || {}).zones || {})[Lz];
+    toast(Lz ? (nm ? `Zona ${Lz}: ${nm}` : `Zona ${Lz}: sin nombre todavía`) : 'Línea negra'); if (Lz && Lz !== page.bg) flashZones([Lz]); return; }
   if (hand) { swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now(), pan: true }; return; }
   if (drawing) {
     if (e.pointerType === 'touch') { pend = { ev: snapEv(e), moves: [], far: false, multi: false }; pend.t = setTimeout(() => firePend(false), 120); }
@@ -1192,10 +1196,10 @@ function reviewArt() {
   const d = xColor.getImageData(0, 0, W, H).data;
   let mx = 0; for (let i = 0; i < labels.length; i += 7) if (labels[i] > mx) mx = labels[i];
   for (let i = 0; i < labels.length; i++) if (labels[i] > mx) mx = labels[i];
-  const n = mx + 1, area = new Uint32Array(n), first = new Int32Array(n).fill(-1), pnt = new Uint32Array(n), sr = new Float64Array(n), sg = new Float64Array(n), sb = new Float64Array(n), cy = new Float64Array(n);
+  const n = mx + 1, area = new Uint32Array(n), first = new Int32Array(n).fill(-1), pnt = new Uint32Array(n), sr = new Float64Array(n), sg = new Float64Array(n), sb = new Float64Array(n), cy = new Float64Array(n), cx = new Float64Array(n);
   for (let i = 0; i < labels.length; i++) {
     const L = labels[i]; if (!L || L === page.bg) continue;
-    area[L]++; cy[L] += (i / W) | 0; if (first[L] < 0) first[L] = i;
+    area[L]++; cy[L] += (i / W) | 0; cx[L] += i % W; if (first[L] < 0) first[L] = i;
     if (d[i * 4 + 3] > 24) { pnt[L]++; sr[L] += d[i * 4]; sg[L] += d[i * 4 + 1]; sb[L] += d[i * 4 + 2]; }
   }
   const yb = (page.yb || 792) * PT, skip = new Uint8Array(n);
@@ -1203,7 +1207,7 @@ function reviewArt() {
     if (!area[L]) { skip[L] = 1; continue; }
     const c = cy[L] / area[L];
     if (c > yb - 4 || area[L] < 400) skip[L] = 1;
-    for (const r of (page.circles || [])) { const ix = first[L]; if (ix >= 0) { const px = ix % W / PT, py = ix / W / PT; if (px >= r[0] && px <= r[2] && py >= r[1] && py <= r[3]) skip[L] = 1; } }
+    for (const r of (page.circles || [])) { { const px = cx[L] / area[L] / PT, py = c / PT; if (px >= r[0] && px <= r[2] && py >= r[1] && py <= r[3]) skip[L] = 1; } }
     if (pnt[L]) { sr[L] /= pnt[L]; sg[L] /= pnt[L]; sb[L] /= pnt[L]; }
   }
   // color de una parte que invade la de al lado
@@ -1224,9 +1228,21 @@ function reviewArt() {
     else if (spill[L] / area[L] > 0.05) sp.push(L);
   }
   const pl = (k, a, b) => k === 1 ? a : b.replace('#', k);
-  if (miss.length) rv.block.push(pl(miss.length, 'Le falta pintar <b>1 parte</b> de la lámina.', 'Le faltan por pintar <b>#</b> partes de la lámina.'));
-  if (part.length) rv.block.push(pl(part.length, '<b>1 parte</b> quedó a medio pintar: lleve el color hasta las líneas negras.', '<b>#</b> partes quedaron a medio pintar: lleve el color hasta las líneas negras.'));
-  if (sp.length) rv.block.push(pl(sp.length, 'En <b>1 parte</b> el color se pasó a la parte vecina. Límpiela con el borrador o encienda <b>No salirme</b>.', 'En <b>#</b> partes el color se pasó a la parte vecina. Límpielas con el borrador o encienda <b>No salirme</b>.'));
+  const zn = (MAP[cur] || {}).zones || {}, mus = new Set((MAP[cur] || {}).muscles || []);
+  // con el Mapa de músculos se nombra cada parte: primero los músculos, luego los huesos
+  const named = list => { const nm = [], seen = new Set(); let rest = 0;
+    for (const L of list) { const t = zn[L]; if (!t) { rest++; continue; } if (!seen.has(t)) { seen.add(t); nm.push(t); } }
+    nm.sort((a, b) => (mus.has(b) ? 1 : 0) - (mus.has(a) ? 1 : 0));
+    if (!nm.length) return null;
+    const extra = nm.length > 4 ? nm.length - 3 : 0, lst = (extra ? nm.slice(0, 3) : nm).map(t => `<b>${t}</b>`).concat(extra ? [`${extra} partes más`] : []), txt = lst.length > 1 ? lst.slice(0, -1).join(', ') + ' y ' + lst.at(-1) : lst[0];
+    return rest ? `${txt} (y ${pl(rest, '1 parte pequeña', '# partes pequeñas')})` : txt; };
+  const nMiss = named(miss), nPart = named(part), nSp = named(sp);
+  if (nMiss) rv.block.push(`Le falta pintar ${nMiss}.`);
+  else if (miss.length) rv.block.push(pl(miss.length, 'Le falta pintar <b>1 parte</b> de la lámina.', 'Le faltan por pintar <b>#</b> partes de la lámina.'));
+  if (nPart) rv.block.push(`Quedó a medio pintar ${nPart}: lleve el color hasta las líneas negras.`);
+  else if (part.length) rv.block.push(pl(part.length, '<b>1 parte</b> quedó a medio pintar: lleve el color hasta las líneas negras.', '<b>#</b> partes quedaron a medio pintar: lleve el color hasta las líneas negras.'));
+  if (nSp) rv.block.push(`En ${nSp} el color se pasó a la parte vecina. Límpielo con el borrador o encienda <b>No salirme</b>.`);
+  else if (sp.length) rv.block.push(pl(sp.length, 'En <b>1 parte</b> el color se pasó a la parte vecina. Límpiela con el borrador o encienda <b>No salirme</b>.', 'En <b>#</b> partes el color se pasó a la parte vecina. Límpielas con el borrador o encienda <b>No salirme</b>.'));
   rv.zones = miss.concat(part, sp);
   // lo escrito: cuadro y bolitas
   const ink = xInk.getImageData(0, 0, W, H).data;
