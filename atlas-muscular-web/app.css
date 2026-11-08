@@ -251,3 +251,4 @@ body.textmode #dkLock{display:none}
 
 .dsw.erase{background:#fff!important;display:grid;place-items:center}.dsw.erase svg{width:17px;height:17px;fill:none;stroke:#3F4A57;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .glabel.erasing{color:#B5562A;font-weight:600}
+#texts .tx.circ{display:flex;align-items:center;justify-content:center;text-align:center;padding:0;line-height:1;overflow:visible;padding-bottom:.08em}

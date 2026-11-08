@@ -879,7 +879,7 @@ function renderTexts() {
     d.style.width = (r[2] - r[0]) / 612 * 100 + '%'; d.style.height = hpt / 792 * 100 + '%';
     const fs = key[0] === 'c' ? hpt * 0.75 : Math.min(hpt * 0.62, 20);
     d.style.fontSize = `calc(${fs / 792} * var(--ph))`;
-    if (key[0] === 'c') { d.style.textAlign = 'center'; d.style.lineHeight = hpt / 792 * 100 + 'cqh'; }
+    if (key[0] === 'c') d.classList.add('circ');   // número centrado en la bolita
     box.appendChild(d);
   }
   box.style.setProperty('--ph', stage.style.height || '100px');
