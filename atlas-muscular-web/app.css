@@ -248,3 +248,6 @@ body.textmode #dkTape,body.freemode #dkTape{display:none}
 .dk.lockbtn.active{color:#fff;background:var(--chrome)}.dk.lockbtn.active svg{stroke:var(--accent)}
 @media (min-width:900px){.bar #dkLock{display:flex;flex:0 0 auto;max-width:none;flex-direction:row;gap:8px;height:44px;padding:0 18px;border-radius:22px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:13px;font-weight:600}.bar #dkLock.active{background:var(--chrome);color:#fff}}
 body.textmode #dkLock{display:none}
+
+.dsw.erase{background:#fff!important;display:grid;place-items:center}.dsw.erase svg{width:17px;height:17px;fill:none;stroke:#3F4A57;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.glabel.erasing{color:#B5562A;font-weight:600}

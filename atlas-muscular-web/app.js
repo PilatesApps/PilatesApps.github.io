@@ -50,7 +50,8 @@ const store = {
   set(k, v) { try { localStorage.setItem('am:' + k, JSON.stringify(v)); } catch (e) {} }
 };
 let brush = store.get('brush', 'marcador'); if (brush === 'gotero') brush = 'marcador';
-let prevBrush = null;   // para volver del cuentagotas
+let prevBrush = null;
+let lastPaint = store.get('lastPaint', 'marcador');   // para volver a pintar después de borrar   // para volver del cuentagotas
 let color = store.get('color', COLORS[0][1]);
 let recent = store.get('recent', []);
 let settings = store.get('settings', {});   // por lápiz: {size,opa,hard}
@@ -60,6 +61,8 @@ const HL = [['Amarillo', '#FFF200'], ['Celeste', '#3FE6FF'], ['Rosado', '#FF58C8
 const PEN = [['Azul', '#1F3B9E'], ['Negro', '#1C1C1C'], ['Rojo', '#C62828']];
 const FREE = ['resaltador', 'boligrafo'];
 const TEXT_BRUSHES = ['resaltador', 'boligrafo', 'borrador'];
+const TEXT_OFF = ['balde', 'teclado', 'pluma'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
+const ERASERS = ['borrador', 'magia'];
 let hlColor = store.get('hl', HL[0][1]), penColor = store.get('pen', PEN[0][1]);
 const isText = () => page && !page.plate;
 const S = () => Object.assign({ size: B(brush).size, opa: B(brush).opa, hard: B(brush).hard }, settings[brush] || {});
@@ -260,7 +263,10 @@ function updateDock() {
   const x = ic.getContext('2d'); x.clearRect(0, 0, 88, 44); x.drawImage(preview(brush), 0, 0);
   const b = BRUSHES.find(b => b.id === brush); document.getElementById('dkToolName').textContent = b ? b.name : '';
   const c = brush === 'resaltador' ? hlColor : brush === 'boligrafo' ? penColor : color;
-  document.getElementById('dkSwatch').style.background = c;
+  const sw = document.getElementById('dkSwatch'), er = ERASERS.includes(brush);
+  sw.classList.toggle('erase', er); sw.style.background = er ? '' : c;
+  sw.innerHTML = er ? '<svg viewBox="0 0 24 24"><path d="M7 21h10M5.5 15.5l8-8a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L12 19H8z"/><path d="m9.5 11.5 5 5"/></svg>' : '';
+  const lb = document.getElementById('dkColorName'); if (lb) lb.textContent = er ? 'Borrando' : 'Color';
 }
 function openSheet(sec) {
   const b = document.body;
@@ -276,13 +282,13 @@ function buildBrushes() {
                   ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
                   ['Borrar', ['borrador', 'magia']]];
   for (const [gname, ids] of GROUPS) {
-    const list = ids.map(B).filter(b => !(isText() && !TEXT_BRUSHES.includes(b.id)) && !(page && page.nobucket && b.id === 'balde'));
+    const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && b.id === 'balde'));
     if (!list.length) continue;
-    if (!isText()) { const h = document.createElement('div'); h.className = 'glabel'; h.textContent = gname; row.appendChild(h); }
+    { const h = document.createElement('div'); h.className = 'glabel'; h.textContent = gname; row.appendChild(h); }
     for (const b of list) {
       const bt = document.createElement('button'); bt.setAttribute('aria-pressed', b.id === brush);
       bt.appendChild(preview(b.id)); const s = document.createElement('span'); s.textContent = b.name; bt.appendChild(s);
-      bt.onclick = () => { brush = b.id; store.set(isText() ? 'tbrush' : 'brush', brush); buildBrushes(); buildColors(); syncSliders(); updateDock(); };
+      bt.onclick = () => { if (!ERASERS.includes(b.id) && !['gotero', 'teclado', 'pluma', 'resaltador', 'boligrafo'].includes(b.id)) { lastPaint = b.id; store.set('lastPaint', b.id); } brush = b.id; store.set(isText() ? 'tbrush' : 'brush', brush); buildBrushes(); buildColors(); syncSliders(); updateDock(); };
       row.appendChild(bt);
     }
   }
@@ -300,6 +306,7 @@ function buildColors() {
     const lab = document.createElement('span'); lab.className = 'plabel'; lab.textContent = hl ? 'Resaltador fosforescente' : 'Bolígrafo'; row.appendChild(lab);
     return;
   }
+  if (ERASERS.includes(brush)) { const nt = document.createElement('div'); nt.className = 'glabel erasing'; nt.textContent = 'Está borrando: toque un color para volver a pintar'; row.appendChild(nt); }
   for (const [n, c] of COLORS) {
     const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.title = n;
     b.setAttribute('aria-label', n); b.setAttribute('aria-pressed', c.toLowerCase() === color.toLowerCase()); b.innerHTML = `<span>${n}</span>`;
@@ -343,7 +350,7 @@ function setColor(c) {
   if (FREE.includes(brush)) { brush = 'marcador'; store.set('brush', brush); buildBrushes(); syncSliders(); }
   color = c; store.set("color", c); setTimeout(updateDock, 0);
   recent = [c, ...recent.filter(r => r.toLowerCase() !== c.toLowerCase())].slice(0, 6); store.set('recent', recent);
-  if (['borrador', 'magia', 'gotero', 'pluma', 'teclado'].includes(brush)) { brush = 'marcador'; store.set('brush', brush); buildBrushes(); syncSliders(); }
+  if (['borrador', 'magia', 'gotero', 'pluma', 'teclado'].includes(brush)) { brush = (lastPaint && !(isText() && TEXT_OFF.includes(lastPaint))) ? lastPaint : 'marcador'; store.set(isText() ? 'tbrush' : 'brush', brush); buildBrushes(); syncSliders(); }
   buildColors();
 }
 function syncSliders() {
@@ -442,7 +449,7 @@ async function openPage(n) {
   // cada tipo de página recuerda su herramienta: al pasar de lámina se queda como usted la tenía
   if (brush !== 'gotero') brush = plate ? store.get('brush', 'marcador') : store.get('tbrush', 'resaltador');
   if (brush === 'gotero' && !plate) brush = store.get('tbrush', 'resaltador');
-  if (!plate && !TEXT_BRUSHES.includes(brush)) { brush = 'resaltador'; }
+  if (!plate && TEXT_OFF.includes(brush)) { brush = 'resaltador'; }
   if (page.nobucket && brush === 'balde') { brush = 'marcador'; }   // solo en esta página, no se guarda
   buildBrushes(); buildColors(); syncSliders(); updateDock();
   view.s = 1; fit();
@@ -685,7 +692,7 @@ function startStroke(e) {
     const R = Math.max(6, S().size / 2) | 0, d = xInk.getImageData(Math.max(0, (x | 0) - R), Math.max(0, (y | 0) - R), 2 * R, 2 * R).data;
     for (let i = 3; i < d.length; i += 4) if (d[i] > 20) { eraseInk = true; wzone = null; break; }
   }
-  if (layer === 'color' && !eraseInk && tape && !page.nobucket) {
+  if (layer === 'color' && !eraseInk && tape && !page.nobucket && labels) {
     const L = labelAt(x, y);
     if (!L && brush !== 'borrador') return;
     if (L) zone = zoneMask(L);   // el borrador sobre una raya borra libre
