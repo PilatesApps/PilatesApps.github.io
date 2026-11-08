@@ -486,7 +486,18 @@ function buildLock() {
     else x.fillRect(X0, Y0, w, h);
   }
   if (!page.top || (page.leaders && page.leaders.length)) for (const r of page.write || []) x.fillRect(r[0] * PT - 2, r[1] * PT - 2, (r[2] - r[0]) * PT + 4, (r[3] - r[1]) * PT + 4);
-  for (const c of page.circles || []) { x.beginPath(); x.ellipse((c[0] + c[2]) * PT / 2, (c[1] + c[3]) * PT / 2, (c[2] - c[0]) * PT / 2 + 3, (c[3] - c[1]) * PT / 2 + 3, 0, 0, 7); x.fill(); }
+  // bolitas de número: gota de pintura blanca irregular alrededor (solo se nota cuando se pinta el fondo)
+  let seed = cur * 97 + 13; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const blobs = (page.circles || []).map(c => [(c[0] + c[2]) * PT / 2, (c[1] + c[3]) * PT / 2, (c[2] - c[0]) * PT / 2]);
+  for (const r of page.lock || []) if (r[4]) { const rad = (r[3] - r[1]) * PT / 2; blobs.push([r[0] * PT + rad, r[1] * PT + rad, rad]); }   // bolitas de color al lado de los cuadros
+  for (const [cx, cy, R] of blobs) {
+    const N = 40, amp = [], ph = [rnd() * 7, rnd() * 7, rnd() * 7]; x.beginPath();
+    for (let i = 0; i <= N; i++) { const a = i / N * Math.PI * 2;
+      const k = 1.32 + 0.07 * Math.sin(3 * a + ph[0]) + 0.05 * Math.sin(5 * a + ph[1]) + 0.04 * Math.sin(8 * a + ph[2]) + (rnd() - 0.5) * 0.03;
+      const px = cx + Math.cos(a) * R * k, py = cy + Math.sin(a) * R * k; i ? x.lineTo(px, py) : x.moveTo(px, py); }
+    x.closePath(); x.fill();
+    for (let j = 0; j < 2; j++) { const a = rnd() * 7, d = R * (1.45 + rnd() * 0.25), r = R * (0.08 + rnd() * 0.08); x.beginPath(); x.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, r, 0, 7); x.fill(); }
+  }
 }
 /* máscara de un músculo (zona) */
 const zoneCache = new Map();
@@ -1142,12 +1153,12 @@ const MUSIC = (() => {
   let ac = null, master = null, verb = null, cur = null, timers = [], nodes = [];
   const TR = [
     ['piano', 'Piano suave', 'Piano con cuerdas de fondo', '🎹'],
-    ['ambiente', 'Ambiente', 'Flauta, campanitas y acordes', '🌙'],
-    ['lluvia', 'Lluvia', 'Gotas serenas', '🌧'],
+    ['ambiente', 'Ambiente', 'Flauta, campanitas, pajaritos y sapitos', '🌙'],
+    ['lluvia', 'Lluvia', 'Gotas serenas y sapitos lejanos', '🌧'],
     ['mar', 'Mar', 'Olas lentas y lejanas', '🌊'],
     ['cuencos', 'Cuencos de cristal', 'Vibración que relaja', '🔔'],
-    ['indie', 'Guitarra yoga', 'Guitarra suave y ritmo lento', '🌿'],
-    ['mantra', 'Mantra Om', 'Voz grave para meditar', '🧘'],
+    ['indie', 'Guitarra yoga', 'Arpegios suaves y fluidos', '🌿'],
+    ['mantra', 'Mantra Om', 'Om, tanpura y sitar suave', '🧘'],
     ['cuerdas', 'Arpa y violines', 'Cuerdas suaves que relajan', '🎻'],
   ];
   function ctx() {
@@ -1197,17 +1208,22 @@ const MUSIC = (() => {
       chord(); every(chord, 8000);
       every(() => { if (Math.random() < 0.7) flute(PENTA[Math.random() * 6 | 0] + 12, ac.currentTime + 0.1, 2.5 + Math.random() * 2, 0.025); }, 3500);
       every(() => { const t = ac.currentTime + 0.05; for (let i = 0; i < 3; i++) note(PENTA[5 + (Math.random() * 5 | 0)] + 12, t + i * 0.18, 2.5, 0.012); }, 9000);
+      // naturaleza por fases: a ratos pajaritos, a ratos sapitos, a ratos ambos
+      let phase = 0; every(() => { phase = Math.random() * 3 | 0; }, 45000);
+      scene([{ p: 0.55, n: 2, spread: 3.5, f: t => { if (phase !== 2) bird(t, 0.02 + Math.random() * 0.015); } },
+             { p: 0.35, n: 2, spread: 3, f: t => { if (phase !== 0) frog(t, 0.03); } }]);
     },
     lluvia() {
       // lluvia serena: soplo muy suave y gotas sueltas, nada de tormenta
       const s = noise('white'), bp = ac.createBiquadFilter(), g = ac.createGain();
-      bp.type = 'bandpass'; bp.frequency.value = 2400; bp.Q.value = 0.6; g.gain.value = 0.045;
+      bp.type = 'bandpass'; bp.frequency.value = 2000; bp.Q.value = 0.6; g.gain.value = 0.028;
       s.connect(bp).connect(g).connect(master); s.start(); keep(s, g);
       const drop = () => { const t = ac.currentTime + Math.random() * 0.4, o = ac.createOscillator(), gg = ac.createGain(), f = 900 + Math.random() * 1700;
         o.type = 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 1.6, t + 0.06);
-        gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.03 + Math.random() * 0.03, t + 0.004); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+        gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.018 + Math.random() * 0.02, t + 0.004); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
         o.connect(gg); gg.connect(master); gg.connect(verb); o.start(t); o.stop(t + 0.14); };
-      every(() => { const k = 1 + (Math.random() * 3 | 0); for (let i = 0; i < k; i++) drop(); }, 380);
+      every(() => { const k = 1 + (Math.random() * 2 | 0); for (let i = 0; i < k; i++) drop(); }, 420);
+      scene([{ p: 0.3, n: 2, spread: 3, f: t => frog(t, 0.022) }]);
     },
     mar() {
       const s = noise('brown'), lp = ac.createBiquadFilter(), g = ac.createGain(); lp.type = 'lowpass'; lp.frequency.value = 520; g.gain.value = 0.24;
@@ -1234,6 +1250,29 @@ const MUSIC = (() => {
       g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 3); g.gain.setValueAtTime(vol, t + 9); g.gain.linearRampToValueAtTime(0, t + 12.5);
       o.connect(g).connect(lp); o.start(t); v.start(t); o.stop(t + 12.6); v.stop(t + 12.6); } };
     ch(); every(ch, 12000);
+  }
+  function bird(t, vol = 0.03) {   // trino de pajarito: barridos rápidos agudos
+    const k = 2 + (Math.random() * 5 | 0), base = 2600 + Math.random() * 1800, pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+    const out = ac.createGain(); out.gain.value = vol; if (pan) { pan.pan.value = Math.random() * 1.6 - 0.8; out.connect(pan); pan.connect(master); pan.connect(verb); } else { out.connect(master); }
+    for (let i = 0; i < k; i++) { const tt = t + i * (0.07 + Math.random() * 0.06), o = ac.createOscillator(), g = ac.createGain(), up = Math.random() < 0.5;
+      o.frequency.setValueAtTime(base * (up ? 0.8 : 1.25), tt); o.frequency.exponentialRampToValueAtTime(base * (up ? 1.3 : 0.75), tt + 0.06);
+      g.gain.setValueAtTime(0, tt); g.gain.linearRampToValueAtTime(1, tt + 0.01); g.gain.exponentialRampToValueAtTime(0.001, tt + 0.07);
+      o.connect(g).connect(out); o.start(tt); o.stop(tt + 0.09); }
+  }
+  function frog(t, vol = 0.05) {   // sapito lejano: croar grave doble
+    const pan = ac.createStereoPanner ? ac.createStereoPanner() : null, out = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; out.gain.value = vol;
+    lp.connect(out); if (pan) { pan.pan.value = Math.random() * 1.6 - 0.8; out.connect(pan); pan.connect(master); pan.connect(verb); } else out.connect(master);
+    const f = 140 + Math.random() * 90, n = 2 + (Math.random() * 2 | 0);
+    for (let i = 0; i < n; i++) { const tt = t + i * 0.22, o = ac.createOscillator(), am = ac.createOscillator(), ag = ac.createGain(), g = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(f, tt); o.frequency.linearRampToValueAtTime(f * 0.85, tt + 0.16);
+      am.frequency.value = 38; ag.gain.value = 0.5; am.connect(ag).connect(g.gain);
+      g.gain.setValueAtTime(0, tt); g.gain.linearRampToValueAtTime(0.5, tt + 0.02); g.gain.linearRampToValueAtTime(0, tt + 0.17);
+      o.connect(g).connect(lp); o.start(tt); am.start(tt); o.stop(tt + 0.2); am.stop(tt + 0.2); }
+  }
+  // escenas que cambian solas: cada tantos segundos aparece o se va algo (nunca se repite igual)
+  function scene(parts) {
+    const go = () => { for (const p of parts) if (Math.random() < p.p) { const n = 1 + (Math.random() * p.n | 0); for (let i = 0; i < n; i++) p.f(ac.currentTime + 0.2 + Math.random() * p.spread); } };
+    go(); every(go, 4000);
   }
   function flute(m, t, dur, vol) {
     const o = ac.createOscillator(), g = ac.createGain(), v = ac.createOscillator(), vg = ac.createGain(), n = noise('white'), bp = ac.createBiquadFilter(), ng = ac.createGain();
@@ -1262,18 +1301,14 @@ const MUSIC = (() => {
       strike(); every(strike, 5200);
     },
     indie() {
-      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700; const bus = ac.createGain(); bus.gain.value = 0.7; lp.connect(bus); bus.connect(master); bus.connect(verb); keep(lp, bus);
-      const PROG = [[52, 59, 64, 67, 71], [48, 55, 64, 67, 72], [43, 50, 59, 62, 67], [45, 52, 60, 64, 69]];
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 800; const bus = ac.createGain(); bus.gain.value = 0.6; lp.connect(bus); bus.connect(master); bus.connect(verb); keep(lp, bus);
+      const PROG = [[52, 59, 64, 67, 71, 76], [48, 55, 64, 67, 72, 76], [43, 50, 59, 62, 67, 71], [45, 52, 60, 64, 69, 72]];
       let ci = 0;
-      const bar = () => { const t0 = ac.currentTime + 0.05, ch = PROG[ci++ % 4], beat = 0.75;
-        for (const m of ch.slice(0, 3)) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = hz(m);
-          g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.03, t0 + 1.5); g.gain.linearRampToValueAtTime(0, t0 + beat * 8 + 0.5); o.connect(g).connect(lp); o.start(t0); o.stop(t0 + beat * 8 + 0.6); }
-        const pat = [1, 2, 3, 4, 2, 3, 4, 3];
-        pat.forEach((k, i) => pluck(ch[k] + 0, t0 + i * beat, 0.14 + Math.random() * 0.05));
-        for (let i = 0; i < 8; i++) { const t = t0 + i * beat + beat / 2, n = noise('white'), hp = ac.createBiquadFilter(), g = ac.createGain();
-          hp.type = 'highpass'; hp.frequency.value = 7000; g.gain.setValueAtTime(0.03, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); n.connect(hp).connect(g).connect(master); n.start(t); n.stop(t + 0.1); }
-        for (const i of [0, 4]) { const t = t0 + i * beat, o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.25);
-          g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35); o.connect(g).connect(master); o.start(t); o.stop(t + 0.4); } };
+      const bar = () => { const t0 = ac.currentTime + 0.05, ch = PROG[ci++ % 4], step = 0.375;
+        for (const m of ch.slice(0, 2)) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = hz(m);
+          g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.025, t0 + 1.2); g.gain.linearRampToValueAtTime(0, t0 + 6.4); o.connect(g).connect(lp); o.start(t0); o.stop(t0 + 6.5); }
+        const pat = Math.random() < 0.5 ? [0, 2, 3, 4, 5, 4, 3, 2, 1, 2, 3, 4, 5, 4, 3, 2] : [0, 3, 2, 4, 3, 5, 4, 3, 1, 3, 2, 4, 3, 5, 4, 2];
+        pat.forEach((k, i) => pluck(ch[k], t0 + i * step + (Math.random() - 0.5) * 0.02, 0.09 + Math.random() * 0.04)); };
       bar(); every(bar, 6000);
     },
     mantra() {
@@ -1287,7 +1322,14 @@ const MUSIC = (() => {
           mix.connect(bp).connect(g).connect(env); }
         env.connect(bus); src.start(t); src2.start(t); src.stop(t + 9.2); src2.stop(t + 9.2);
         const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = base / 2; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.05, t + 2); g.gain.linearRampToValueAtTime(0, t + 9.5); o.connect(g).connect(bus); o.start(t); o.stop(t + 9.6); };
-      chant(); every(chant, 9000);
+      // tanpura (bordón) y melodía tipo sitar, suavecita; el Om aparece a ratos
+      const SA = 50, RAGA = [0, 2, 4, 7, 9, 12, 14, 16];
+      const tanpura = () => { const t = ac.currentTime + 0.05; [SA - 12 + 7, SA, SA, SA - 12].forEach((m, i) => pluck(m, t + i * 1.2, 0.07)); };
+      const sitar = () => { const t0 = ac.currentTime + 0.1; let m = RAGA[Math.random() * 4 | 0], tt = t0; const k = 4 + (Math.random() * 5 | 0);
+        for (let i = 0; i < k; i++) { pluck(SA + 12 + m, tt, 0.08 + Math.random() * 0.04); tt += [0.4, 0.4, 0.8, 0.6][Math.random() * 4 | 0]; m = RAGA[Math.max(0, Math.min(RAGA.length - 1, RAGA.indexOf(m) + (Math.random() < 0.5 ? -1 : 1)))]; } };
+      tanpura(); every(tanpura, 4800);
+      every(() => { if (Math.random() < 0.7) sitar(); }, 6500);
+      chant(); every(() => { if (Math.random() < 0.45) chant(); }, 13000);
     }
   });
   function stop() {
