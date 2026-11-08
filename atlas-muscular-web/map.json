@@ -1,7 +1,7 @@
 {
 "9": {
 "zones": {
-"2": "el hueso coxal izquierdo",
+"2": "el ilion izquierdo",
 "3": "el hueso coxal derecho",
 "4": "la quinta vértebra lumbar (L5)",
 "5": "la quinta vértebra lumbar (L5)",
@@ -42,7 +42,6 @@
 "12": "el fémur derecho",
 "13": "la sínfisis púbica",
 "14": "el obturador externo",
-"16": "el obturador externo",
 "17": "el fémur derecho"
 },
 "muscles": [
@@ -62,7 +61,7 @@
 "11": "el fémur izquierdo",
 "12": "el fémur derecho",
 "13": "el cóccix",
-"14": "el obturador interno",
+"14": "el isquion",
 "15": "el obturador interno",
 "16": "la sínfisis púbica",
 "31": "el sacro"
