@@ -318,6 +318,18 @@ $('#dkTool').onclick = () => openSheet('tool');
 $('#dkColor').onclick = () => openSheet('color');
 $('#dkMore').onclick = () => openSheet('more');
 $('#dkUndo').onclick = () => $('#btnUndo').click();
+// bloquear la lámina: lo pintado queda protegido
+let locks = store.get('locks', {});
+const isLocked = () => !!locks[cur];
+function syncLock() {
+  const on = isLocked();
+  $('#btnLock').classList.toggle('on', on); $('#btnLock').setAttribute('aria-checked', on);
+  $('#dkLock').classList.toggle('active', on); 
+  $('#lockArc').setAttribute('d', on ? 'M8 11V7a4 4 0 0 1 8 0v4' : 'M8 11V7a4 4 0 0 1 7.5-2');
+  document.body.classList.toggle('locked', on);
+}
+function toggleLock() { locks[cur] = !isLocked(); if (!locks[cur]) delete locks[cur]; store.set('locks', locks); syncLock(); buzz(12); toast(isLocked() ? 'Lámina bloqueada: su dibujo está protegido' : 'Lámina desbloqueada: puede seguir pintando'); }
+$('#btnLock').onclick = toggleLock; $('#dkLock').onclick = () => { closeSheet(); toggleLock(); };
 $('#dkTape').onclick = () => { closeSheet(); tapeBtn.click(); };
 $('#btnCloseTools').onclick = closeSheet;
 function setColor(c) {
@@ -404,7 +416,7 @@ async function openPage(n) {
   n = Math.max(1, Math.min(N, n));
   await saveNow();
   if (n !== cur && META.length) { SFX.blip('page'); buzz(8); }
-  cur = n; page = META[n - 1]; store.set('page', n);
+  cur = n; page = META[n - 1]; store.set('page', n); setTimeout(syncLock, 0);
   undo.length = 0; redo.length = 0;
   $('#pgLabel').textContent = `${n} / ${N}`; $('#pgName').textContent = PN[n - 1] || '';
   $('#btnPrev').disabled = n <= 1; $('#btnNext').disabled = n >= N; closeSheet();
@@ -629,6 +641,7 @@ function clipLive(box) {
   xLive.restore();
 }
 function startStroke(e) {
+  if (isLocked()) { toast('Lámina bloqueada: toque el candado para seguir pintando'); return; }
   const [x, y] = toPage(e), s = S();
   if (brush === 'gotero') { pickColor(x, y); return; }
   if (brush === 'balde') { if (page.nobucket) { toast('En esta página se pinta a mano: elija un lápiz'); return; } bucket(x, y); return; }
@@ -774,8 +787,8 @@ function swap(from, to) {
   to.push({ layer: u.layer, x: u.x, y: u.y, data: ctx.getImageData(u.x, u.y, u.data.width, u.data.height) });
   ctx.putImageData(u.data, u.x, u.y); SFX.blip('undo'); buzz(10); queueSave();
 }
-$('#btnUndo').onclick = () => swap(undo, redo);
-$('#btnClear').onclick = () => { $('#confirmClear').hidden = false; };
+$('#btnUndo').onclick = () => { if (isLocked()) { toast('Lámina bloqueada'); return; } swap(undo, redo); };
+$('#btnClear').onclick = () => { if (isLocked()) { toast('Lámina bloqueada'); return; } $('#confirmClear').hidden = false; };
 $('#clearNo').onclick = () => { $('#confirmClear').hidden = true; };
 $('#clearYes').onclick = () => {
   pushUndo('color', 0, 0, W, H); xColor.clearRect(0, 0, W, H);
