@@ -496,6 +496,7 @@ function pageFlip(fwd) {
 }
 async function openPage(n) {
   n = Math.max(1, Math.min(N, n));
+  if (typeof RETO !== 'undefined' && META.length && !RETO.unidadAbierta(n)) { toast('Modo progresivo: complete la unidad anterior y apruebe su reto para abrir esta'); if (page) return; n = 1; }
   if (page && n !== cur) { try { checkDone(true); } catch (e) {} }
   await saveNow();
   if (n !== cur && META.length) { SFX.blip('page'); buzz(8); if (page) pageFlip(n > cur); }
@@ -1287,8 +1288,19 @@ async function buildHome() {
       c.onclick = () => { closeHome(); openPage(n); };
       cards.appendChild(c); drawThumb(c.querySelector('canvas'), n);
     }
+    const ui = SECTIONS.indexOf(SECTIONS.find(s => s[0] === t));
+    if (RETO.U[ui]) {
+      const rr = (store.get('reto', {})[ui]) || {}, rb = document.createElement('button'); rb.className = 'card reto' + (rr.ok ? ' won' : '');
+      rb.innerHTML = `<span class="th rtth"><b>${rr.ok ? '⭐' : '🏆'}</b><em>${rr.ok ? 'Aprobado' : 'Reto'}</em>${rr.mejor ? `<small>${rr.mejor}%</small>` : ''}</span><span class="t">Reto de la ${t}</span>`;
+      rb.onclick = () => RETO.abrir(ui); cards.appendChild(rb);
+    }
+    if (!RETO.unidadAbierta(a)) { sec.classList.add('locked'); cards.querySelectorAll('.card').forEach(c => { c.onclick = () => toast('Modo progresivo: complete la unidad anterior y apruebe su reto para abrir esta'); }); }
     sec.appendChild(cards); g.appendChild(sec);
   }
+  const md = document.createElement('div'); md.className = 'hmodo'; const mo = store.get('modo', 'libre');
+  md.innerHTML = `<b>Cómo quiere avanzar</b><div><button data-m="progresivo" class="${mo === 'progresivo' ? 'on' : ''}">Progresivo<small>Cada unidad se abre al completar la anterior y aprobar su reto</small></button><button data-m="libre" class="${mo === 'libre' ? 'on' : ''}">Libre<small>Todas las unidades abiertas</small></button></div>`;
+  md.querySelectorAll('button').forEach(b => b.onclick = () => { store.set('modo', b.dataset.m); buildHome(); });
+  g.insertBefore(md, g.children[1]);
 }
 function openHome() { closeSheet(); $('#home').hidden = false; buildHome(); }
 function closeHome() { $('#home').hidden = true; }
@@ -1543,6 +1555,186 @@ function showMedal(n) {
   for (let i = 0; i < 40; i++) { const e = document.createElement('i'); e.style.left = Math.random() * 100 + '%'; e.style.background = ['#E0457B', '#F2C230', '#2EC4B6', '#3A86FF', '#8AC926'][i % 5]; e.style.animationDelay = Math.random() * 0.6 + 's'; e.style.transform = `rotate(${Math.random() * 360}deg)`; cf.appendChild(e); }
 }
 $('#mdOk').onclick = () => { $('#medal').hidden = true; };
+
+/* ---------------- Reto de la unidad: ubicar, origen e inserción, quién soy, juntos, clave de colores, Pilates ---------------- */
+const RETO = (() => {
+  const PERFIL = [['educador', 'Soy educador o formador de Pilates'], ['instructor', 'Soy instructor de Pilates'], ['formacion', 'Me estoy formando como instructor'], ['practico', 'Practico Pilates'], ['nopilates', 'No conozco el método Pilates']];
+  const U = {
+    1: {
+      titulo: 'La Liga del Calabozo Pélvico', unidad: 'Unidad 1', lamina: 9, ultima: 16,
+      retos: [
+        { t: 'toca', m: 'el piriforme' }, { t: 'toca', m: 'el obturador interno' }, { t: 'toca', m: 'el gemelo superior' },
+        { t: 'toca', m: 'el gemelo inferior' }, { t: 'toca', m: 'el cuadrado femoral' }, { t: 'toca', m: 'el obturador externo' },
+        { t: 'oi', m: 'el piriforme', img: 6, no: 'la cara anterior del sacro', ni: 'el borde superior del trocánter mayor' },
+        { t: 'oi', m: 'el obturador interno', img: 2, no: 'la cara interna del foramen obturador', ni: 'la cara medial del trocánter mayor' },
+        { t: 'oi', m: 'el gemelo superior', img: 3, no: 'la espina isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
+        { t: 'oi', m: 'el gemelo inferior', img: 4, no: 'la parte alta de la tuberosidad isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
+        { t: 'oi', m: 'el cuadrado femoral', img: 5, no: 'el borde lateral de la tuberosidad isquiática', ni: 'la cresta intertrocantérea' },
+        { t: 'oi', m: 'el obturador externo', img: 1, no: 'la cara externa del foramen obturador', ni: 'la fosa trocantérea' },
+        { t: 'op', s: 'Quién soy', q: 'Salgo de la pelvis por el agujero ciático mayor y el nervio ciático suele pasar debajo de mí.', op: ['Piriforme', 'Gemelo superior', 'Cuadrado femoral'], ok: 0 },
+        { t: 'op', s: 'Quién soy', q: 'Mi tendón dobla casi 90 grados en la escotadura ciática menor.', op: ['Obturador externo', 'Obturador interno', 'Piriforme'], ok: 1 },
+        { t: 'op', s: 'Quién soy', q: 'Soy el ancla cuadrada del grupo y también ayudo a acercar el muslo a la línea media.', op: ['Gemelo inferior', 'Obturador interno', 'Cuadrado femoral'], ok: 2 },
+        { t: 'op', s: 'Quién soy', q: 'Mi tendón cruza por detrás del cuello del fémur.', op: ['Obturador externo', 'Gemelo superior', 'Piriforme'], ok: 0 },
+        { t: 'op', s: 'Lo que hacen juntos', q: '¿Qué movimiento hacen los seis?', op: ['Flexión de la cadera', 'Rotación externa de la cadera', 'Extensión de la rodilla'], ok: 1 },
+        { t: 'op', s: 'Lo que hacen juntos', q: '¿Qué otra tarea comparten los seis?', op: ['Mantener la cabeza del fémur centrada en el acetábulo, como un manguito rotador de la cadera', 'Inclinar la pelvis hacia adelante', 'Doblar la rodilla'], ok: 0 },
+        { t: 'clave' },
+        { t: 'op', s: 'Pilates', pil: true, q: 'Los seis rotadores profundos sostienen una posición clásica del método Pilates. ¿Cuál es?', op: ['Posición paralela, con pies y rodillas al ancho de la cadera', 'Posición de Pilates en V: talones juntos y puntas hacia afuera', 'Pies en flex, con los dedos hacia el techo', 'Rotación interna, con las puntas de los pies hacia adentro'], ok: 1, nota: 'La V del Pilates nace en la cadera, no en los pies: es una rotación externa del fémur, el trabajo de los seis profundos.' },
+        { t: 'op', s: 'Pilates', pil: true, q: 'En el Footwork del Reformer en posición de Pilates, ¿qué cuida usted para que la V la sostengan los rotadores profundos y no los pies?', op: ['Que la rotación salga de la cadera y las rodillas sigan la línea de los pies', 'Que los pies se abran lo más posible', 'Que las rodillas se junten', 'Que la pelvis se incline hacia adelante'], ok: 0 },
+        { t: 'op', s: 'Quién soy', nopil: true, q: 'Cuando estoy contraído o acortado, puedo apretar al nervio ciático. ¿Quién soy?', op: ['Obturador interno', 'Piriforme', 'Gemelo inferior'], ok: 1 }
+      ]
+    }
+  };
+  let S = null;   // estado del reto en curso
+  const R = () => store.get('reto', {});
+  const box = () => $('#reto');
+  const esPil = () => { const p = store.get('perfil', ''); return p && p !== 'nopilates'; };
+  function aprobado(u) { return !!(R()[u] && R()[u].ok); }
+  function unidadAbierta(n) {   // modo progresivo: la unidad siguiente se abre con todo completo y el reto aprobado
+    if (store.get('modo', 'libre') !== 'progresivo') return true;
+    const si = SECTIONS.findIndex(([, , a, b]) => n >= a && n <= b); if (si <= 1) return true;
+    for (let k = 1; k < si; k++) { const [, , a, b] = SECTIONS[k]; const [d, t] = plateCount(a, b); if (d < t || !aprobado(k)) return false; }
+    return true;
+  }
+  function html(h) { const b = box(); b.querySelector('.rtbody').innerHTML = h; b.querySelector('.rtbody').scrollTop = 0; }
+  function head() {
+    const tot = S.lista.length, i = S.i;
+    box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[S.u].unidad}</b><span>${Math.min(i + 1, tot)} / ${tot}</span><div class="rtdots">${S.lista.map((_, k) => `<i class="${k < i ? (S.res[k] ? 'ok' : 'no') : k === i ? 'cur' : ''}"></i>`).join('')}</div>`;
+  }
+  function abrir(u) {
+    if (!U[u]) { toast('El reto de esta unidad viene pronto'); return; }
+    closeHome(); box().hidden = false;
+    if (!store.get('perfil', '')) { perfil(u); return; }
+    empezar(u);
+  }
+  function perfil(u) {
+    box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[u].unidad}</b>`;
+    html(`<h3>Antes de empezar</h3><p class="rtq">¿Qué relación tiene usted con el método Pilates?</p><div class="rtops">${PERFIL.map(([k, t]) => `<button data-k="${k}">${t}</button>`).join('')}</div><p class="rtsmall">Con esto el reto le hace preguntas de Pilates o de anatomía. Puede cambiarlo cuando quiera.</p>`);
+    box().querySelectorAll('.rtops button').forEach(b => b.onclick = () => { store.set('perfil', b.dataset.k); empezar(u); });
+  }
+  function empezar(u) {
+    const pil = esPil();
+    S = { u, i: 0, res: [], lista: U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil)) };
+    html(`<div class="rtintro"><div class="rtbig">🦸</div><h3>${U[u].titulo}</h3><p>${S.lista.length} retos cortos. Se aprueba con el <b>80%</b>.</p><p class="rtsmall">Ubique cada músculo, toque su origen y su inserción en el esqueleto y demuestre lo que sabe de la liga.</p><button class="pill on rtgo">¡Empezar!</button><button class="pill rtperfil">Cambiar mi perfil</button></div>`);
+    box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[u].unidad}</b>`;
+    box().querySelector('.rtgo').onclick = () => paso();
+    box().querySelector('.rtperfil').onclick = () => perfil(u);
+  }
+  function paso() {
+    if (S.i >= S.lista.length) return fin();
+    head(); const r = S.lista[S.i];
+    if (r.t === 'toca') return tocaMusculo(r);
+    if (r.t === 'oi') return origenInsercion(r);
+    if (r.t === 'clave') return clave();
+    return opciones(r);
+  }
+  function resultado(ok, msg) {
+    S.res[S.i] = ok; head(); SFX.blip(ok ? 'fill' : 'undo'); buzz(ok ? 18 : 40);
+    const f = document.createElement('div'); f.className = 'rtfb ' + (ok ? 'ok' : 'no');
+    f.innerHTML = `<b>${ok ? ['¡Muy bien!', '¡Exacto!', '¡Así es!', '¡Perfecto!'][S.i % 4] : '¡Casi!'}</b>${msg ? `<span>${msg}</span>` : ''}<button class="pill on">${S.i + 1 < S.lista.length ? 'Siguiente' : 'Ver resultado'}</button>`;
+    box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    f.querySelector('button').onclick = () => { S.i++; paso(); };
+  }
+  /* estación 1: tocar el músculo en la lámina del grupo */
+  async function tocaMusculo(r) {
+    const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
+    html(`<p class="rtst">Encuentre al músculo</p><p class="rtq">Toque <b>${r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
+    const cv = box().querySelector('canvas'), x = cv.getContext('2d');
+    const [im, li] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
+    const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
+    cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
+    const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
+    let done = false;
+    cv.onclick = e => {
+      if (done) return; const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W, py = (e.clientY - rc.top) / rc.height * cv.height + y0;
+      const d = lx.getImageData(px | 0, py | 0, 1, 1).data, L = d[0] | (d[1] << 8), nm = z[L];
+      done = true;
+      const ok = nm === r.m;
+      // marcar la zona correcta en verde (y la tocada en rojo si falló)
+      const hl = (lab, col) => { const id = lx.getImageData(0, y0, W, cv.height), D = id.data, o = x.getImageData(0, 0, W, cv.height), O = o.data;
+        for (let i = 0; i < D.length; i += 4) { const l = D[i] | (D[i + 1] << 8); if (lab(l)) { O[i] = O[i] * .4 + col[0] * .6; O[i + 1] = O[i + 1] * .4 + col[1] * .6; O[i + 2] = O[i + 2] * .4 + col[2] * .6; } }
+        x.putImageData(o, 0, 0); };
+      if (!ok && L && L !== pm.bg) hl(l => l === L, [220, 40, 40]);
+      hl(l => z[l] === r.m, [40, 170, 80]);
+      resultado(ok, ok ? '' : (nm ? `Ese es ${nm}. ${cap(r.m)} está marcado en verde.` : `${cap(r.m)} está marcado en verde.`));
+    };
+  }
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  /* estación 2: origen e inserción sobre el esqueleto */
+  async function origenInsercion(r) {
+    const base = `reto/u${S.u}_${r.img}_`;
+    html(`<p class="rtst">De dónde sale y a dónde llega</p><p class="rtq"><b>${cap(r.m)}</b>: toque primero su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><div class="rtpair" hidden><img alt=""><img alt=""></div><p class="rtsmall rthint">Pelvis y fémur. Puede ampliar con dos dedos.</p>`);
+    const cv = box().querySelector('canvas'), x = cv.getContext('2d');
+    const [im, mk] = await Promise.all([loadImg(base + 'hueso.jpg'), loadImg(base + 'marcas.png')]);
+    cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
+    const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
+    const M = mx.getImageData(0, 0, im.width, im.height).data;
+    const toPx = e => { const rc = cv.getBoundingClientRect(); return [(e.clientX - rc.left) / rc.width * im.width, (e.clientY - rc.top) / rc.height * im.height]; };
+    const near = (p, ch) => { const R = 16; for (let dy = -R; dy <= R; dy += 2) for (let dx = -R; dx <= R; dx += 2) { if (dx * dx + dy * dy > R * R) continue; const X = (p[0] + dx) | 0, Y = (p[1] + dy) | 0; if (X < 0 || Y < 0 || X >= im.width || Y >= im.height) continue; if (M[(Y * im.width + X) * 4 + ch] > 128) return true; } return false; };
+    const dot = (p, col) => { x.beginPath(); x.arc(p[0], p[1], 7, 0, 7); x.fillStyle = col; x.fill(); x.lineWidth = 2; x.strokeStyle = '#fff'; x.stroke(); };
+    let fase = 0, okO = false;
+    cv.onclick = async e => {
+      const p = toPx(e);
+      if (fase === 0) { okO = near(p, 0); dot(p, okO ? '#1E9E4A' : '#D7322F'); fase = 1; box().querySelector('.rtq').innerHTML = `<b>${cap(r.m)}</b>: ahora toque su <b class="rti">inserción</b>.`; return; }
+      if (fase !== 1) return;
+      fase = 2; const okI = near(p, 2); dot(p, okI ? '#1E9E4A' : '#D7322F');
+      const pr = box().querySelector('.rtpair'), ims = pr.querySelectorAll('img'); ims[0].src = base + 'huellas.jpg'; ims[1].src = base + 'musculo.jpg'; pr.hidden = false;
+      box().querySelector('.rthint').textContent = 'Rojo: origen. Azul: inserción. A la derecha, el músculo en su lugar.';
+      resultado(okO && okI, `Sale de ${r.no} y llega ${r.ni.replace(/^el /, 'al ').replace(/^la /, 'a la ')}.`);
+    };
+  }
+  /* estación 3, 4 y 6: opciones */
+  function opciones(r) {
+    const ord = r.op.map((t, k) => [t, k]).sort(() => Math.random() - .5);
+    html(`<p class="rtst">${r.s}</p><p class="rtq">${r.q}</p><div class="rtops">${ord.map(([t, k]) => `<button data-k="${k}">${t}</button>`).join('')}</div>`);
+    const bs = box().querySelectorAll('.rtops button');
+    bs.forEach(b => b.onclick = () => {
+      bs.forEach(o => { o.disabled = true; if (+o.dataset.k === r.ok) o.classList.add('ok'); });
+      const ok = +b.dataset.k === r.ok; if (!ok) b.classList.add('no');
+      resultado(ok, ok ? (r.nota || '') : `La respuesta es: ${r.op[r.ok]}.${r.nota ? ' ' + r.nota : ''}`);
+    });
+  }
+  /* estación 5: su clave de colores (su color manda, nunca el del libro) */
+  async function clave() {
+    const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {}, mus = (MAP[n] || {}).muscles || [];
+    let pista = null;
+    try {
+      const sv = await idbGet('p' + n);
+      if (sv && sv.color) {
+        const ci = await blobImg(sv.color), li = await loadImg(pageFile(n, '_lab.png'));
+        const c = document.createElement('canvas'); c.width = W; c.height = H; const cx = c.getContext('2d', { willReadFrequently: true });
+        cx.drawImage(ci, 0, 0); const C = cx.getImageData(0, 0, W, H).data; cx.clearRect(0, 0, W, H); cx.drawImage(li, 0, 0); const Lb = cx.getImageData(0, 0, W, H).data;
+        const acc = {}; for (let i = 0; i < Lb.length; i += 16) { const nm = z[Lb[i] | (Lb[i + 1] << 8)]; if (!nm || !mus.includes(nm) || C[i + 3] < 80) continue; const a = acc[nm] || (acc[nm] = [0, 0, 0, 0]); a[0] += C[i]; a[1] += C[i + 1]; a[2] += C[i + 2]; a[3]++; }
+        const lst = Object.entries(acc).filter(([, a]) => a[3] > 200);
+        const cols = lst.map(([nm, a]) => [nm, [a[0] / a[3], a[1] / a[3], a[2] / a[3]]]);
+        // un músculo con un color que ningún otro comparta
+        for (const [nm, c1] of cols.sort(() => Math.random() - .5)) if (cols.every(([o, c2]) => o === nm || Math.hypot(c1[0] - c2[0], c1[1] - c2[1], c1[2] - c2[2]) > 60)) { pista = [nm, c1]; break; }
+      }
+    } catch (e) {}
+    if (!pista) {   // aún no pintó la lámina del grupo con colores distintos
+      return opciones({ s: 'Su clave de colores', q: 'En el orden de construcción, ¿qué número tiene el piriforme?', op: ['1', '4', '6'], ok: 2, nota: 'Pinte la lámina del grupo con un color para cada músculo y este reto usará su propia clave.' });
+    }
+    const [nm, c1] = pista, rgb = `rgb(${c1.map(v => v | 0).join(',')})`;
+    const ops = [nm, ...mus.filter(m => m !== nm).sort(() => Math.random() - .5).slice(0, 2)];
+    opciones({ s: 'Su clave de colores', q: `En su lámina del grupo usted pintó un músculo de este color <span class="rtsw" style="background:${rgb}"></span>. ¿Cuál es?`, op: ops.map(cap), ok: 0, nota: 'Lo que cuenta es su propia clave: su color, su número y su nombre siempre van juntos.' });
+  }
+  function fin() {
+    const tot = S.lista.length, ok = S.res.filter(Boolean).length, pct = Math.round(ok / tot * 100), pasa = pct >= 80;
+    const r = R(); const prev = r[S.u] || {}; r[S.u] = { ok: prev.ok || pasa, mejor: Math.max(prev.mejor || 0, pct), fecha: Date.now() }; store.set('reto', r);
+    box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[S.u].unidad}</b>`;
+    if (pasa) {
+      html(`<div class="rtfin ok"><div class="rtconf"></div><div class="rtstar">⭐</div><h3>¡Felicidades!</h3><p class="rtbigtxt">${ok} de ${tot}</p><p>Usted ya conoce a <b>${U[S.u].titulo}</b>: sabe dónde vive cada uno, de dónde sale y a dónde llega.</p><p class="rtsmall">¡Ya está listo para construirlos con sus manos!</p><button class="pill on rtok">¡Seguir!</button></div>`);
+      const cf = box().querySelector('.rtconf'); for (let i = 0; i < 60; i++) { const e = document.createElement('i'); e.style.left = Math.random() * 100 + '%'; e.style.background = ['#E0457B', '#F2C230', '#2EC4B6', '#3A86FF', '#8AC926'][i % 5]; e.style.animationDelay = Math.random() * .8 + 's'; cf.appendChild(e); }
+      buzz(60);
+    } else {
+      html(`<div class="rtfin"><div class="rtstar">💪</div><h3>¡Ya casi!</h3><p class="rtbigtxt">${ok} de ${tot}</p><p>Necesita el 80% (${Math.ceil(tot * .8)} de ${tot}). Repase la ficha y las láminas y vuelva a intentarlo: cada intento le enseña algo nuevo.</p><button class="pill on rtre">Intentar de nuevo</button><button class="pill rtok">Volver al libro</button></div>`);
+      box().querySelector('.rtre').onclick = () => empezar(S.u);
+    }
+    box().querySelector('.rtok').onclick = cerrar;
+  }
+  function cerrar() { box().hidden = true; S = null; }
+  return { abrir, cerrar, aprobado, unidadAbierta, U };
+})();
+$('#rtClose').onclick = () => RETO.cerrar();
 /* ---------------- revisión de la obra antes de compartir ---------------- */
 function reviewArt() {
   const rv = { block: [], tips: [], zones: [] };

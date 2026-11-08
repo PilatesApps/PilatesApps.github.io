@@ -398,3 +398,50 @@ body.hand #viewport{cursor:grab}
 #brushDot b svg{fill:none;stroke:#1c1c1c;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;overflow:visible}
 #brushDot.er .ring{background:rgba(255,255,255,.28);box-shadow:0 0 0 1px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.95)}
 @media (hover:hover){body.tools:not(.hand):not(.sheet) #viewport{cursor:none}}
+
+/* reto de la unidad */
+#reto{position:fixed;inset:0;z-index:96;background:rgba(20,26,33,.6);display:flex;align-items:center;justify-content:center;padding:max(10px,env(safe-area-inset-top)) 10px 10px}
+#reto .rtwrap{background:#FBFAF7;border-radius:20px;width:100%;max-width:640px;max-height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.35);color:#2B3440}
+#reto .rttop{display:flex;align-items:flex-start;gap:8px;padding:12px 12px 8px 16px;border-bottom:1px solid #E7E4DD}
+#reto .rthead{flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:14px}
+#reto .rthead span{color:#7A8698;font-size:12px}
+#reto .rtdots{flex-basis:100%;display:flex;gap:3px}
+#reto .rtdots i{flex:1;height:5px;border-radius:3px;background:#E3E1DB}
+#reto .rtdots i.ok{background:#1E9E4A}#reto .rtdots i.no{background:#E0457B}#reto .rtdots i.cur{background:#3F4A57}
+#reto .rtbody{overflow:auto;padding:14px 16px 18px}
+#reto h3{margin:4px 0 8px;font-size:20px}
+#reto .rtst{margin:0;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9A7414}
+#reto .rtq{font-size:17px;line-height:1.4;margin:6px 0 12px}
+#reto .rtq .rto{color:#2F62D6}#reto .rtq .rti{color:#E8732A}
+#reto .rtsmall{font-size:12px;color:#7A8698;margin:8px 0}
+#reto .rtimg{border-radius:12px;overflow:auto;background:#fff;box-shadow:inset 0 0 0 1px #E3E1DB;touch-action:pinch-zoom}
+#reto .rtimg canvas{display:block;width:100%;height:auto;cursor:crosshair}
+#reto .rtops{display:flex;flex-direction:column;gap:8px}
+#reto .rtops button{text-align:left;padding:12px 14px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1.5px #D9D6CE;font-size:15px;line-height:1.35}
+#reto .rtops button.ok{box-shadow:inset 0 0 0 2.5px #1E9E4A;background:#ECF8EF}
+#reto .rtops button.no{box-shadow:inset 0 0 0 2.5px #E0457B;background:#FDEEF3}
+#reto .rtfb{margin-top:12px;padding:12px 14px;border-radius:14px;display:flex;flex-direction:column;gap:6px;animation:mdin .35s}
+#reto .rtfb.ok{background:#ECF8EF}#reto .rtfb.no{background:#FFF4D1}
+#reto .rtfb b{font-size:17px}#reto .rtfb span{font-size:14px;line-height:1.4}
+#reto .rtfb .pill{align-self:flex-end}
+#reto .rtintro,#reto .rtfin{text-align:center;padding:10px 4px;position:relative}
+#reto .rtbig,#reto .rtstar{font-size:56px;line-height:1.1;animation:mdsw 2.4s ease-in-out infinite}
+#reto .rtbigtxt{font-size:30px;font-weight:800;margin:4px 0}
+#reto .rtintro .pill,#reto .rtfin .pill{margin:6px 4px}
+#reto .rtsw{display:inline-block;width:26px;height:18px;border-radius:5px;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+#reto .rtconf{position:absolute;inset:-20px 0 0;pointer-events:none;overflow:hidden}
+#reto .rtconf i{position:absolute;top:-10px;width:8px;height:12px;border-radius:2px;animation:mdfall 2.6s ease-in forwards}
+@keyframes mdfall{to{transform:translateY(520px) rotate(540deg);opacity:0}}
+.card.reto .rtth{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(160deg,#FFF4D1,#FDE4EC);aspect-ratio:153/198}
+.card.reto .rtth b{font-size:34px}.card.reto .rtth em{font-style:normal;font-weight:700;font-size:13px;color:#9A7414}.card.reto .rtth small{font-size:11px;color:#7A8698}
+.card.reto.won .rtth{background:linear-gradient(160deg,#ECF8EF,#FFF4D1)}
+.hsec.locked .cards{opacity:.45;filter:grayscale(.7)}
+.hsec.locked h2::after{content:"🔒";margin-left:6px}
+.hmodo{margin:4px 0 18px;padding:12px;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1px #E3E1DB}
+.hmodo>b{font-size:13px;display:block;margin-bottom:8px}
+.hmodo>div{display:flex;gap:8px}
+.hmodo button{flex:1;text-align:left;padding:10px;border-radius:10px;background:#F4F2ED;font-weight:700;font-size:14px}
+.hmodo button small{display:block;font-weight:400;font-size:11px;color:#7A8698;margin-top:2px}
+.hmodo button.on{background:#3F4A57;color:#fff}.hmodo button.on small{color:#D9DEE5}
+#reto .rtpair{display:flex;gap:8px;margin-top:8px}#reto .rtpair img{flex:1;min-width:0;border-radius:10px;box-shadow:inset 0 0 0 1px #E3E1DB}
+#reto .rtimg.sk{max-width:420px;margin:0 auto}
