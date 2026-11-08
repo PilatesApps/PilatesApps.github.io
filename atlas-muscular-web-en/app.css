@@ -388,9 +388,14 @@ body.hand #viewport{cursor:grab}
 .flip .shade{position:absolute;inset:0;pointer-events:none;opacity:0}
 .flip .under{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.18),rgba(0,0,0,0) 40%);opacity:0}
 
-/* bolita del pincel */
-#brushDot{position:fixed;left:0;top:0;z-index:40;pointer-events:none;border-radius:50%;background:color-mix(in srgb,var(--c) 30%,transparent);box-shadow:0 0 0 2px var(--c),0 0 0 3.5px #fff,0 0 0 4.5px rgba(0,0,0,.45)}
-#brushDot::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px #fff}
-#brushDot.er{background:rgba(255,255,255,.35);box-shadow:0 0 0 1.5px #fff,0 0 0 3px rgba(0,0,0,.55)}
-#brushDot.er::after{background:#3F4A57}
-#brushDot.tap{background:var(--c)}
+/* cursor de pintar */
+#brushDot{position:fixed;left:0;top:0;width:0;height:0;z-index:40;pointer-events:none}
+#brushDot .ring{position:absolute;left:0;top:0;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,255,255,.9)}
+#brushDot .cross{position:absolute;left:-8px;top:-8px;width:16px;height:16px;
+  background:linear-gradient(var(--c),var(--c)) center/3px 3px no-repeat,
+  linear-gradient(#1c1c1c,#1c1c1c) 50% 0/1px 5px no-repeat,linear-gradient(#1c1c1c,#1c1c1c) 50% 100%/1px 5px no-repeat,
+  linear-gradient(#1c1c1c,#1c1c1c) 0 50%/5px 1px no-repeat,linear-gradient(#1c1c1c,#1c1c1c) 100% 50%/5px 1px no-repeat;
+  filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)}
+#brushDot b{position:absolute;left:7px;top:-29px;width:24px;height:24px;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))}
+#brushDot b svg{width:24px;height:24px;fill:none;stroke:#1c1c1c;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+@media (hover:hover){body.tools:not(.hand):not(.sheet) #viewport{cursor:none}}
