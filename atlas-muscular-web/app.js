@@ -834,8 +834,9 @@ function renderTexts() {
 const PN = ['Portada', 'Edición Digital 2026', 'Bienvenida', 'Índice de contenido', 'Orden de construcción', 'Orden de construcción (2)',
   'El cuento de la Unidad 1', 'Los músculos de la Unidad 1', 'Lámina del grupo', 'Obturador externo', 'Obturador interno', 'Gemelo superior',
   'Gemelo inferior', 'Cuadrado femoral', 'Piriforme', 'Lienzo libre: dibuje la Unidad 1',
-  'El cuento de la Unidad 2', 'Los músculos de la Unidad 2', 'Lámina del grupo', 'Ilíaco', 'Psoas mayor', 'Psoas menor', 'Lienzo libre: dibuje la Unidad 2'];
-const SECTIONS = [['Inicio', '', 1, 6], ['Unidad 1', 'Músculos posteriores profundos de la cadera', 7, 16], ['Unidad 2', 'Músculos anteriores profundos de la cadera', 17, 23]];
+  'El cuento de la Unidad 2', 'Los músculos de la Unidad 2', 'Lámina del grupo', 'Ilíaco', 'Psoas mayor', 'Psoas menor', 'Lienzo libre: dibuje la Unidad 2',
+  'El cuento de la Unidad 3', 'Los músculos de la Unidad 3', 'Lámina del grupo', 'Vasto intermedio', 'Vasto medial', 'Vasto lateral', 'Recto femoral', 'Sartorio', 'Lienzo libre: dibuje la Unidad 3'];
+const SECTIONS = [['Inicio', '', 1, 6], ['Unidad 1', 'Músculos posteriores profundos de la cadera', 7, 16], ['Unidad 2', 'Músculos anteriores profundos de la cadera', 17, 23], ['Unidad 3', 'Músculos anteriores de la cadera y el muslo', 24, 32]];
 const thumbCache = {};
 async function drawThumb(cv, n) {
   const x = cv.getContext('2d'), w = cv.width, h = cv.height;
