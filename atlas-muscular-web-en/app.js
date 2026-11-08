@@ -1207,7 +1207,8 @@ function reviewArt() {
     if (!area[L]) { skip[L] = 1; continue; }
     const c = cy[L] / area[L];
     if (c > yb - 4 || area[L] < 400) skip[L] = 1;
-    for (const r of (page.circles || [])) { { const px = cx[L] / area[L] / PT, py = c / PT; if (px >= r[0] && px <= r[2] && py >= r[1] && py <= r[3]) skip[L] = 1; } }
+    { const px = cx[L] / area[L] / PT, py = c / PT;   // bolitas, cuadros para escribir y casillas de número: no se pintan
+      for (const r of [...(page.circles || []), ...(page.write || []), ...(page.lock || [])]) if (px >= r[0] - 4 && px <= r[2] + 4 && py >= r[1] - 4 && py <= r[3] + 4) skip[L] = 1; }
     if (pnt[L]) { sr[L] /= pnt[L]; sg[L] /= pnt[L]; sb[L] /= pnt[L]; }
   }
   // color de una parte que invade la de al lado
