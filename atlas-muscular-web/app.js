@@ -1141,13 +1141,14 @@ $('#btnShare').onclick = async () => {
 const MUSIC = (() => {
   let ac = null, master = null, verb = null, cur = null, timers = [], nodes = [];
   const TR = [
-    ['piano', 'Piano suave', 'Notas lentas', '🎹'],
-    ['ambiente', 'Ambiente', 'Acordes cálidos', '🌙'],
-    ['lluvia', 'Lluvia', 'Lluvia tranquila', '🌧'],
-    ['mar', 'Mar', 'Olas lejanas', '🌊'],
+    ['piano', 'Piano suave', 'Piano con cuerdas de fondo', '🎹'],
+    ['ambiente', 'Ambiente', 'Flauta, campanitas y acordes', '🌙'],
+    ['lluvia', 'Lluvia', 'Gotas serenas', '🌧'],
+    ['mar', 'Mar', 'Olas lentas y lejanas', '🌊'],
     ['cuencos', 'Cuencos de cristal', 'Vibración que relaja', '🔔'],
-    ['indie', 'Indie yoga', 'Guitarra suave y ritmo lento', '🌿'],
-    ['mantra', 'Mantra', 'Voz grave tipo Om', '🧘'],
+    ['indie', 'Guitarra yoga', 'Guitarra suave y ritmo lento', '🌿'],
+    ['mantra', 'Mantra Om', 'Voz grave para meditar', '🧘'],
+    ['cuerdas', 'Arpa y violines', 'Cuerdas suaves que relajan', '🎻'],
   ];
   function ctx() {
     if (!ac) {
@@ -1182,7 +1183,7 @@ const MUSIC = (() => {
       let ci = 0;
       const bar = () => { const t = ac.currentTime + 0.05, ch = CHORDS[ci++ % 4]; note(ch[0] - 12 + 12, t, 5.5, 0.06, 'triangle'); note(ch[1], t + 0.02, 5, 0.035, 'triangle');
         const k = 3 + (Math.random() * 3 | 0); for (let i = 0; i < k; i++) { const m = PENTA[Math.random() * PENTA.length | 0]; note(m, t + 0.3 + i * (0.9 + Math.random() * 0.7), 3.2, 0.05 + Math.random() * 0.03); } };
-      bar(); every(bar, 6000);
+      pad(0.012); bar(); every(bar, 6000);
     },
     ambiente() {
       const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.4;
@@ -1194,23 +1195,27 @@ const MUSIC = (() => {
         g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.022, t + 2.5); g.gain.setValueAtTime(0.022, t + 6.5); g.gain.linearRampToValueAtTime(0, t + 9.5);
         o.connect(g).connect(lp); o.start(t); o.stop(t + 9.6); } };
       chord(); every(chord, 8000);
+      every(() => { if (Math.random() < 0.7) flute(PENTA[Math.random() * 6 | 0] + 12, ac.currentTime + 0.1, 2.5 + Math.random() * 2, 0.025); }, 3500);
+      every(() => { const t = ac.currentTime + 0.05; for (let i = 0; i < 3; i++) note(PENTA[5 + (Math.random() * 5 | 0)] + 12, t + i * 0.18, 2.5, 0.012); }, 9000);
     },
     lluvia() {
-      const s = noise('white'), hp = ac.createBiquadFilter(), lp = ac.createBiquadFilter(), g = ac.createGain();
-      hp.type = 'highpass'; hp.frequency.value = 500; lp.type = 'lowpass'; lp.frequency.value = 5200; g.gain.value = 0.28;
-      s.connect(hp).connect(lp).connect(g).connect(master); s.start(); keep(s, g);
-      const s2 = noise('brown'), g2 = ac.createGain(); g2.gain.value = 0.35; s2.connect(g2).connect(master); s2.start(); keep(s2, g2);
-      every(() => { for (let i = 0; i < 3; i++) { const t = ac.currentTime + Math.random() * 0.25, o = ac.createOscillator(), gg = ac.createGain();
-        o.frequency.setValueAtTime(1800 + Math.random() * 2600, t); o.frequency.exponentialRampToValueAtTime(500, t + 0.04);
-        gg.gain.setValueAtTime(0.025 * Math.random(), t); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.05); o.connect(gg).connect(master); o.start(t); o.stop(t + 0.06); } }, 260);
+      // lluvia serena: soplo muy suave y gotas sueltas, nada de tormenta
+      const s = noise('white'), bp = ac.createBiquadFilter(), g = ac.createGain();
+      bp.type = 'bandpass'; bp.frequency.value = 2400; bp.Q.value = 0.6; g.gain.value = 0.045;
+      s.connect(bp).connect(g).connect(master); s.start(); keep(s, g);
+      const drop = () => { const t = ac.currentTime + Math.random() * 0.4, o = ac.createOscillator(), gg = ac.createGain(), f = 900 + Math.random() * 1700;
+        o.type = 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 1.6, t + 0.06);
+        gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.03 + Math.random() * 0.03, t + 0.004); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+        o.connect(gg); gg.connect(master); gg.connect(verb); o.start(t); o.stop(t + 0.14); };
+      every(() => { const k = 1 + (Math.random() * 3 | 0); for (let i = 0; i < k; i++) drop(); }, 380);
     },
     mar() {
-      const s = noise('brown'), lp = ac.createBiquadFilter(), g = ac.createGain(); lp.type = 'lowpass'; lp.frequency.value = 650; g.gain.value = 0.25;
-      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.09; lg.gain.value = 0.22; lfo.connect(lg).connect(g.gain); lfo.start();
+      const s = noise('brown'), lp = ac.createBiquadFilter(), g = ac.createGain(); lp.type = 'lowpass'; lp.frequency.value = 520; g.gain.value = 0.24;
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.045; lg.gain.value = 0.2; lfo.connect(lg).connect(g.gain); lfo.start();
       const lf2 = ac.createGain(); lf2.gain.value = 300; lfo.connect(lf2).connect(lp.frequency);
       s.connect(lp).connect(g).connect(master); s.connect(verb); s.start(); keep(s, lfo, g);
       const w = noise('white'), hp = ac.createBiquadFilter(), wg = ac.createGain(); hp.type = 'bandpass'; hp.frequency.value = 2500; hp.Q.value = 0.5; wg.gain.value = 0.0;
-      const lg2 = ac.createGain(); lg2.gain.value = 0.05; lfo.connect(lg2).connect(wg.gain); w.connect(hp).connect(wg).connect(master); w.start(); keep(w, wg);
+      const lg2 = ac.createGain(); lg2.gain.value = 0.03; lfo.connect(lg2).connect(wg.gain); w.connect(hp).connect(wg).connect(master); w.start(); keep(w, wg);
     }
   };
   function pluck(m, t, vol = 0.18) {
@@ -1220,7 +1225,33 @@ const MUSIC = (() => {
     const s = ac.createBufferSource(), g = ac.createGain(), lp = ac.createBiquadFilter(); s.buffer = b; lp.type = 'lowpass'; lp.frequency.value = 2600; g.gain.value = vol;
     s.connect(lp).connect(g); g.connect(master); g.connect(verb); s.start(t);
   }
+  function pad(vol) {   // colchón de cuerdas (violines) muy suave
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400; const bus = ac.createGain(); bus.gain.value = 1; lp.connect(bus); bus.connect(master); bus.connect(verb); keep(lp, bus);
+    let ci = 0;
+    const ch = () => { const t = ac.currentTime + 0.05; for (const m of CHORDS[ci++ % 4].slice(1)) for (const det of [-8, 0, 8]) {
+      const o = ac.createOscillator(), g = ac.createGain(), v = ac.createOscillator(), vg = ac.createGain(); o.type = 'sawtooth'; o.frequency.value = hz(m + 12); o.detune.value = det;
+      v.frequency.value = 5 + Math.random(); vg.gain.value = 6; v.connect(vg).connect(o.detune);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 3); g.gain.setValueAtTime(vol, t + 9); g.gain.linearRampToValueAtTime(0, t + 12.5);
+      o.connect(g).connect(lp); o.start(t); v.start(t); o.stop(t + 12.6); v.stop(t + 12.6); } };
+    ch(); every(ch, 12000);
+  }
+  function flute(m, t, dur, vol) {
+    const o = ac.createOscillator(), g = ac.createGain(), v = ac.createOscillator(), vg = ac.createGain(), n = noise('white'), bp = ac.createBiquadFilter(), ng = ac.createGain();
+    o.type = 'sine'; o.frequency.value = hz(m); v.frequency.value = 5; vg.gain.value = hz(m) * 0.006; v.connect(vg).connect(o.frequency);
+    bp.type = 'bandpass'; bp.frequency.value = hz(m) * 2; bp.Q.value = 8; ng.gain.value = vol * 0.25;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.35); g.gain.setValueAtTime(vol, t + dur - 0.6); g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(g); n.connect(bp).connect(ng).connect(g); g.connect(master); g.connect(verb);
+    o.start(t); v.start(t); n.start(t); o.stop(t + dur + 0.1); v.stop(t + dur + 0.1); n.stop(t + dur + 0.1);
+  }
   Object.assign(play, {
+    cuerdas() {
+      pad(0.02);
+      const HARP = [[48, 55, 60, 64, 67, 72, 76], [45, 52, 57, 60, 64, 69, 72], [41, 48, 53, 57, 60, 65, 69], [43, 50, 55, 59, 62, 67, 71]];
+      let ci = 0;
+      const arp = () => { const t0 = ac.currentTime + 0.05, ch = HARP[ci++ % 4], up = [...ch, ...ch.slice(1, -1).reverse()];
+        up.forEach((m, i) => pluck(m, t0 + i * 0.5, 0.11 + Math.random() * 0.04)); };
+      arp(); every(arp, 6000);
+    },
     cuencos() {
       const BOWL = [55, 59, 62, 64, 67];   // notas de cuencos de cristal
       const strike = () => { const t = ac.currentTime + 0.05, m = BOWL[Math.random() * BOWL.length | 0];
