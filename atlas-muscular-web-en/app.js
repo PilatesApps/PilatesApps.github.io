@@ -2006,14 +2006,26 @@ function storyUI() {
   const playing = !story.paused && story.dataset.p == cur;
   b.classList.toggle('on', playing);
   $('#storyLabel').textContent = playing ? 'Pause' : (story.dataset.p == cur && story.currentTime > 1 ? 'Resume' : 'Listen');
+  $('#storyPanel').hidden = !(story.dataset.p == cur && (playing || story.currentTime > 0.5));
 }
+const mmss = t => { t = Math.max(0, t | 0); return `${t / 60 | 0}:${String(t % 60).padStart(2, '0')}`; };
+let seeking = false;
+$('#spSeek').addEventListener('input', () => { seeking = true; if (story.duration) $('#spTime').textContent = `${mmss($('#spSeek').value / 1000 * story.duration)} / ${mmss(story.duration)}`; });
+$('#spSeek').addEventListener('change', () => { if (story.duration) story.currentTime = $('#spSeek').value / 1000 * story.duration; seeking = false; });
+$('#spBack').onclick = () => { story.currentTime = Math.max(0, story.currentTime - 15); };
+$('#spFwd').onclick = () => { if (story.duration) story.currentTime = Math.min(story.duration - 0.5, story.currentTime + 15); };
+$('#spPlay').onclick = () => $('#storyBtn').onclick();
+$('#spClose').onclick = () => { story.pause(); story.currentTime = 0; storyUI(); };
+['spSeek', 'spBack', 'spFwd', 'spPlay', 'spClose'].forEach(id => document.getElementById(id).addEventListener('pointerdown', e => e.stopPropagation()));
 $('#storyBtn').onclick = () => {
   const st = STORIES[cur]; if (!st) return;
   if (story.dataset.p != cur) { story.src = st.src; story.dataset.p = cur; }
   if (story.paused) { if (MUSIC.cur) MUSIC.stop(); story.play().catch(() => toast('The audio could not be played')); } else story.pause();
 };
 story.addEventListener('play', storyUI); story.addEventListener('pause', storyUI); story.addEventListener('ended', () => { story.currentTime = 0; storyUI(); });
-story.addEventListener('timeupdate', () => { const p = story.duration ? story.currentTime / story.duration : 0; $('#storyBar').style.width = (p * 100) + '%'; });
+story.addEventListener('timeupdate', () => { const p = story.duration ? story.currentTime / story.duration : 0; $('#storyBar').style.width = (p * 100) + '%';
+  if (!seeking) { $('#spSeek').value = Math.round(p * 1000); if (story.duration) $('#spTime').textContent = `${mmss(story.currentTime)} / ${mmss(story.duration)}`; }
+  $('#spPlay').classList.toggle('on', !story.paused); });
 /* ---------------- arranque ---------------- */
 async function start() {
   await loadMeta();
