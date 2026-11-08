@@ -143,5 +143,68 @@
 "muscles": [
 "el piriforme"
 ]
+},
+"20": {
+"zones": {
+"4": "el ilíaco",
+"5": "el ilíaco",
+"2": "el ilion izquierdo",
+"6": "el ilion derecho",
+"3": "el sacro",
+"11": "el hueso coxal izquierdo",
+"10": "el hueso coxal derecho",
+"14": "el fémur izquierdo",
+"15": "el fémur derecho"
+},
+"muscles": [
+"el ilíaco"
+]
+},
+"19": {
+"zones": {
+"13": "el psoas menor",
+"67": "el psoas menor",
+"19": "el psoas mayor",
+"37": "el ilíaco",
+"34": "el hueso coxal izquierdo",
+"50": "el hueso coxal derecho",
+"35": "el hueso coxal derecho",
+"49": "el hueso coxal derecho",
+"73": "el fémur izquierdo",
+"52": "el fémur derecho",
+"39": "el sacro",
+"55": "la sínfisis púbica",
+"47": "el cóccix",
+"54": "el cóccix",
+"48": "la articulación de la cadera",
+"5": "las vértebras lumbares",
+"14": "las vértebras lumbares",
+"20": "las vértebras lumbares",
+"23": "las vértebras lumbares",
+"26": "las vértebras lumbares",
+"27": "las vértebras lumbares",
+"29": "las vértebras lumbares",
+"30": "las vértebras lumbares",
+"31": "las vértebras lumbares",
+"32": "las vértebras lumbares",
+"36": "las vértebras lumbares",
+"40": "las vértebras lumbares",
+"25": "las vértebras lumbares",
+"33": "las vértebras lumbares",
+"38": "las vértebras lumbares",
+"2": "las costillas",
+"16": "las costillas",
+"21": "las costillas",
+"9": "las costillas",
+"15": "las costillas",
+"6": "las costillas",
+"11": "las costillas",
+"12": "las costillas"
+},
+"muscles": [
+"el ilíaco",
+"el psoas mayor",
+"el psoas menor"
+]
 }
 }
