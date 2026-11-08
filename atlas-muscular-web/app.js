@@ -4,8 +4,12 @@
 const W = 1224, H = 1584, PT = 2; // píxeles de página y escala desde puntos PDF
 const $ = s => document.querySelector(s);
 const viewport = $('#viewport'), stage = $('#stage'), pageImg = $('#pageImg');
-const cColor = $('#cColor'), cLive = $('#cLive'), cInk = $('#cInk');
-for (const c of [cColor, cLive, cInk]) { c.width = W; c.height = H; }
+const cColor = $('#cColor'), cLive = $('#cLive'), cInk = $('#cInk'), cWipe = $('#cWipe'), cTop = $('#cTop');
+for (const c of [cColor, cLive, cInk, cWipe, cTop]) { c.width = W; c.height = H; }
+const xWipe = cWipe.getContext('2d'), xTop = cTop.getContext('2d');
+// borrador mágico: máscara de lo borrado del dibujo (rayas negras incluidas)
+const mWipe = document.createElement('canvas'); mWipe.width = W; mWipe.height = H; const xMask = mWipe.getContext('2d', { willReadFrequently: true });
+let paper = null, wipeUsed = false;
 const xColor = cColor.getContext('2d', { willReadFrequently: true });
 const xLive = cLive.getContext('2d', { willReadFrequently: true });
 const xInk = cInk.getContext('2d', { willReadFrequently: true });
@@ -34,6 +38,7 @@ const BRUSHES = [
   { id: 'aero', name: 'Aerógrafo', size: 50, opa: 25, hard: 0 },
   { id: 'balde', name: 'Balde', size: 0, opa: 90, hard: 100 },
   { id: 'borrador', name: 'Borrador', size: 26, opa: 100, hard: 80 },
+  { id: 'magia', name: 'Borrador mágico', size: 26, opa: 100, hard: 80 },
   { id: 'pluma', name: 'Escribir', size: 3, opa: 100, hard: 100 },
   { id: 'resaltador', name: 'Resaltador', size: 24, opa: 45, hard: 100 },
   { id: 'boligrafo', name: 'Bolígrafo', size: 2.4, opa: 100, hard: 100 },
@@ -136,6 +141,7 @@ const SFX = (() => {
     oleo:       { b: 'brown', t: 'lowpass',  f: 520,  q: 0.6, g: 0.18 },
     aero:       { b: 'pink',  t: 'highpass', f: 3500, q: 0.4, g: 0.05, steady: true },
     borrador:   { b: 'paper', t: 'bandpass', f: 700,  q: 0.6, g: 0.12 },
+    magia:      { b: 'paper', t: 'bandpass', f: 900,  q: 0.6, g: 0.12 },
     pluma:      { b: 'paper', t: 'highpass', f: 3200, q: 0.6, g: 0.06 },
     boligrafo:  { b: 'paper', t: 'highpass', f: 3200, q: 0.6, g: 0.06 },
   };
@@ -241,6 +247,7 @@ function preview(id) {
   else if (id === 'aero') { const g = x.createRadialGradient(44, 22, 2, 44, 22, 18); g.addColorStop(0, 'rgba(63,74,87,.55)'); g.addColorStop(1, 'rgba(63,74,87,0)'); x.fillStyle = g; x.fillRect(0, 0, 88, 44); for (let i = 0; i < 70; i++) { const a = Math.random() * 7, d = Math.abs((Math.random() + Math.random() - 1)) * 20; x.globalAlpha = .6; x.fillRect(44 + Math.cos(a) * d, 22 + Math.sin(a) * d, 1, 1); } }
   else if (id === 'balde') { x.font = '28px sans-serif'; x.textAlign = 'center'; x.fillText('🪣', 44, 33); }
   else if (id === 'borrador') { x.fillRect(26, 12, 36, 20); x.clearRect(29, 15, 14, 14); }
+  else if (id === 'magia') { x.fillRect(22, 14, 34, 18); x.clearRect(25, 17, 12, 12); x.fillStyle = '#C9A227'; const st = (cx, cy, r) => { x.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, q = i % 2 ? r * .38 : r; x.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); } x.closePath(); x.fill(); }; st(66, 13, 9); st(76, 30, 5); st(60, 34, 3.5); }
   else if (id === 'resaltador') { x.save(); x.translate(44, 22); x.rotate(-0.5); x.fillStyle = '#FFF200'; x.fillRect(-26, -5, 30, 10); x.fillStyle = '#3F4A57'; x.fillRect(4, -6, 22, 12); x.beginPath(); x.moveTo(-26, -5); x.lineTo(-34, -1); x.lineTo(-34, 3); x.lineTo(-26, 5); x.closePath(); x.fillStyle = '#E6D800'; x.fill(); x.restore(); }
   else if (id === 'boligrafo') { x.save(); x.translate(44, 22); x.rotate(-0.6); x.fillStyle = '#1F3B9E'; x.fillRect(-20, -3, 36, 6); x.fillStyle = '#9AA3AD'; x.beginPath(); x.moveTo(-20, -3); x.lineTo(-30, 0); x.lineTo(-20, 3); x.closePath(); x.fill(); x.fillStyle = '#1F3B9E'; x.fillRect(12, -5, 4, 3); x.restore(); }
   else if (id === 'pluma') { x.font = 'italic 24px Caveat, cursive'; x.textAlign = 'center'; x.fillText('Abc', 44, 32); }
@@ -267,7 +274,7 @@ function buildBrushes() {
   const row = $('#brushRow'); row.innerHTML = '';
   const GROUPS = [['Pintar', ['marcador', 'lapiz', 'creyon', 'tiza', 'carboncillo', 'acuarela', 'oleo', 'aero', 'balde']],
                   ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
-                  ['Borrar', ['borrador']]];
+                  ['Borrar', ['borrador', 'magia']]];
   for (const [gname, ids] of GROUPS) {
     const list = ids.map(B).filter(b => !(isText() && !TEXT_BRUSHES.includes(b.id)) && !(page && page.nobucket && b.id === 'balde'));
     if (!list.length) continue;
@@ -336,7 +343,7 @@ function setColor(c) {
   if (FREE.includes(brush)) { brush = 'marcador'; store.set('brush', brush); buildBrushes(); syncSliders(); }
   color = c; store.set("color", c); setTimeout(updateDock, 0);
   recent = [c, ...recent.filter(r => r.toLowerCase() !== c.toLowerCase())].slice(0, 6); store.set('recent', recent);
-  if (['borrador', 'gotero', 'pluma', 'teclado'].includes(brush)) { brush = 'marcador'; store.set('brush', brush); buildBrushes(); syncSliders(); }
+  if (['borrador', 'magia', 'gotero', 'pluma', 'teclado'].includes(brush)) { brush = 'marcador'; store.set('brush', brush); buildBrushes(); syncSliders(); }
   buildColors();
 }
 function syncSliders() {
@@ -427,6 +434,8 @@ async function openPage(n) {
   pageImg.src = pageFile(n, '.jpg');
   const topI = document.getElementById('topImg'); if (page.top) { topI.src = pageFile(n, '_top.png'); topI.hidden = false; } else { topI.hidden = true; topI.removeAttribute('src'); }
   xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xLive.clearRect(0, 0, W, H);
+  xMask.clearRect(0, 0, W, H); xWipe.clearRect(0, 0, W, H); xTop.clearRect(0, 0, W, H); paper = null; wipeUsed = false;
+  if (page.top) topI.onload = () => { if (page === META[n - 1]) renderWipe(); };
   labels = null; lockCanvas = null; zoneCache.clear(); texts = {};
   const plate = !!page.plate;
   $('#tools').hidden = false; document.body.classList.add('tools'); document.body.classList.toggle('textmode', !plate);
@@ -450,6 +459,7 @@ async function openPage(n) {
   if (saved && cur === n) {
     if (saved.color) xColor.drawImage(await blobImg(saved.color), 0, 0);
     if (saved.ink) xInk.drawImage(await blobImg(saved.ink), 0, 0);
+    if (saved.wipe) { xMask.drawImage(await blobImg(saved.wipe), 0, 0); wipeUsed = true; if (!pageImg.complete) await new Promise(ok => { pageImg.onload = ok; setTimeout(ok, 3000); }); renderWipe(); }
     texts = saved.texts || {};
   }
   renderTexts();
@@ -546,7 +556,7 @@ function dab(x, y, r, p, dir) {
       X.fillStyle = stroke.col; X.save(); X.translate(x, y); X.rotate(-0.35); X.fillRect(-r * 0.45, -r, r * 0.9, r * 2); X.restore(); break;
     }
     case 'boligrafo': { X.fillStyle = stroke.col; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill(); break; }
-    case 'marcador': case 'borrador': case 'pluma': {
+    case 'marcador': case 'borrador': case 'magia': case 'pluma': {
       if (hard > 0.95) { X.fillStyle = stroke.brush === 'pluma' ? stroke.ink : color; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill(); }
       else { const g = X.createRadialGradient(x, y, r * hard, x, y, r); const c = stroke.brush === 'pluma' ? stroke.ink : color; g.addColorStop(0, rgba(c, 1)); g.addColorStop(1, rgba(c, 0)); X.fillStyle = g; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill(); }
       break;
@@ -652,6 +662,12 @@ function startStroke(e) {
     cLive.style.opacity = s.opa / 100; cLive.style.mixBlendMode = hl ? 'multiply' : 'normal'; cLive.style.filter = ''; cLive.style.zIndex = hl ? '' : '4';
     const r = radius(e); dab(x, y, r, e.pressure, 0); SFX.start(brush); return;
   }
+  if (brush === 'magia') {
+    if (!paper) buildPaper();
+    stroke = { brush, s, layer: 'both', free: true, magic: true, zone: null, wzone: null, pts: [[x, y]], box: [x, y, x, y], last: [x, y], dist: 0, id: e.pointerId };
+    stroke.snap = snapLayers('both'); const mc = document.createElement('canvas'); mc.width = W; mc.height = H; mc.getContext('2d').drawImage(mWipe, 0, 0); stroke.msnap = mc;
+    cLive.style.opacity = 0; const r = radius(e); dab(x, y, r, e.pressure, 0); eraseLive(stroke.box); SFX.start('magia'); return;
+  }
   if (isText() && brush === 'borrador') {
     stroke = { brush, s, layer: 'both', free: true, zone: null, wzone: null, pts: [[x, y]], box: [x, y, x, y], last: [x, y], dist: 0, id: e.pointerId };
     stroke.snap = snapLayers('both');
@@ -700,6 +716,29 @@ function eraseLive(box) {
     cx.globalCompositeOperation = 'destination-out'; cx.globalAlpha = stroke.s.opa / 100;
     cx.drawImage(cLive, x0, y0, w, h, x0, y0, w, h); cx.restore();
   }
+  if (stroke.msnap) {
+    xMask.save(); xMask.clearRect(x0, y0, w, h); xMask.drawImage(stroke.msnap, x0, y0, w, h, x0, y0, w, h);
+    xMask.globalAlpha = stroke.s.opa / 100; xMask.drawImage(cLive, x0, y0, w, h, x0, y0, w, h); xMask.restore();
+    renderWipe(x0, y0, w, h);
+  }
+}
+// papel limpio: la lámina sin rayas (filtro de máximo), para tapar lo que borra el borrador mágico
+function buildPaper() {
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d', { willReadFrequently: true });
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); if (pageImg.complete) x.drawImage(pageImg, 0, 0, W, H);
+  const im = x.getImageData(0, 0, W, H), d = im.data, R = 7, t = new Uint8ClampedArray(d.length);
+  for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++) { const o = (y * W + xx) * 4; let br = -1, bi = o; for (let k = -R; k <= R; k++) { const q = xx + k; if (q < 0 || q >= W) continue; const p = (y * W + q) * 4, v = d[p] + d[p + 1] + d[p + 2]; if (v > br) { br = v; bi = p; } } t[o] = d[bi]; t[o + 1] = d[bi + 1]; t[o + 2] = d[bi + 2]; t[o + 3] = 255; }
+  for (let xx = 0; xx < W; xx++) for (let y = 0; y < H; y++) { const o = (y * W + xx) * 4; let br = -1, bi = o; for (let k = -R; k <= R; k++) { const q = y + k; if (q < 0 || q >= H) continue; const p = (q * W + xx) * 4, v = t[p] + t[p + 1] + t[p + 2]; if (v > br) { br = v; bi = p; } } d[o] = t[bi]; d[o + 1] = t[bi + 1]; d[o + 2] = t[bi + 2]; d[o + 3] = 255; }
+  x.putImageData(im, 0, 0); paper = c;
+}
+function renderWipe(x0 = 0, y0 = 0, w = W, h = H) {
+  if (wipeUsed || stroke) { if (!paper) buildPaper();
+  xWipe.save(); xWipe.clearRect(x0, y0, w, h); xWipe.drawImage(mWipe, x0, y0, w, h, x0, y0, w, h);
+  xWipe.globalCompositeOperation = 'source-in'; xWipe.drawImage(paper, x0, y0, w, h, x0, y0, w, h); xWipe.restore(); }
+  const tI = document.getElementById('topImg');
+  xTop.save(); xTop.clearRect(x0, y0, w, h);
+  if (page && page.top && tI.complete && tI.naturalWidth) { xTop.drawImage(tI, 0, 0, W, H); xTop.globalCompositeOperation = 'destination-out'; xTop.drawImage(mWipe, 0, 0); }
+  xTop.restore();
 }
 function radius(e) {
   const s = stroke ? stroke.s : S(); let r = Math.max(0.8, s.size / 2) * 1.0;
@@ -716,7 +755,7 @@ function moveStroke(e) {
     if (stroke.sm) { x = stroke.sm[0] + (x - stroke.sm[0]) * k; y = stroke.sm[1] + (y - stroke.sm[1]) * k; }
     stroke.sm = [x, y];
     const [lx, ly] = stroke.last, dx = x - lx, dy = y - ly, d = Math.hypot(dx, dy);
-    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
+    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'magia' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
     const dir = Math.atan2(dy, dx);
     let t = sp - stroke.dist;
     while (t <= d) { dab(lx + dx * t / d, ly + dy * t / d, r, ev.pressure, dir); t += sp; }
@@ -736,7 +775,9 @@ function endStroke() {
   const [x0, y0, x1, y1] = box; const w = x1 - x0, h = y1 - y0;
   if (w > 0 && h > 0 && st.snap) {
     // el borrado ya se aplicó en vivo: solo guardamos el deshacer con lo que había antes
-    for (const k in st.snap) { undo.push({ layer: k, x: x0, y: y0, data: st.snap[k].getContext('2d').getImageData(x0, y0, w, h) }); if (undo.length > 30) undo.shift(); }
+    const grp = []; for (const k in st.snap) grp.push({ layer: k, x: x0, y: y0, data: st.snap[k].getContext('2d').getImageData(x0, y0, w, h) });
+    if (st.msnap) { grp.push({ layer: 'wipe', x: x0, y: y0, data: st.msnap.getContext('2d').getImageData(x0, y0, w, h) }); wipeUsed = true; }
+    undo.push(grp.length === 1 ? grp[0] : { group: grp }); if (undo.length > 30) undo.shift();
     redo.length = 0; xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = ''; queueSave(); return;
   }
   if (w > 0 && h > 0) {
@@ -777,15 +818,21 @@ function pickColor(x, y) {
 }
 
 /* deshacer y rehacer por recuadro */
+const ctxOf = l => l === 'ink' ? xInk : l === 'wipe' ? xMask : xColor;
 function pushUndo(layer, x, y, w, h) {
-  const ctx = layer === 'ink' ? xInk : xColor;
+  const ctx = ctxOf(layer);
   undo.push({ layer, x, y, data: ctx.getImageData(x, y, w, h) }); if (undo.length > 30) undo.shift(); redo.length = 0;
 }
 function swap(from, to) {
   const u = from.pop(); if (!u) return;
-  const ctx = u.layer === 'ink' ? xInk : xColor;
-  to.push({ layer: u.layer, x: u.x, y: u.y, data: ctx.getImageData(u.x, u.y, u.data.width, u.data.height) });
-  ctx.putImageData(u.data, u.x, u.y); SFX.blip('undo'); buzz(10); queueSave();
+  const list = u.group || [u], back = [];
+  for (const e of list) {
+    const ctx = ctxOf(e.layer);
+    back.push({ layer: e.layer, x: e.x, y: e.y, data: ctx.getImageData(e.x, e.y, e.data.width, e.data.height) });
+    ctx.putImageData(e.data, e.x, e.y);
+    if (e.layer === 'wipe') renderWipe();
+  }
+  to.push(back.length === 1 ? back[0] : { group: back }); SFX.blip('undo'); buzz(10); queueSave();
 }
 $('#btnUndo').onclick = () => { if (isLocked()) { toast('Lámina bloqueada'); return; } swap(undo, redo); };
 $('#btnClear').onclick = () => { if (isLocked()) { toast('Lámina bloqueada'); return; } $('#confirmClear').hidden = false; };
@@ -793,6 +840,7 @@ $('#clearNo').onclick = () => { $('#confirmClear').hidden = true; };
 $('#clearYes').onclick = () => {
   pushUndo('color', 0, 0, W, H); xColor.clearRect(0, 0, W, H);
   pushUndo('ink', 0, 0, W, H); xInk.clearRect(0, 0, W, H);
+  if (wipeUsed) { pushUndo('wipe', 0, 0, W, H); xMask.clearRect(0, 0, W, H); renderWipe(); }
   texts = {}; renderTexts(); $('#confirmClear').hidden = true; queueSave(); toast('Lámina borrada');
 };
 $('#btnRedo').onclick = () => swap(redo, undo);
@@ -844,10 +892,12 @@ async function drawThumb(cv, n) {
     const img = thumbCache[n] || (thumbCache[n] = await loadImg(pageFile(n, '.jpg')));
     x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
     const sv = n === cur && page ? null : await idbGet('p' + n);
+    if (n === cur && page && wipeUsed) x.drawImage(cWipe, 0, 0, w, h);
     x.globalCompositeOperation = 'multiply';
     if (n === cur && page) x.drawImage(cColor, 0, 0, w, h); else if (sv && sv.color) x.drawImage(await blobImg(sv.color), 0, 0, w, h);
     x.globalCompositeOperation = 'source-over';
-    if (META[n - 1] && META[n - 1].top) { const t = await loadImg(pageFile(n, '_top.png')).catch(() => null); if (t) x.drawImage(t, 0, 0, w, h); }
+    if (n === cur && page) { if (page.top) x.drawImage(cTop, 0, 0, w, h); }
+    else if (META[n - 1] && META[n - 1].top) { const t = await loadImg(pageFile(n, '_top.png')).catch(() => null); if (t) x.drawImage(t, 0, 0, w, h); }
     if (n === cur && page) x.drawImage(cInk, 0, 0, w, h); else if (sv && sv.ink) x.drawImage(await blobImg(sv.ink), 0, 0, w, h);
     return !!(sv || (n === cur && dirtyAny));
   } catch (e) { return false; }
@@ -1011,8 +1061,8 @@ function queueSave() { dirty = true; clearTimeout(saveT); saveT = setTimeout(sav
 const toBlob = c => new Promise(ok => c.toBlob(ok, 'image/png'));
 async function saveNow() {
   clearTimeout(saveT); if (!dirty || !page) { dirty = false; return; } dirty = false;
-  const n = cur; const [color, ink] = await Promise.all([toBlob(cColor), toBlob(cInk)]);
-  await idbSet('p' + n, { color, ink, texts: Object.assign({}, texts) }); dirtyAny = true;
+  const n = cur; const [color, ink, wipe] = await Promise.all([toBlob(cColor), toBlob(cInk), wipeUsed ? toBlob(mWipe) : null]);
+  await idbSet('p' + n, { color, ink, wipe, texts: Object.assign({}, texts) }); dirtyAny = true;
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
 
@@ -1032,13 +1082,13 @@ $('#btnShare').onclick = async () => {
   await saveNow();
   const FOOT = 150, c = document.createElement('canvas'); c.width = W; c.height = H + FOOT; const x = c.getContext('2d');
   x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
-  x.drawImage(pageImg, 0, 0, W, H);
+  x.drawImage(pageImg, 0, 0, W, H); if (wipeUsed) x.drawImage(cWipe, 0, 0);
   x.globalCompositeOperation = 'multiply'; x.drawImage(cColor, 0, 0);
   // marca de agua: logo grande y suave detrás del color
   const logo = await loadImg('bb_logo.png').catch(() => null);
   if (logo) { const lw = W * 0.7, lh = lw * logo.height / logo.width; x.globalAlpha = 0.1; x.drawImage(logo, (W - lw) / 2, (H - lh) / 2, lw, lh); x.globalAlpha = 1; }
   x.globalCompositeOperation = 'source-over';
-  const tI = document.getElementById('topImg'); if (page.top && tI.complete) x.drawImage(tI, 0, 0, W, H);
+  if (page.top) x.drawImage(cTop, 0, 0, W, H);
   // marca de agua diagonal repetida, suave
   x.save(); x.globalAlpha = 0.07; x.fillStyle = '#3F4A57'; x.font = '600 34px Montserrat, sans-serif'; x.textAlign = 'center';
   x.translate(W / 2, H / 2); x.rotate(-Math.PI / 6);

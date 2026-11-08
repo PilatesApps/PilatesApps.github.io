@@ -243,7 +243,7 @@ body.textmode #dkTape,body.freemode #dkTape{display:none}
 @media (min-width:900px){.bar #storyBtn{display:flex;flex:0 0 auto;max-width:none;flex-direction:row;gap:8px;height:44px;padding:0 18px;border-radius:22px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:13px;font-weight:600}
  .bar #storyBtn[hidden]{display:none}}
 
-#cColor{z-index:1}#cLive{z-index:1}#topImg{z-index:2}#cInk{z-index:3}#texts{z-index:5}#hot{z-index:6}
+#cWipe{z-index:1;pointer-events:none}#cTop{z-index:2;pointer-events:none}#topImg{display:none!important}#cColor{z-index:1}#cLive{z-index:1}#topImg{z-index:2}#cInk{z-index:3}#texts{z-index:5}#hot{z-index:6}
 
 .dk.lockbtn.active{color:#fff;background:var(--chrome)}.dk.lockbtn.active svg{stroke:var(--accent)}
 @media (min-width:900px){.bar #dkLock{display:flex;flex:0 0 auto;max-width:none;flex-direction:row;gap:8px;height:44px;padding:0 18px;border-radius:22px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12);font-size:13px;font-weight:600}.bar #dkLock.active{background:var(--chrome);color:#fff}}
