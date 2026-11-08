@@ -37,6 +37,7 @@ const BRUSHES = [
   { id: 'oleo', name: 'Oil paint', size: 30, opa: 100, hard: 90 },
   { id: 'aero', name: 'Airbrush', size: 50, opa: 25, hard: 0 },
   { id: 'balde', name: 'Bucket', size: 0, opa: 90, hard: 100 },
+  { id: 'textura', name: 'Texture', size: 40, opa: 100, hard: 100 },
   { id: 'borrador', name: 'Eraser', size: 26, opa: 100, hard: 80 },
   { id: 'magia', name: 'Magic eraser', size: 26, opa: 100, hard: 80 },
   { id: 'pluma', name: 'Write', size: 3, opa: 100, hard: 100 },
@@ -61,7 +62,7 @@ const HL = [['Yellow', '#FFF200'], ['Teal', '#3FE6FF'], ['Pink', '#FF58C8'], ['G
 const PEN = [['Blue', '#1F3B9E'], ['Black', '#1C1C1C'], ['Red', '#C62828']];
 const FREE = ['resaltador', 'boligrafo'];
 const TEXT_BRUSHES = ['resaltador', 'boligrafo', 'borrador'];
-const TEXT_OFF = ['balde', 'teclado', 'pluma'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
+const TEXT_OFF = ['balde', 'textura', 'teclado', 'pluma'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
 const ERASERS = ['borrador', 'magia'];
 let hlColor = store.get('hl', HL[0][1]), penColor = store.get('pen', PEN[0][1]);
 const isText = () => page && !page.plate;
@@ -252,6 +253,7 @@ function preview(id) {
   else if (id === 'oleo') { wave(11); x.strokeStyle = '#fff'; x.globalAlpha = .55; x.lineWidth = 1.4; x.beginPath(); x.moveTo(10, 27); x.bezierCurveTo(30, 3, 55, 37, 78, 11); x.stroke(); x.strokeStyle = '#1d232b'; x.globalAlpha = .6; x.beginPath(); x.moveTo(12, 34); x.bezierCurveTo(32, 10, 56, 44, 78, 18); x.stroke(); }
   else if (id === 'aero') { const g = x.createRadialGradient(44, 22, 2, 44, 22, 18); g.addColorStop(0, 'rgba(63,74,87,.55)'); g.addColorStop(1, 'rgba(63,74,87,0)'); x.fillStyle = g; x.fillRect(0, 0, 88, 44); for (let i = 0; i < 70; i++) { const a = Math.random() * 7, d = Math.abs((Math.random() + Math.random() - 1)) * 20; x.globalAlpha = .6; x.fillRect(44 + Math.cos(a) * d, 22 + Math.sin(a) * d, 1, 1); } }
   else if (id === 'balde') { x.font = '28px sans-serif'; x.textAlign = 'center'; x.fillText('🪣', 44, 33); }
+  else if (id === 'textura') { const t = texTile('flores', '#E5578E', 0.42); x.save(); x.beginPath(); x.roundRect ? x.roundRect(20, 6, 48, 32, 7) : x.rect(20, 6, 48, 32); x.clip(); x.fillStyle = x.createPattern(t, 'repeat'); x.fillRect(20, 6, 48, 32); x.restore(); x.strokeStyle = '#3F4A57'; x.lineWidth = 1.5; x.strokeRect(20.5, 6.5, 47, 31); }
   else if (id === 'borrador') { x.fillRect(26, 12, 36, 20); x.clearRect(29, 15, 14, 14); }
   else if (id === 'magia') { x.fillRect(22, 14, 34, 18); x.clearRect(25, 17, 12, 12); x.fillStyle = '#C9A227'; const st = (cx, cy, r) => { x.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, q = i % 2 ? r * .38 : r; x.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); } x.closePath(); x.fill(); }; st(66, 13, 9); st(76, 30, 5); st(60, 34, 3.5); }
   else if (id === 'resaltador') { x.save(); x.translate(44, 22); x.rotate(-0.5); x.fillStyle = '#FFF200'; x.fillRect(-26, -5, 30, 10); x.fillStyle = '#3F4A57'; x.fillRect(4, -6, 22, 12); x.beginPath(); x.moveTo(-26, -5); x.lineTo(-34, -1); x.lineTo(-34, 3); x.lineTo(-26, 5); x.closePath(); x.fillStyle = '#E6D800'; x.fill(); x.restore(); }
@@ -281,11 +283,11 @@ function openSheet(sec) {
 function closeSheet() { document.body.classList.remove('sheet'); document.querySelectorAll('.dk').forEach(d => d.classList.remove('on')); }
 function buildBrushes() {
   const row = $('#brushRow'); row.innerHTML = '';
-  const GROUPS = [['Paint', ['marcador', 'lapiz', 'creyon', 'tiza', 'carboncillo', 'acuarela', 'oleo', 'aero', 'balde']],
+  const GROUPS = [['Paint', ['marcador', 'lapiz', 'creyon', 'tiza', 'carboncillo', 'acuarela', 'oleo', 'aero', 'balde', 'textura']],
                   ['Write and mark', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
                   ['Erase', ['borrador', 'magia']]];
   for (const [gname, ids] of GROUPS) {
-    const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && b.id === 'balde'));
+    const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && (b.id === 'balde' || b.id === 'textura')));
     if (!list.length) continue;
     { const h = document.createElement('div'); h.className = 'glabel'; h.textContent = gname; row.appendChild(h); }
     for (const b of list) {
@@ -351,13 +353,15 @@ $('#dkTape').onclick = () => { closeSheet(); tapeBtn.click(); };
 $('#btnCloseTools').onclick = closeSheet;
 function setColor(c) {
   if (FREE.includes(brush)) { brush = 'marcador'; store.set('brush', brush); buildBrushes(); syncSliders(); }
-  color = c; store.set("color", c); setTimeout(updateDock, 0);
+  color = c; store.set("color", c); setTimeout(updateDock, 0); if (brush === 'textura') setTimeout(buildTex, 0);
   recent = [c, ...recent.filter(r => r.toLowerCase() !== c.toLowerCase())].slice(0, 6); store.set('recent', recent);
   if (['borrador', 'magia', 'gotero', 'pluma', 'teclado'].includes(brush)) { brush = (lastPaint && !(isText() && TEXT_OFF.includes(lastPaint))) ? lastPaint : 'marcador'; store.set(isText() ? 'tbrush' : 'brush', brush); buildBrushes(); syncSliders(); }
   buildColors();
 }
 function syncSliders() {
-  const s = S();
+  const s = S(), tx = brush === 'textura';
+  $('#sSize').previousElementSibling.textContent = tx ? 'Pattern size' : 'Size'; $('#sHard').parentElement.hidden = tx;
+  const tr = $('#texRow'); if (tr) { tr.hidden = !tx; if (tx) buildTex(); }
   $('#sSize').value = s.size; $('#oSize').textContent = s.size;
   $('#sOpa').value = s.opa; $('#oOpa').textContent = s.opa + '%';
   $('#sHard').value = s.hard; $('#oHard').textContent = s.hard + '%';
@@ -367,6 +371,7 @@ for (const [id, key, out, suf] of [['#sSize', 'size', '#oSize', ''], ['#sOpa', '
     settings[brush] = Object.assign({}, settings[brush], { [key]: +e.target.value }); store.set('settings', settings);
     $(out).textContent = e.target.value + suf;
   });
+  if (key === 'size') $(id).addEventListener('change', () => { if (brush === 'textura') buildTex(); });
 }
 const sndBtn = $('#btnSound');
 function syncSound() { sndBtn.classList.toggle('on', sound); sndBtn.setAttribute('aria-checked', sound); }
@@ -431,11 +436,37 @@ async function loadMeta() {
 function pageFile(n, suf) { return `pages/p${String(n).padStart(2, '0')}${suf}`; }
 function loadImg(src) { return new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; }); }
 
+/* pasar la hoja: la página vieja se levanta y gira como una hoja de papel */
+function pageFlip(fwd) {
+  try {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !Element.prototype.animate) return;
+    const vr = viewport.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    if (sr.width < 20) return;
+    const k = Math.min(1, 900 / sr.width) * Math.min(2, devicePixelRatio || 1), cw = Math.round(sr.width * k), ch = Math.round(sr.height * k);
+    const c = document.createElement('canvas'); c.width = cw; c.height = ch; const x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, cw, ch);
+    for (const el of [pageImg, cWipe, cColor, $('#topImg'), cTop, cInk]) { try { if (el && !el.hidden && (el.tagName !== 'IMG' || el.complete && el.naturalWidth)) x.drawImage(el, 0, 0, cw, ch); } catch (e) {} }
+    document.querySelectorAll('.flip').forEach(f => f.remove());
+    const f = document.createElement('div'); f.className = 'flip';
+    Object.assign(f.style, { left: (sr.left - vr.left) + 'px', top: (sr.top - vr.top) + 'px', width: sr.width + 'px', height: sr.height + 'px' });
+    f.innerHTML = '<div class="under"></div><div class="leaf"><div class="face front"></div><div class="face back"></div></div>';
+    const leaf = f.querySelector('.leaf'), front = f.querySelector('.front'), under = f.querySelector('.under');
+    front.appendChild(c); const sh = document.createElement('div'); sh.className = 'shade'; front.appendChild(sh);
+    sh.style.background = fwd ? 'linear-gradient(90deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.35))' : 'linear-gradient(270deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.35))';
+    leaf.style.transformOrigin = fwd ? 'left center' : 'right center';
+    viewport.appendChild(f);
+    const D = 720, E = 'cubic-bezier(.42,.06,.28,1)', sgn = fwd ? -1 : 1;
+    leaf.animate([{ transform: 'rotateY(0deg)' }, { transform: `rotateY(${sgn * 18}deg) skewY(${sgn * -1.2}deg)`, offset: .18 }, { transform: `rotateY(${sgn * 180}deg)` }], { duration: D, easing: E, fill: 'forwards' });
+    sh.animate([{ opacity: 0 }, { opacity: .9, offset: .5 }, { opacity: 0 }], { duration: D, easing: E, fill: 'forwards' });
+    under.animate([{ opacity: .9 }, { opacity: 0 }], { duration: D, easing: 'ease-out', fill: 'forwards' });
+    setTimeout(() => f.remove(), D + 60);
+  } catch (e) {}
+}
 async function openPage(n) {
   n = Math.max(1, Math.min(N, n));
   if (page && n !== cur) { try { checkDone(true); } catch (e) {} }
   await saveNow();
-  if (n !== cur && META.length) { SFX.blip('page'); buzz(8); }
+  if (n !== cur && META.length) { SFX.blip('page'); buzz(8); if (page) pageFlip(n > cur); }
   cur = n; page = META[n - 1]; store.set('page', n); setTimeout(syncLock, 0);
   undo.length = 0; redo.length = 0;
   $('#pgLabel').textContent = `${n} / ${N}`; $('#pgName').textContent = PN[n - 1] || '';
@@ -456,7 +487,7 @@ async function openPage(n) {
   if (brush !== 'gotero') brush = plate ? store.get('brush', 'marcador') : store.get('tbrush', 'resaltador');
   if (brush === 'gotero' && !plate) brush = store.get('tbrush', 'resaltador');
   if (!plate && TEXT_OFF.includes(brush)) { brush = 'resaltador'; }
-  if (page.nobucket && brush === 'balde') { brush = 'marcador'; }   // solo en esta página, no se guarda
+  if (page.nobucket && (brush === 'balde' || brush === 'textura')) { brush = 'marcador'; }   // solo en esta página, no se guarda
   buildBrushes(); buildColors(); syncSliders(); updateDock();
   view.s = 1; fit();
   buildHotspots();
@@ -683,6 +714,7 @@ function startStroke(e) {
   const [x, y] = toPage(e), s = S();
   if (brush === 'gotero') { pickColor(x, y); return; }
   if (brush === 'balde') { if (page.nobucket) { toast('This page is painted by hand: choose a brush'); return; } bucket(x, y); return; }
+  if (brush === 'textura') { if (page.nobucket) { toast('This page is painted by hand: choose a brush'); return; } texFill(x, y); return; }
   if (brush === 'teclado') { openKeyboard(x, y); return; }
   if (FREE.includes(brush)) {
     const hl = brush === 'resaltador';
@@ -761,7 +793,8 @@ function buildPaper() {
 }
 function renderWipe(x0 = 0, y0 = 0, w = W, h = H) {
   if (wipeUsed || stroke) { if (!paper) buildPaper();
-  xWipe.save(); xWipe.clearRect(x0, y0, w, h); xWipe.drawImage(mWipe, x0, y0, w, h, x0, y0, w, h);
+  xWipe.save(); xWipe.beginPath(); xWipe.rect(x0, y0, w, h); xWipe.clip();   // source-in borra todo lo que queda fuera: se limita al recuadro
+  xWipe.clearRect(x0, y0, w, h); xWipe.drawImage(mWipe, x0, y0, w, h, x0, y0, w, h);
   xWipe.globalCompositeOperation = 'source-in'; xWipe.drawImage(paper, x0, y0, w, h, x0, y0, w, h); xWipe.restore(); }
   const tI = document.getElementById('topImg');
   xTop.save(); xTop.clearRect(x0, y0, w, h);
@@ -838,6 +871,121 @@ function bucket(x, y) {
   xColor.save(); xColor.globalAlpha = S().opa / 100; xColor.drawImage(t, x0, y0); xColor.restore();
   SFX.blip('fill'); buzz(18); queueSave();
 }
+/* ---------------- texturas, estampados y su foto ---------------- */
+const TEXTURES = [['lino', 'Linen'], ['acuarela', 'Watercolor paper'], ['madera', 'Wood'], ['marmol', 'Marble'], ['jean', 'Denim'], ['kraft', 'Kraft paper'],
+  ['puntos', 'Dots'], ['rayas', 'Stripes'], ['cuadros', 'Gingham'], ['ondas', 'Waves'], ['estrellas', 'Stars'], ['flores', 'Flowers'], ['corazones', 'Hearts']];
+let texId = store.get('tex', 'lino'), texFit = store.get('texFit', 'mosaico'), texPhoto = null, texPhotoTry = false;
+const rgbOf = h => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const mixC = (c, w, k) => c.map((v, i) => Math.round(v + (w[i] - v) * k));
+const css = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+function seeded(n) { let a = n >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const texCache = new Map();
+function texTile(id, col, k) {
+  const key = id + col + k.toFixed(2); if (texCache.has(key)) return texCache.get(key);
+  const c0 = rgbOf(col), wh = [255, 255, 255], bk = [20, 20, 24];
+  const S0 = Math.max(16, Math.round(120 * k)), mat = ['lino', 'acuarela', 'madera', 'marmol', 'jean', 'kraft'].includes(id);
+  const T = mat ? Math.max(64, Math.round(256 * k)) : S0;
+  const cv = document.createElement('canvas'); cv.width = T; cv.height = T; const x = cv.getContext('2d'); const R = seeded(id.length * 7919 + T);
+  const light = mixC(c0, wh, .78), mid = mixC(c0, wh, .35);
+  if (mat) {
+    const d = x.createImageData(T, T), p = d.data, TAU = Math.PI * 2;
+    const rows = Array.from({ length: T }, () => R() - .5), colsN = Array.from({ length: T }, () => R() - .5);
+    const blob = Array.from({ length: 9 }, () => [R() * T, R() * T, (0.15 + R() * .3) * T, R() - .5]);
+    for (let y = 0; y < T; y++) for (let xx = 0; xx < T; xx++) {
+      const u = xx / T, v = y / T, n = R() - .5; let rgb, f = 0;
+      if (id === 'lino') { rgb = mixC(c0, wh, .62); f = rows[y] * .22 + colsN[xx] * .22 + n * .08; }
+      else if (id === 'acuarela') { rgb = mixC(c0, wh, .45); for (const [bx, by, br, bs] of blob) { for (const ox of [-T, 0, T]) for (const oy of [-T, 0, T]) { const dd = Math.hypot(xx - bx - ox, y - by - oy) / br; if (dd < 1) f += bs * .35 * (1 - dd * dd); } } f += n * .1; }
+      else if (id === 'madera') { rgb = mixC(c0, [120, 80, 45], .25); const w = Math.sin(TAU * (v * 6 + .35 * Math.sin(TAU * u) + .15 * Math.sin(TAU * (2 * u + v)))); f = w * .16 + (Math.abs(w) > .93 ? -.18 : 0) + n * .06 + rows[y] * .05; }
+      else if (id === 'marmol') { rgb = mixC(c0, wh, .82); const t = Math.sin(TAU * (u + v + .25 * Math.sin(TAU * (2 * v)) + .15 * Math.sin(TAU * (3 * u + v)))); const vein = Math.pow(1 - Math.abs(t), 14); f = n * .03; rgb = mixC(rgb, c0, vein * .85); }
+      else if (id === 'jean') { rgb = mixC(c0, bk, .25); const tw = ((xx + y) % 4 < 2) ? .12 : -.08; f = tw + n * .14 + (R() < .02 ? .35 : 0); }
+      else { rgb = mixC(mixC(c0, [176, 132, 82], .55), wh, .25); f = n * .12 + (R() < .03 ? (R() - .5) * .5 : 0); }
+      const tgt = f > 0 ? wh : bk, a = Math.min(1, Math.abs(f)), q = (y * T + xx) * 4;
+      p[q] = rgb[0] + (tgt[0] - rgb[0]) * a; p[q + 1] = rgb[1] + (tgt[1] - rgb[1]) * a; p[q + 2] = rgb[2] + (tgt[2] - rgb[2]) * a; p[q + 3] = 255;
+    }
+    x.putImageData(d, 0, 0);
+  } else {
+    x.fillStyle = css(light); x.fillRect(0, 0, T, T); x.fillStyle = css(c0); x.strokeStyle = css(c0);
+    const at = (fn) => { for (const [ox, oy] of [[0, 0], [T, 0], [0, T], [T, T], [T / 2, T / 2], [-T / 2, T / 2], [T / 2, -T / 2], [-T / 2, -T / 2]]) fn(ox, oy); };
+    const star = (cx, cy, r) => { x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r * .45 : r; x.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); } x.closePath(); x.fill(); };
+    const heart = (cx, cy, r) => { x.beginPath(); x.moveTo(cx, cy + r * .9); x.bezierCurveTo(cx - r * 1.3, cy, cx - r * .7, cy - r * 1.1, cx, cy - r * .35); x.bezierCurveTo(cx + r * .7, cy - r * 1.1, cx + r * 1.3, cy, cx, cy + r * .9); x.fill(); };
+    const flower = (cx, cy, r) => { for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5; x.beginPath(); x.ellipse(cx + Math.cos(a) * r * .55, cy + Math.sin(a) * r * .55, r * .48, r * .3, a, 0, 7); x.fill(); } x.save(); x.fillStyle = css(mixC(c0, [255, 214, 80], .7)); x.beginPath(); x.arc(cx, cy, r * .28, 0, 7); x.fill(); x.restore(); };
+    if (id === 'puntos') at((ox, oy) => { x.beginPath(); x.arc(ox, oy, T * .14, 0, 7); x.fill(); });
+    else if (id === 'rayas') { x.lineWidth = T * .17; for (const c of [0, T / 2, T, T * 1.5, T * 2]) { x.beginPath(); x.moveTo(c + 2, -2); x.lineTo(c - T - 2, T + 2); x.stroke(); } }
+    else if (id === 'cuadros') { x.globalAlpha = .45; x.fillRect(0, 0, T / 2, T); x.fillRect(0, 0, T, T / 2); x.globalAlpha = .35; x.fillRect(0, 0, T / 2, T / 2); x.globalAlpha = 1; }
+    else if (id === 'ondas') { x.lineWidth = T * .07; x.lineCap = 'round'; for (const yy of [T * .25, T * .75]) { x.beginPath(); for (let i = 0; i <= T; i += 2) x.lineTo(i, yy + Math.sin(i / T * Math.PI * 2) * T * .12); x.stroke(); } }
+    else if (id === 'estrellas') at((ox, oy) => star(ox, oy, T * .2));
+    else if (id === 'flores') at((ox, oy) => flower(ox, oy, T * .22));
+    else at((ox, oy) => heart(ox, oy, T * .18));
+  }
+  if (texCache.size > 40) texCache.clear(); texCache.set(key, cv); return cv;
+}
+async function loadTexPhoto() {
+  if (texPhoto || texPhotoTry) return texPhoto; texPhotoTry = true;
+  try { const b = await idbGet('foto'); if (b) texPhoto = await blobImg(b); } catch (e) {}
+  return texPhoto;
+}
+function choosePhoto() {
+  let inp = $('#texFile'); if (!inp) { inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.id = 'texFile'; inp.hidden = true; document.body.appendChild(inp); }
+  inp.value = ''; inp.onchange = async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    try {
+      const im = await blobImg(f), m = 1600 / Math.max(im.width, im.height), sc = Math.min(1, m);
+      const c = document.createElement('canvas'); c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      const b = await new Promise(ok => c.toBlob(ok, 'image/jpeg', .86)); await idbSet('foto', b); texPhoto = c; texPhotoTry = true;
+      texId = 'foto'; store.set('tex', texId); buildTex(); toast('Photo ready: tap the part you want to fill');
+    } catch (e) { toast('That photo could not be opened'); }
+  };
+  inp.click();
+}
+function buildTex() {
+  const row = $('#texRow'); if (!row) return; row.innerHTML = '';
+  const k = Math.max(.15, S().size / 40);
+  const head = (t) => { const h = document.createElement('div'); h.className = 'glabel'; h.textContent = t; row.appendChild(h); };
+  const btn = (id, name, draw) => {
+    const b = document.createElement('button'); b.setAttribute('aria-pressed', texId === id);
+    const c = document.createElement('canvas'); c.width = 96; c.height = 48; const x = c.getContext('2d'); draw(x);
+    b.appendChild(c); const s = document.createElement('span'); s.textContent = name; b.appendChild(s);
+    b.onclick = () => { if (id === 'foto' && !texPhoto) { choosePhoto(); return; } texId = id; store.set('tex', id); buildTex(); };
+    row.appendChild(b); return b;
+  };
+  head('Materials');
+  for (const [id, nm] of TEXTURES.slice(0, 6)) btn(id, nm, x => { x.fillStyle = x.createPattern(texTile(id, color, Math.min(k, .5)), 'repeat'); x.fillRect(0, 0, 96, 48); });
+  head('Patterns (in the chosen color)');
+  for (const [id, nm] of TEXTURES.slice(6)) btn(id, nm, x => { x.fillStyle = x.createPattern(texTile(id, color, Math.min(k, .4)), 'repeat'); x.fillRect(0, 0, 96, 48); });
+  head('Your photo');
+  btn('foto', texPhoto ? 'Your photo' : 'Choose photo', x => {
+    if (texPhoto) { const r = Math.max(96 / texPhoto.width, 48 / texPhoto.height); x.drawImage(texPhoto, (96 - texPhoto.width * r) / 2, (48 - texPhoto.height * r) / 2, texPhoto.width * r, texPhoto.height * r); }
+    else { x.fillStyle = '#EEF1F4'; x.fillRect(0, 0, 96, 48); x.strokeStyle = '#3F4A57'; x.lineWidth = 2; x.strokeRect(30, 12, 36, 26); x.beginPath(); x.arc(48, 25, 7, 0, 7); x.stroke(); x.fillStyle = '#3F4A57'; x.fillRect(42, 8, 12, 5); }
+  });
+  if (texPhoto) {
+    const ch = document.createElement('button'); ch.className = 'texopt'; ch.textContent = 'Change photo'; ch.onclick = choosePhoto; row.appendChild(ch);
+    for (const [v, nm] of [['completa', 'Full'], ['mosaico', 'Pattern']]) {
+      const b = document.createElement('button'); b.className = 'texopt'; b.textContent = nm; b.setAttribute('aria-pressed', texFit === v);
+      b.onclick = () => { texFit = v; store.set('texFit', v); texId = 'foto'; store.set('tex', 'foto'); buildTex(); }; row.appendChild(b);
+    }
+  } else loadTexPhoto().then(p => { if (p) buildTex(); });
+}
+async function texFill(x, y) {
+  const L = labelAt(x, y); if (!L) return;
+  const z = zoneMask(L); const [x0, y0, x1, y1] = z.box; const w = x1 - x0, h = y1 - y0;
+  const k = Math.max(.15, S().size / 40);
+  const t = document.createElement('canvas'); t.width = w; t.height = h; const tx = t.getContext('2d');
+  if (texId === 'foto') {
+    const ph = await loadTexPhoto(); if (!ph) { choosePhoto(); return; }
+    if (texFit === 'completa') { const r = Math.max(w / ph.width, h / ph.height); tx.drawImage(ph, (w - ph.width * r) / 2, (h - ph.height * r) / 2, ph.width * r, ph.height * r); }
+    else { const tw = Math.max(40, Math.round(260 * k)), th = Math.round(tw * ph.height / ph.width); const tc = document.createElement('canvas'); tc.width = tw; tc.height = th; tc.getContext('2d').drawImage(ph, 0, 0, tw, th);
+      const pat = tx.createPattern(tc, 'repeat'); tx.translate(-x0, -y0); tx.fillStyle = pat; tx.fillRect(x0, y0, w, h); tx.setTransform(1, 0, 0, 1, 0, 0); }
+  } else {
+    const pat = tx.createPattern(texTile(TEXTURES.some(t => t[0] === texId) ? texId : 'lino', color, k), 'repeat');
+    tx.translate(-x0, -y0); tx.fillStyle = pat; tx.fillRect(x0, y0, w, h); tx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  pushUndo('color', x0, y0, w, h);
+  tx.globalCompositeOperation = 'destination-in'; tx.drawImage(z.c, x0, y0, w, h, 0, 0, w, h);
+  tx.globalCompositeOperation = 'destination-out'; tx.drawImage(lockCanvas, x0, y0, w, h, 0, 0, w, h);
+  xColor.save(); xColor.globalAlpha = S().opa / 100; xColor.drawImage(t, x0, y0); xColor.restore();
+  SFX.blip('fill'); buzz(18); queueSave();
+}
+
 function pickColor(x, y) {
   const d = xColor.getImageData(x | 0, y | 0, 1, 1).data;
   if (d[3] < 10) { toast('There is no color there yet'); return; }
@@ -1018,9 +1166,28 @@ function buildHotspots() {
   }
 }
 
+/* bolita que marca dónde se pinta: del tamaño del pincel y del color elegido */
+const dot = document.createElement('div'); dot.id = 'brushDot'; dot.hidden = true; document.body.appendChild(dot);
+let dotT = null;
+function showDot(e) {
+  if (!page || hand || spaceDown || pointers.size > 1 || document.body.classList.contains('sheet')) { dot.hidden = true; return; }
+  const tap = ['balde', 'textura', 'gotero', 'teclado'].includes(brush), er = ERASERS.includes(brush);
+  const sc = stage.getBoundingClientRect().width / W;
+  const d = tap ? 22 : Math.max(12, Math.min(220, S().size * sc));
+  const c = brush === 'resaltador' ? hlColor : brush === 'boligrafo' ? penColor : color;
+  dot.className = er ? 'er' : tap ? 'tap' : '';
+  dot.style.cssText = `width:${d}px;height:${d}px;transform:translate(${e.clientX - d / 2}px,${e.clientY - d / 2}px);--c:${er ? '#fff' : c}`;
+  dot.hidden = false; clearTimeout(dotT);
+}
+viewport.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || pointers.has(e.pointerId)) showDot(e); }, { passive: true });
+viewport.addEventListener('pointerdown', e => showDot(e), { passive: true });
+viewport.addEventListener('pointerup', e => { clearTimeout(dotT); dotT = setTimeout(() => { if (e.pointerType !== 'mouse') dot.hidden = true; }, e.pointerType === 'mouse' ? 0 : 450); }, { passive: true });
+viewport.addEventListener('pointerleave', () => { dot.hidden = true; }, { passive: true });
+viewport.addEventListener('pointercancel', () => { dot.hidden = true; }, { passive: true });
+
 /* ---------------- gestos ---------------- */
 const pointers = new Map(); let gesture = null, panOnly = false, swipe = null, undoPending = null, pend = null, hand = false;
-const TAP_BRUSH = ['balde', 'gotero', 'teclado'];
+const TAP_BRUSH = ['balde', 'textura', 'gotero', 'teclado'];
 const snapEv = e => ({ pointerId: e.pointerId, clientX: e.clientX, clientY: e.clientY, pressure: e.pressure, pointerType: e.pointerType });
 /* con el dedo, el trazo espera un instante: si llega un segundo dedo (ampliar), no se pinta nada.
    el balde, el cuentagotas y el teclado actúan al levantar el dedo, nunca al apoyarlo */
