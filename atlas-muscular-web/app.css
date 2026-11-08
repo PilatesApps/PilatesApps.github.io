@@ -357,3 +357,13 @@ body.hand #viewport{cursor:grab}
 @keyframes conf{to{top:105%;transform:rotate(720deg)}}
 @keyframes mdin{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes mdsw{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+
+#storyPanel{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--barH) + var(--sab) + 10px);z-index:40;display:flex;align-items:center;gap:6px;width:min(560px,calc(100% - 24px));padding:8px 12px;background:#fff;border-radius:18px;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+#storyPanel button{position:relative;width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;color:var(--chrome)}
+#storyPanel button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#storyPanel button small{position:absolute;font-size:8.5px;font-weight:700;top:14px}
+#storyPanel #spClose svg{width:16px;height:16px}
+#storyPanel #spPlay{background:var(--chrome);color:#fff}#storyPanel #spPlay svg{fill:#fff;stroke:none;width:18px;height:18px}
+#storyPanel #spPlay .pa{display:none}#storyPanel #spPlay.on .pa{display:block}#storyPanel #spPlay.on .pl{display:none}
+#storyPanel input{flex:1;min-width:60px;accent-color:var(--accent);height:28px}
+#storyPanel #spTime{font-size:12px;font-weight:600;color:var(--chrome-2);white-space:nowrap;min-width:72px;text-align:right}
