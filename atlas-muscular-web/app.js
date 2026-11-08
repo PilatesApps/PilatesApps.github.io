@@ -253,7 +253,7 @@ function preview(id) {
   else if (id === 'oleo') { wave(11); x.strokeStyle = '#fff'; x.globalAlpha = .55; x.lineWidth = 1.4; x.beginPath(); x.moveTo(10, 27); x.bezierCurveTo(30, 3, 55, 37, 78, 11); x.stroke(); x.strokeStyle = '#1d232b'; x.globalAlpha = .6; x.beginPath(); x.moveTo(12, 34); x.bezierCurveTo(32, 10, 56, 44, 78, 18); x.stroke(); }
   else if (id === 'aero') { const g = x.createRadialGradient(44, 22, 2, 44, 22, 18); g.addColorStop(0, 'rgba(63,74,87,.55)'); g.addColorStop(1, 'rgba(63,74,87,0)'); x.fillStyle = g; x.fillRect(0, 0, 88, 44); for (let i = 0; i < 70; i++) { const a = Math.random() * 7, d = Math.abs((Math.random() + Math.random() - 1)) * 20; x.globalAlpha = .6; x.fillRect(44 + Math.cos(a) * d, 22 + Math.sin(a) * d, 1, 1); } }
   else if (id === 'balde') { x.font = '28px sans-serif'; x.textAlign = 'center'; x.fillText('🪣', 44, 33); }
-  else if (id === 'textura') { const t = texTile('flores', '#E5578E', 0.42); x.save(); x.beginPath(); x.roundRect ? x.roundRect(20, 6, 48, 32, 7) : x.rect(20, 6, 48, 32); x.clip(); x.fillStyle = x.createPattern(t, 'repeat'); x.fillRect(20, 6, 48, 32); x.restore(); x.strokeStyle = '#3F4A57'; x.lineWidth = 1.5; x.strokeRect(20.5, 6.5, 47, 31); }
+  else if (id === 'textura') { const q = [['rayas', '#2F62D6', 20, 6], ['puntos', '#F2C230', 44, 6], ['flores', '#1E9E4A', 20, 22], ['cuadros', '#E8732A', 44, 22]]; for (const [tid, tc, qx, qy] of q) { x.fillStyle = x.createPattern(texTile(tid, tc, .2), 'repeat'); x.fillRect(qx, qy, 24, 16); } x.strokeStyle = '#3F4A57'; x.lineWidth = 1.5; x.strokeRect(20.5, 6.5, 47, 31); }
   else if (id === 'borrador') { x.fillRect(26, 12, 36, 20); x.clearRect(29, 15, 14, 14); }
   else if (id === 'magia') { x.fillRect(22, 14, 34, 18); x.clearRect(25, 17, 12, 12); x.fillStyle = '#C9A227'; const st = (cx, cy, r) => { x.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, q = i % 2 ? r * .38 : r; x.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); } x.closePath(); x.fill(); }; st(66, 13, 9); st(76, 30, 5); st(60, 34, 3.5); }
   else if (id === 'resaltador') { x.save(); x.translate(44, 22); x.rotate(-0.5); x.fillStyle = '#FFF200'; x.fillRect(-26, -5, 30, 10); x.fillStyle = '#3F4A57'; x.fillRect(4, -6, 22, 12); x.beginPath(); x.moveTo(-26, -5); x.lineTo(-34, -1); x.lineTo(-34, 3); x.lineTo(-26, 5); x.closePath(); x.fillStyle = '#E6D800'; x.fill(); x.restore(); }
@@ -1166,17 +1166,29 @@ function buildHotspots() {
   }
 }
 
-/* bolita que marca dónde se pinta: del tamaño del pincel y del color elegido */
+/* cursor de pintar: aro fino del ancho real del pincel + cruz al centro (como en Paint); balde, textura, cuentagotas y teclado con su símbolo */
 const dot = document.createElement('div'); dot.id = 'brushDot'; dot.hidden = true; document.body.appendChild(dot);
-let dotT = null;
+const CUR_ICON = {
+  balde: '<svg viewBox="0 0 24 24"><path d="M5 9.5 12 3l7.5 7.5L13 17z" fill="#fff"/><path d="M5 9.5 12 3l7.5 7.5L13 17zM5 9.5h14.5"/><path d="M19.5 10.5c1.2 2 1.8 3.4 1.8 4.3a1.8 1.8 0 0 1-3.6 0c0-.9.6-2.3 1.8-4.3z" fill="var(--c)"/></svg>',
+  textura: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" fill="#fff"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke="var(--c)" stroke-width="1.6"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>',
+  gotero: '<svg viewBox="0 0 24 24"><path d="m14 4 6 6M12 6l6 6-9 9H3v-6z" fill="#fff"/></svg>',
+  teclado: '<svg viewBox="0 0 24 24"><path d="M9 4h6M12 4v16M9 20h6"/></svg>'
+};
+let dotT = null, dotKey = '';
 function showDot(e) {
   if (!page || hand || spaceDown || pointers.size > 1 || document.body.classList.contains('sheet')) { dot.hidden = true; return; }
-  const tap = ['balde', 'textura', 'gotero', 'teclado'].includes(brush), er = ERASERS.includes(brush);
+  const icon = CUR_ICON[brush], er = ERASERS.includes(brush);
   const sc = stage.getBoundingClientRect().width / W;
-  const d = tap ? 22 : Math.max(12, Math.min(220, S().size * sc));
-  const c = brush === 'resaltador' ? hlColor : brush === 'boligrafo' ? penColor : color;
-  dot.className = er ? 'er' : tap ? 'tap' : '';
-  dot.style.cssText = `width:${d}px;height:${d}px;transform:translate(${e.clientX - d / 2}px,${e.clientY - d / 2}px);--c:${er ? '#fff' : c}`;
+  const d = icon ? 0 : Math.max(2, S().size * sc);
+  const c = brush === 'resaltador' ? hlColor : brush === 'boligrafo' ? penColor : er ? '#3F4A57' : color;
+  const key = brush + '|' + Math.round(d) + '|' + c;
+  if (key !== dotKey) {
+    dotKey = key;
+    dot.className = icon ? 'icon' : er ? 'er' : '';
+    dot.innerHTML = (d >= 7 ? `<i class="ring" style="width:${d}px;height:${d}px;margin:${-d / 2}px 0 0 ${-d / 2}px"></i>` : '') + '<i class="cross"></i>' + (icon ? `<b>${icon}</b>` : '');
+    dot.style.setProperty('--c', c);
+  }
+  dot.style.transform = `translate(${e.clientX}px,${e.clientY}px)`;
   dot.hidden = false; clearTimeout(dotT);
 }
 viewport.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || pointers.has(e.pointerId)) showDot(e); }, { passive: true });
