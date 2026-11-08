@@ -103,6 +103,7 @@
     <button class="cont" id="btnContinue"><span class="cthumb"><canvas id="contThumb" width="120" height="155"></canvas></span><span><small>Continuar donde quedó</small><b id="contName">Portada</b></span><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
     <div id="homeGrid"></div>
     <p class="hnote">Unidades 4 a 17: próximamente</p>
+    <button class="pill danger wipebtn" id="btnWipeAll"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Borrar todo el libro</button>
   </div>
 </div>
 
@@ -132,6 +133,7 @@
   </div>
 </div>
 
+<div id="wipeBox" hidden><div class="wpanel"><div class="wwarn"><svg viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17.5v.01"/></svg><b>Advertencia</b></div><p id="wipeText"></p><div class="wsteps" id="wipeSteps"></div><div class="wbtns"><button class="pill" id="wipeNo">Cancelar</button><button class="pill danger" id="wipeYes">Confirmar</button></div></div></div>
 <div id="instBox" hidden><div class="ipanel"><b>Instalar en su dispositivo</b><div id="instText"></div><button class="pill" id="instClose">Entendido</button></div></div>
 <div id="kbd" hidden><textarea id="kbdText" rows="3" placeholder="Escribe aquí"></textarea><button id="kbdOk">Listo</button></div>
 <input type="color" id="colorPick" hidden>

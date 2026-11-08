@@ -290,3 +290,13 @@ html,body{background:#EEECE9 url(bg_wm.jpg) center/100% 100% no-repeat}
 }
 /* etiquetas del dock en dos líneas si no caben (Stay / inside) */
 @media (max-width:899px){.dk span{white-space:normal!important;text-align:center;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:54px;word-break:normal}}
+/* borrar todo el libro: triple confirmación */
+.pill.wipebtn{display:flex;align-items:center;gap:8px;margin:18px auto 6px;background:#fff;color:#B3261E;border:1.5px solid #E7B4B0}
+.wipebtn svg{width:18px;height:18px}
+#wipeBox{position:fixed;inset:0;z-index:90;background:rgba(20,26,33,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#wipeBox .wpanel{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.3);color:#2B3440;font-size:14px;line-height:1.5}
+#wipeBox .wwarn{display:flex;align-items:center;gap:8px;color:#B3261E;font-size:17px}
+#wipeBox .wwarn svg{width:26px;height:26px;stroke:#B3261E}
+#wipeBox .wsteps{display:flex;gap:6px;margin:6px 0 14px}#wipeBox .wsteps i{flex:1;height:5px;border-radius:3px;background:#EEE}#wipeBox .wsteps i.on{background:#B3261E}
+#wipeBox .wbtns{display:flex;gap:10px;justify-content:flex-end}
+.pill.danger{background:#B3261E;color:#fff}

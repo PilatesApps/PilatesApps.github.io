@@ -861,6 +861,21 @@ function swap(from, to) {
 }
 $('#btnUndo').onclick = () => { if (isLocked()) { toast('Lámina bloqueada'); return; } swap(undo, redo); };
 $('#btnClear').onclick = () => { if (isLocked()) { toast('Lámina bloqueada'); return; } $('#confirmClear').hidden = false; };
+// borrar todo el libro: tres confirmaciones
+let wipeStep = 0;
+const WIPE = ['Se borrará <b>todo el libro</b>: lo pintado y lo escrito en <b>todas las láminas</b>. ¿Desea continuar?',
+  '¿Está seguro? <b>No se puede deshacer.</b> Todas sus láminas quedarán en blanco.',
+  'Última confirmación: toque <b>Borrar todo</b> para dejar el libro completo en blanco.'];
+function wipeRender() { $('#wipeText').innerHTML = WIPE[wipeStep]; $('#wipeSteps').innerHTML = WIPE.map((_, i) => `<i class="${i <= wipeStep ? 'on' : ''}"></i>`).join(''); $('#wipeYes').textContent = wipeStep < 2 ? `Confirmar (${wipeStep + 1} de 3)` : 'Borrar todo'; }
+$('#btnWipeAll').onclick = () => { wipeStep = 0; wipeRender(); $('#wipeBox').hidden = false; };
+$('#wipeNo').onclick = () => { $('#wipeBox').hidden = true; };
+$('#wipeYes').onclick = async () => {
+  if (wipeStep < 2) { wipeStep++; wipeRender(); return; }
+  try { const d = await db(); await new Promise(ok => { const t = d.transaction('p', 'readwrite'); t.objectStore('p').clear(); t.oncomplete = ok; t.onerror = ok; }); } catch (e) {}
+  locks = {}; store.set('locks', locks); clearTimeout(saveT); dirty = false;
+  xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xMask.clearRect(0, 0, W, H); xWipe.clearRect(0, 0, W, H); wipeUsed = false; texts = {}; renderTexts(); undo.length = 0; redo.length = 0;
+  if (typeof renderWipe === 'function') renderWipe(); syncLock(); $('#wipeBox').hidden = true; closeHome(); toast('Libro borrado: todas las láminas quedaron en blanco');
+};
 $('#clearNo').onclick = () => { $('#confirmClear').hidden = true; };
 $('#clearYes').onclick = () => {
   pushUndo('color', 0, 0, W, H); xColor.clearRect(0, 0, W, H);
