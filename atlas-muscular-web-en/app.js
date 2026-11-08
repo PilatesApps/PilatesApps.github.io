@@ -1641,6 +1641,7 @@ $('#reviewBox').addEventListener('pointerdown', e => { if (e.target.id === 'revi
 
 /* ---------------- compartir: su obra firmada, en el estilo que elija ---------------- */
 const SHARE_STYLES = [
+  ['natural', 'Natural', 'No effect at all'],
   ['atril', 'Easel', 'Wood and linen'],
   ['oleo', 'Oil paint', 'Canvas and gold frame'],
   ['acuarela', 'Watercolor', 'Cotton paper'],
@@ -1649,9 +1650,11 @@ const SHARE_STYLES = [
   ['grafito', 'Graphite', 'Pencil on paper'],
   ['comic', 'Comic', 'Comic book page'],
   ['digital', 'Digital', 'Screen colors'],
-  ['limpio', 'Clean', 'The plate as is']
+  ['foto', 'Photography', 'Vivid color and contrast'],
+  ['vintage', 'Vintage', 'Old photo, warm tones'],
+  ['byn', 'Black and white', 'Classic photo']
 ];
-const SH = { cache: {}, logo: null, style: store.get('shareStyle', 'atril'), busy: false };
+const SH = { cache: {}, logo: null, style: (s => SHARE_STYLES.some(t => t[0] === s) ? s : 'natural')(store.get('shareStyle', 'natural')), busy: false };
 const mkC = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
 function rng(seed) { let t = seed >>> 0; return () => { t += 0x6D2B79F5; let r = Math.imul(t ^ t >>> 15, 1 | t); r ^= r + Math.imul(r ^ r >>> 7, 61 | r); return ((r ^ r >>> 14) >>> 0) / 4294967296; }; }
 const cl01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -1737,13 +1740,24 @@ function styleArt(st, Ly) {
   const R = rng(cur * 7919 + 13);
   const A = new Float32Array(n); for (let i = 0; i < n; i++) A[i] = C[i * 4 + 3] / 255;
   const put = (i, r, g, b) => { O[i] = r; O[i + 1] = g; O[i + 2] = b; O[i + 3] = 255; };
-  if (st === 'atril' || st === 'limpio' || st === 'digital') {
+  if (['atril', 'limpio', 'digital', 'natural', 'foto', 'vintage', 'byn'].includes(st)) {
+    const vg = (j) => { const xx = (j % w) / w - .5, yy = ((j / w) | 0) / h - .5; return xx * xx + yy * yy; };
     const f = st === 'digital' ? 1.3 : 1;
     for (let j = 0, i = 0; j < n; j++, i += 4) {
       const a = A[j]; let [cr, cg, cb] = f !== 1 ? sat(C[i], C[i + 1], C[i + 2], f) : [C[i], C[i + 1], C[i + 2]];
       let r = 255 * (1 - a + a * cr / 255), g = 255 * (1 - a + a * cg / 255), b = 255 * (1 - a + a * cb / 255);
       if (st === 'digital') { r = (r - 128) * 1.08 + 132; g = (g - 128) * 1.08 + 132; b = (b - 128) * 1.08 + 132; }
-      put(i, r * L[i] / 255, g * L[i + 1] / 255, b * L[i + 2] / 255);
+      r = r * L[i] / 255; g = g * L[i + 1] / 255; b = b * L[i + 2] / 255;
+      if (st === 'foto') {            // foto: más color, más contraste y una viñeta suave
+        [r, g, b] = sat(r, g, b, 1.18); const v = 1 - vg(j) * .55; r = ((r - 128) * 1.12 + 128) * v; g = ((g - 128) * 1.12 + 128) * v; b = ((b - 128) * 1.12 + 128) * v;
+      } else if (st === 'vintage') {  // vintage: sepia cálida, negros lavados, grano y viñeta
+        const y = .3 * r + .59 * g + .11 * b; let vr = r * .68 + y * .32 + 16, vgc = g * .68 + y * .32 + 5, vb = b * .68 + y * .32 - 12;
+        vr = 30 + vr * .82; vgc = 26 + vgc * .8; vb = 22 + vb * .74; const gr = (R() - .5) * 22, v = 1 - vg(j) * .9;
+        r = (vr + gr) * v; g = (vgc + gr) * v; b = (vb + gr) * v;
+      } else if (st === 'byn') {      // blanco y negro con contraste y un grano fino
+        let y = .3 * r + .59 * g + .11 * b; y = (y - 128) * 1.25 + 128 + (R() - .5) * 12; const v = 1 - vg(j) * .4; r = g = b = y * v;
+      }
+      put(i, r, g, b);
     }
   } else if (st === 'oleo') {
     const hs = s > 0.5 ? 0.5 : 1, ww = Math.round(w * hs), hh = Math.round(h * hs);
@@ -2079,10 +2093,26 @@ function sceneClean(art, s) {
   caption(x, CW / 2, M + h + 72 * s, w, s, '#3F4A57');
   return c;
 }
-async function shareRender(st, s) {
+function scenePhoto(art, s) {
+  const w = art.width, h = art.height, b = 34 * s, bb = 120 * s, M = 90 * s, CW = w + 2 * b + 2 * M, CH = h + b + bb + 2 * M, c = mkC(CW, CH), x = c.getContext('2d');
+  x.fillStyle = '#E9E6E1'; x.fillRect(0, 0, CW, CH);
+  x.save(); x.translate(CW / 2, CH / 2); x.rotate(-0.012); x.translate(-CW / 2, -CH / 2);
+  x.shadowColor = 'rgba(0,0,0,.28)'; x.shadowBlur = 30 * s; x.shadowOffsetY = 10 * s; x.fillStyle = '#FBFAF7'; x.fillRect(M, M, w + 2 * b, h + b + bb); x.shadowColor = 'transparent';
+  x.drawImage(art, M + b, M + b); caption(x, M + b + w / 2, M + b + h + bb * .55, w, s, '#3F4A57'); x.restore();
+  return c;
+}
+/* lo que se comparte: solo la obra con un borde fino (la escena es para elegir el estilo) */
+function shareBorder(art) {
+  const w = art.width, h = art.height, b = Math.round(Math.max(w, h) * .025), c = mkC(w + 2 * b, h + 2 * b), x = c.getContext('2d');
+  x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, c.width, c.height); x.drawImage(art, b, b);
+  x.strokeStyle = 'rgba(63,74,87,.25)'; x.lineWidth = 1.5; x.strokeRect(b - .75, b - .75, w + 1.5, h + 1.5);
+  return c;
+}
+async function shareRender(st, s, final) {
   if (!SH.logo) SH.logo = await loadImg('bb_logo.png').catch(() => null);
   const Ly = await shareLayers(s), art = styleArt(st, Ly);
-  return ({ atril: a => sceneEasel(a, s, false), oleo: a => sceneEasel(a, s, true), acuarela: a => sceneWall(a, s), marcador: a => sceneDesk(a, s), tiza: a => sceneBoard(a, s), grafito: a => sceneClip(a, s), comic: a => sceneComic(a, s), digital: a => sceneDigital(a, s), limpio: a => sceneClean(a, s) })[st](art);
+  if (final) return shareBorder(art);
+  return ({ atril: a => sceneEasel(a, s, false), oleo: a => sceneEasel(a, s, true), acuarela: a => sceneWall(a, s), marcador: a => sceneDesk(a, s), tiza: a => sceneBoard(a, s), grafito: a => sceneClip(a, s), comic: a => sceneComic(a, s), digital: a => sceneDigital(a, s), limpio: a => sceneClean(a, s), natural: a => sceneClean(a, s), foto: a => scenePhoto(a, s), vintage: a => scenePhoto(a, s), byn: a => scenePhoto(a, s) })[st](art);
 }
 $('#btnShare').onclick = async () => {
   if (!page) return;
@@ -2120,7 +2150,7 @@ $('#sgYes').onclick = async () => {
   if (SH.ready) { const { file, blob } = SH.ready; SH.ready = null; $('#sgYes').textContent = 'Share my work'; $('#shareBox').hidden = true; await shareFile(file, blob); return; }
   if (SH.busy) return; SH.busy = true; $('#sgYes').classList.add('wait');
   try {
-    const c = await shareRender(SH.style, 1);
+    const c = await shareRender(SH.style, 1, true);
     const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.9));
     const file = new File([blob], `muscle-atlas-page-${cur}.jpg`, { type: 'image/jpeg' });
     $('#shareBox').hidden = true;
