@@ -1662,7 +1662,7 @@ const RETO = (() => {
   /* estación 2: origen e inserción sobre el esqueleto */
   async function origenInsercion(r) {
     const base = `reto/u${S.u}_${r.img}_`;
-    html(`<p class="rtst">De dónde sale y a dónde llega</p><p class="rtq"><b>${cap(r.m)}</b>: toque primero su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><div class="rtpair" hidden><img alt=""><img alt=""></div><p class="rtsmall rthint">Pelvis y fémur. Puede ampliar con dos dedos.</p>`);
+    html(`<p class="rtst">De dónde sale y a dónde llega</p><p class="rtq"><b>${cap(r.m)}</b>: toque primero su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><div class="rtpair" hidden><img alt=""><img alt=""></div><p class="rtsmall rthint">Vista posterolateral, como en su libro. Puede ampliar con dos dedos.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
     const [im, mk] = await Promise.all([loadImg(base + 'hueso.jpg'), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
@@ -1678,7 +1678,7 @@ const RETO = (() => {
       if (fase !== 1) return;
       fase = 2; const okI = near(p, 2); dot(p, okI ? '#1E9E4A' : '#D7322F');
       const pr = box().querySelector('.rtpair'), ims = pr.querySelectorAll('img'); ims[0].src = base + 'huellas.jpg'; ims[1].src = base + 'musculo.jpg'; pr.hidden = false;
-      box().querySelector('.rthint').textContent = 'Rojo: origen. Azul: inserción. A la derecha, el músculo en su lugar.';
+      box().querySelector('.rthint').textContent = 'Rojo: origen. Azul: inserción. A la derecha, el músculo pintado de origen a inserción.';
       resultado(okO && okI, `Sale de ${r.no} y llega ${r.ni.replace(/^el /, 'al ').replace(/^la /, 'a la ')}.`);
     };
   }
