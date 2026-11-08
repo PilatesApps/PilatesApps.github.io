@@ -694,12 +694,20 @@ function dab(x, y, r, p, dir) {
     }
     case 'chispeado': {
       // pintura chispeada: muchas gotas irregulares, grandes y pequeñas, con gotitas alrededor y un rocío suave
-      const k = 0.35 + hard * 0.9; X.save();
-      const sh = stroke.sh || (stroke.sh = [mix(color, '#ffffff', .15), color, color, mix(color, '#000000', .15)]);
-      const n = Math.random() < k * .8 ? 1 + (Math.random() * 2.2 * k | 0) : 0;
+      const st = stroke; X.save(); X.lineCap = 'round'; X.lineJoin = 'round';
+      const sh = st.sh || (st.sh = [mix(color, '#ffffff', .15), color, color, mix(color, '#000000', .15)]);
+      // carga de la brocha: a veces viene cargada de pintura (más gotas y chorro más grueso), a veces casi seca
+      if (!st.sp) st.sp = { ph: Math.random() * 100, on: true, last: null, load: .6, tgt: .6 };
+      const sp = st.sp; if (Math.random() < .04) sp.tgt = Math.random() < .3 ? 1.6 + Math.random() * .8 : .3 + Math.random() * .7; sp.load += (sp.tgt - sp.load) * .12;
+      const k = (0.35 + hard * 0.9) * sp.load; sp.ph += 0.09 + Math.random() * .05;
+      const jx = x + Math.sin(sp.ph * 1.7) * r * .3, jy = y + Math.cos(sp.ph * 1.3) * r * .3;   // hilo de pintura que serpentea con el gesto
+      if (sp.on ? Math.random() < .03 : Math.random() < .08) sp.on = !sp.on;
+      if (sp.last && sp.on) { const w = r * (0.03 + 0.17 * sp.load * Math.pow(0.5 + 0.5 * Math.sin(sp.ph * 2.3) * Math.sin(sp.ph * .9 + 1), 2)); X.strokeStyle = color; X.lineWidth = Math.max(.7, w); X.beginPath(); X.moveTo(sp.last[0], sp.last[1]); X.lineTo(jx, jy); X.stroke(); }
+      sp.last = [jx, jy];
+      const n = Math.random() < Math.min(.95, k * .7) ? 1 + (Math.random() * 1.8 * k | 0) : 0;
       for (let i = 0; i < n; i++) {
         const a = Math.random() * 7, d = Math.pow(Math.random(), 1.3) * r * 1.7, bx = x + Math.cos(a) * d, by = y + Math.sin(a) * d;
-        const t = Math.random(), q = Math.max(.8, r * (t < .24 ? 0.2 + Math.random() * .32 : t < .55 ? 0.08 + Math.random() * .1 : 0.025 + Math.random() * .045));
+        const t = Math.random(), q = Math.max(.8, r * (t < .12 * sp.load ? 0.16 + Math.random() * .26 : t < .45 ? 0.06 + Math.random() * .08 : 0.02 + Math.random() * .04));
         X.fillStyle = sh[Math.random() * 4 | 0]; dropBlob(X, bx, by, q);
         if (q > r * .17) for (let j = 0; j < 3 + (Math.random() * 6 | 0); j++) {   // gotitas que quedan pegadas alrededor de la gota grande
           const b = Math.random() * 7, e = q * (1.25 + Math.random() * 1.3), tq = Math.max(.5, q * (0.06 + Math.random() * .16));
