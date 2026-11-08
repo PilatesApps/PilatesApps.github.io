@@ -345,7 +345,7 @@ function syncLock() {
   $('#lockArc').setAttribute('d', on ? 'M8 11V7a4 4 0 0 1 8 0v4' : 'M8 11V7a4 4 0 0 1 7.5-2');
   document.body.classList.toggle('locked', on);
 }
-function toggleLock() { locks[cur] = !isLocked(); if (!locks[cur]) delete locks[cur]; store.set('locks', locks); syncLock(); buzz(12); toast(isLocked() ? 'Lámina bloqueada: su dibujo está protegido' : 'Lámina desbloqueada: puede seguir pintando'); }
+function toggleLock() { locks[cur] = !isLocked(); if (!locks[cur]) delete locks[cur]; store.set('locks', locks); syncLock(); buzz(12); toast(isLocked() ? 'Lámina bloqueada: su dibujo está protegido' : 'Lámina desbloqueada: puede seguir pintando'); if (isLocked()) { const had = DONE[cur]; checkDone(true); if (!DONE[cur] && !had && page.plate) setTimeout(() => toast('Cuando la lámina quede completa, con su cuadro escrito, ganará su estrella'), 2200); } }
 $('#btnLock').onclick = toggleLock; $('#dkLock').onclick = () => { closeSheet(); toggleLock(); };
 $('#dkTape').onclick = () => { closeSheet(); tapeBtn.click(); };
 $('#btnCloseTools').onclick = closeSheet;
@@ -374,7 +374,7 @@ sndBtn.onclick = () => { sound = !sound; store.set('sound', sound); syncSound();
 syncSound();
 const tapeBtn = $('#btnTape');
 function syncTape() { tapeBtn.classList.toggle('on', tape); tapeBtn.setAttribute('aria-checked', tape); $('#dkTape').classList.toggle('active', tape); $('#dkTape').setAttribute('aria-pressed', tape); }
-tapeBtn.onclick = () => { tape = !tape; store.set('tape', tape); syncTape(); toast(tape ? 'No salirme: el color se queda dentro del músculo' : 'Libre: puedes salirte del músculo'); };
+tapeBtn.onclick = () => { tape = !tape; store.set('tape', tape); syncTape(); toast(tape ? 'No salirme: el color se queda dentro de la parte que empezó a pintar' : 'Libre: el color puede salirse de la línea'); };
 
 let toastT = null;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
@@ -431,6 +431,7 @@ function loadImg(src) { return new Promise((ok, ko) => { const i = new Image(); 
 
 async function openPage(n) {
   n = Math.max(1, Math.min(N, n));
+  if (page && n !== cur) { try { checkDone(true); } catch (e) {} }
   await saveNow();
   if (n !== cur && META.length) { SFX.blip('page'); buzz(8); }
   cur = n; page = META[n - 1]; store.set('page', n); setTimeout(syncLock, 0);
@@ -944,18 +945,25 @@ async function drawThumb(cv, n) {
 }
 let dirtyAny = false;
 async function buildHome() {
+  try { checkDone(false); } catch (e) {}
   await saveNow();
   const g = $('#homeGrid'); g.innerHTML = '';
   $('#contName').textContent = `${cur}. ${PN[cur - 1] || ''}`;
   drawThumb($('#contThumb'), cur);
   const keys = await idbKeys();
+  const [bd, bk] = plateCount(1, N), pct = bk ? Math.round(bd / bk * 100) : 0;
+  const pr = document.createElement('div'); pr.className = 'hprog';
+  pr.innerHTML = `<div class="hp1"><svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Su progreso</b><span>${bd} de ${bk} láminas completadas</span><em>${pct}%</em></div><div class="hbar"><i style="width:${pct}%"></i></div>`;
+  g.appendChild(pr);
   for (const [t, sub, a, b] of SECTIONS) {
     const sec = document.createElement('div'); sec.className = 'hsec';
-    sec.innerHTML = `<h2>${t}${sub ? `<small>${sub}</small>` : ''}</h2>`;
+    const [sd, sk] = plateCount(a, b);
+    const badge = sk ? (sd === sk ? `<span class="ribbon"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="m8.5 13.5-2 7.5 5.5-3 5.5 3-2-7.5"/></svg>Listón ganado</span>` : `<span class="stars">${sd}/${sk} <svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span>`) : '';
+    sec.innerHTML = `<h2>${t}${badge}${sub ? `<small>${sub}</small>` : ''}</h2>`;
     const cards = document.createElement('div'); cards.className = 'cards';
     for (let n = a; n <= Math.min(b, N); n++) {
       const c = document.createElement('button'); c.className = 'card' + (n === cur ? ' cur' : '');
-      c.innerHTML = `<span class="th"><canvas width="153" height="198"></canvas><span class="n">${n}</span>${keys.has('p' + n) ? '<span class="dot"><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg></span>' : ''}</span><span class="t">${PN[n - 1]}</span>`;
+      c.innerHTML = `<span class="th"><canvas width="153" height="198"></canvas><span class="n">${n}</span>${DONE[n] ? '<span class="star"><svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span>' : ''}${keys.has('p' + n) ? '<span class="dot"><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg></span>' : ''}</span><span class="t">${PN[n - 1]}</span>`;
       c.onclick = () => { closeHome(); openPage(n); };
       cards.appendChild(c); drawThumb(c.querySelector('canvas'), n);
     }
@@ -972,13 +980,14 @@ async function idbKeys() { try { const d = await db(); return await new Promise(
 
 /* ---------------- guía de primer uso ---------------- */
 const GUIDE = [
-  ['<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>', 'Elija y pinte', 'Abajo toque <b>la herramienta</b> y <b>el color</b>. Con <b>No salirme</b> encendido, el color se queda dentro del músculo que empezó a pintar.'],
-  ['<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'Acerque con dos dedos', 'Pellizque para ampliar y mueva con dos dedos. <b>Toque con dos dedos</b> para deshacer el último trazo.'],
+  ['<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>', 'Elija y pinte', 'Abajo toque <b>la herramienta</b> y <b>el color</b>. Con <b>No salirme</b> encendido, el color se queda dentro de la parte que empezó a pintar: un músculo, un tendón, un hueso o un segmento.'],
+  ['<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'Acerque y mueva la lámina', 'Abra dos dedos para ampliar y arrástrelos para mover la lámina: mientras usa dos dedos <b>no se pinta nada</b>. También tiene, arriba a la derecha, <b>la lupa</b> para ampliar o reducir y <b>la mano</b> para mover la lámina con un dedo, arriba, abajo y de lado. Toque la mano otra vez para volver a pintar.'],
   ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'Todas sus láminas', 'Deslice de lado o use <b>Anterior</b> y <b>Siguiente</b>, arriba de la lámina. Toque <b>el número de página</b> para ver todas las láminas y lo que ya pintó.'],
-  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Música y se guarda solo', 'Toque <b>la nota musical</b> para poner música relajante. Todo lo que pinta <b>se guarda solo</b> en este dispositivo.'],
+  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Música para pintar', 'Toque <b>la nota musical</b> y elija la música que lo acompaña mientras colorea. Suena dentro de la app, también sin internet.'],
+  ['<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>', 'Su obra no se borra', 'Lo que pinta <b>queda en su lámina</b>: puede cerrar la app, cambiar de página o volver otro día y todo sigue ahí, tal como lo dejó.'],
   ['<path d="M4 19.5V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>', 'Aprenda pintando', 'Antes de colorear, ubique <b>dónde nace</b> el músculo (su origen) y <b>dónde termina</b> (su inserción). Píntelo de punta a punta, siga la dirección de sus fibras y complete el cuadro: <b>músculo, origen, inserción y acción</b>. Así su mano y su ojo aprenden juntos.'],
-  ['<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.2 5.2 0 0 0 22 9.2C22 5.8 17.5 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>', 'Libere su artista', 'No hay una forma correcta de pintar un músculo. Mezcle acuarela con lápiz, invente su paleta, dibuje en el <b>lienzo libre</b>. Cuando el cuerpo se pinta con creatividad, <b>se recuerda mejor</b> y se enseña con más pasión.'],
-  ['<path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>', 'Comparta su obra', 'Cuando su lámina esté lista, toque <b>la flecha hacia arriba</b>, arriba a la derecha, y compártala por WhatsApp o en sus redes con sus compañeros. Su lámina sale con la marca del Atlas Muscular. ¡Inspire a otros a aprender pintando!']
+  ['<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.2 5.2 0 0 0 22 9.2C22 5.8 17.5 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>', 'Libere su artista', 'Cuando termine sus músculos, <b>la lámina entera es su lienzo</b>. Decore, agregue fondos, dibujos y detalles, mezcle acuarela con lápiz, invente su paleta. Siéntase libre y expanda su mente: lo que se pinta con creatividad <b>se recuerda mejor</b> y se enseña con más pasión.'],
+  ['<path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>', 'Firme y comparta su obra', 'Como el artista que es, <b>firme su obra y póngale la fecha</b> con el bolígrafo, en el lugar que usted quiera. Luego toque <b>la flecha hacia arriba</b>, arriba a la derecha, y elija cómo se verá: en el atril del pintor, en óleo, acuarela, tiza, grafito, cómic y más. Compártala por WhatsApp o en sus redes e inspire a otros a aprender pintando.']
 ];
 let gi = 0;
 function showGuide() {
@@ -1008,7 +1017,25 @@ function buildHotspots() {
 }
 
 /* ---------------- gestos ---------------- */
-const pointers = new Map(); let gesture = null, panOnly = false, swipe = null, undoPending = null;
+const pointers = new Map(); let gesture = null, panOnly = false, swipe = null, undoPending = null, pend = null, hand = false;
+const TAP_BRUSH = ['balde', 'gotero', 'teclado'];
+const snapEv = e => ({ pointerId: e.pointerId, clientX: e.clientX, clientY: e.clientY, pressure: e.pressure, pointerType: e.pointerType });
+/* con el dedo, el trazo espera un instante: si llega un segundo dedo (ampliar), no se pinta nada.
+   el balde, el cuentagotas y el teclado actúan al levantar el dedo, nunca al apoyarlo */
+function firePend(fromUp) {
+  const p = pend; if (!p) return;
+  if (pointers.size > 1 && !fromUp) { clearTimeout(p.t); pend = null; return; }
+  if (TAP_BRUSH.includes(brush)) {
+    if (!fromUp) return;
+    clearTimeout(p.t); pend = null;
+    if (!p.far && !p.multi) startStroke(p.ev);
+    return;
+  }
+  clearTimeout(p.t); pend = null; if (p.multi) return;
+  startStroke(p.ev);
+  if (stroke) for (const m of p.moves) moveStroke(m);
+}
+function dropPend() { if (pend) { clearTimeout(pend.t); pend = null; } }
 viewport.addEventListener('pointerdown', e => {
   if (document.body.classList.contains('sheet')) { closeSheet(); return; }
   if (e.target.closest('#toast')) return;
@@ -1017,7 +1044,7 @@ viewport.addEventListener('pointerdown', e => {
   viewport.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
-    cancelStroke(); const [a, b] = [...pointers.values()];
+    cancelStroke(); dropPend(); const [a, b] = [...pointers.values()];
     gesture = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, s: view.s, x: view.x, y: view.y, t: Date.now(), moved: false };
     if (undoPending) { undoPending.cancel(); undoPending = null; }
     return;
@@ -1026,7 +1053,11 @@ viewport.addEventListener('pointerdown', e => {
   const onHot = e.target.closest('#hot a');
   const drawing = page && !onHot;
   if (e.pointerType === 'mouse' && (e.button === 1 || e.button === 2 || e.altKey || spaceDown)) { e.preventDefault(); swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now(), pan: true }; return; }
-  if (drawing) { startStroke(e); if (!stroke) { /* toques de balde/teclado */ } }
+  if (hand) { swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now(), pan: true }; return; }
+  if (drawing) {
+    if (e.pointerType === 'touch') { pend = { ev: snapEv(e), moves: [], far: false, multi: false }; pend.t = setTimeout(() => firePend(false), 120); }
+    else startStroke(e);
+  }
   else swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now() };
 });
 viewport.addEventListener('pointermove', e => {
@@ -1042,11 +1073,17 @@ viewport.addEventListener('pointermove', e => {
     view.y = (py - gesture.y) * (1 - ns / gesture.s) + gesture.y + (cy - gesture.cy);
     view.s = ns; clampView(); apply(); return;
   }
+  if (pend && e.pointerId === pend.ev.pointerId) {
+    pend.moves.push(snapEv(e));
+    if (Math.hypot(e.clientX - pend.ev.clientX, e.clientY - pend.ev.clientY) > 12) { pend.far = true; if (!TAP_BRUSH.includes(brush)) firePend(false); }
+    return;
+  }
   if (stroke && e.pointerId === stroke.id) { moveStroke(e); return; }
   if (swipe) { view.x = swipe.vx + (e.clientX - swipe.x); view.y = swipe.vy + (e.clientY - swipe.y); if (view.s > 1 || swipe.pan) { clampView(); apply(); } }
 });
 function up(e) {
   pointers.delete(e.pointerId);
+  if (pend && e.pointerId === pend.ev.pointerId) { firePend(true); if (stroke && e.pointerId === stroke.id) endStroke(); return; }
   if (gesture) { if (pointers.size < 2) { if (!gesture.moved && Date.now() - gesture.t < 300) { swap(undo, redo); toast('Deshecho'); } gesture = null; } return; }
   if (stroke && e.pointerId === stroke.id) endStroke();
   if (swipe) {
@@ -1056,7 +1093,7 @@ function up(e) {
     swipe = null;
   }
 }
-viewport.addEventListener('pointerup', up); viewport.addEventListener('pointercancel', e => { cancelStroke(); up(e); });
+viewport.addEventListener('pointerup', up); viewport.addEventListener('pointercancel', e => { dropPend(); cancelStroke(); up(e); });
 viewport.addEventListener('wheel', e => {
   e.preventDefault();
   if (view.s > 1 && !e.ctrlKey && !e.metaKey) { view.x -= e.deltaX; view.y -= e.deltaY; clampView(); apply(); return; }
@@ -1074,7 +1111,8 @@ function zoomAt(f) {
 $('#zIn').onclick = () => zoomAt(1.4);
 $('#zOut').onclick = () => zoomAt(1 / 1.4);
 $('#zFit').onclick = () => { view.s = 1; clampView(); apply(); };
-['zIn','zOut','zFit'].forEach(id => document.getElementById(id).addEventListener('pointerdown', e => e.stopPropagation()));
+$('#zHand').onclick = () => { hand = !hand; $('#zHand').classList.toggle('on', hand); document.body.classList.toggle('hand', hand); toast(hand ? 'Mover: arrastre con un dedo para mover la lámina. Toque la mano otra vez para volver a pintar' : 'Listo para pintar'); };
+['zIn','zOut','zFit','zHand'].forEach(id => document.getElementById(id).addEventListener('pointerdown', e => e.stopPropagation()));
 viewport.addEventListener('contextmenu', e => e.preventDefault());
 viewport.addEventListener('auxclick', e => e.preventDefault());
 window.addEventListener('keydown', e => {
@@ -1117,28 +1155,178 @@ function coloredShare() {
   return tot ? col / tot : 1;
 }
 const SHARE_MIN = 0.5;
-$('#btnShare').onclick = async () => {
-  if (!page) return;
-  if (!page.plate) { toast('Solo se comparten las láminas que usted colorea'); return; }
-  const pc = coloredShare();
-  if (pc < SHARE_MIN) { toast(`Lleva ${Math.round(pc * 100)}% coloreado. Podrá compartir esta lámina al llegar al ${SHARE_MIN * 100}%`); return; }
-  await saveNow();
-  const FOOT = 150, c = document.createElement('canvas'); c.width = W; c.height = H + FOOT; const x = c.getContext('2d');
-  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+
+/* ---------------- logros: estrellas, listones y medalla ---------------- */
+let DONE = store.get('done', {});
+function plateCount(a, b) { let k = 0, d = 0; for (let n = a; n <= Math.min(b, N); n++) if (META[n - 1] && META[n - 1].plate) { k++; if (DONE[n]) d++; } return [d, k]; }
+function isComplete() {
+  if (!page || !page.plate) return false;
+  if (page.nobucket) {   // lienzo libre: basta con un dibujo de verdad
+    const c = xColor.getImageData(0, 0, W, H).data, k = xInk.getImageData(0, 0, W, H).data; let p = 0;
+    for (let i = 3; i < c.length; i += 16) if (c[i] > 24 || k[i] > 24) p++;
+    return p / (c.length / 16) > 0.06;
+  }
+  const rv = reviewArt(); return !rv.block.length && !rv.tips.length;
+}
+function checkDone(celebrate) {
+  if (!page || !page.plate || !labels && !page.nobucket) return;
+  const ok = isComplete(), n = cur;
+  if (ok && !DONE[n]) { DONE[n] = true; store.set('done', DONE); if (celebrate) showMedal(n); }
+  else if (!ok && DONE[n]) { delete DONE[n]; store.set('done', DONE); }
+}
+function showMedal(n) {
+  const sec = SECTIONS.find(([, , a, b]) => n >= a && n <= b), [d, k] = sec ? plateCount(sec[2], sec[3]) : [0, 1];
+  const unit = sec && d === k && k > 0, [bd, bk] = plateCount(1, N);
+  $('#mdTitle').textContent = unit ? `¡${sec[0]} completada!` : '¡Lámina completada!';
+  $('#mdText').innerHTML = unit ? `Ganó el <b>listón de la ${sec[0]}</b>: pintó con cuidado todas sus láminas. ¡Es usted un artista del cuerpo!` : `<b>${PN[n - 1]}</b> ya tiene su estrella. Lleva ${d} de ${k} láminas en ${sec ? sec[0] : 'el libro'}.`;
+  $('#mdBar').style.width = Math.round(bd / bk * 100) + '%'; $('#mdPct').textContent = `Libro: ${Math.round(bd / bk * 100)}% completado`;
+  $('#medal').classList.toggle('unit', !!unit); $('#medal').hidden = false; buzz(30);
+  const cf = $('#mdConf'); cf.innerHTML = '';
+  for (let i = 0; i < 40; i++) { const e = document.createElement('i'); e.style.left = Math.random() * 100 + '%'; e.style.background = ['#E0457B', '#F2C230', '#2EC4B6', '#3A86FF', '#8AC926'][i % 5]; e.style.animationDelay = Math.random() * 0.6 + 's'; e.style.transform = `rotate(${Math.random() * 360}deg)`; cf.appendChild(e); }
+}
+$('#mdOk').onclick = () => { $('#medal').hidden = true; };
+/* ---------------- revisión de la obra antes de compartir ---------------- */
+function reviewArt() {
+  const rv = { block: [], tips: [], zones: [] };
+  if (!labels) return rv;
+  const d = xColor.getImageData(0, 0, W, H).data;
+  let mx = 0; for (let i = 0; i < labels.length; i += 7) if (labels[i] > mx) mx = labels[i];
+  for (let i = 0; i < labels.length; i++) if (labels[i] > mx) mx = labels[i];
+  const n = mx + 1, area = new Uint32Array(n), first = new Int32Array(n).fill(-1), pnt = new Uint32Array(n), sr = new Float64Array(n), sg = new Float64Array(n), sb = new Float64Array(n), cy = new Float64Array(n);
+  for (let i = 0; i < labels.length; i++) {
+    const L = labels[i]; if (!L || L === page.bg) continue;
+    area[L]++; cy[L] += (i / W) | 0; if (first[L] < 0) first[L] = i;
+    if (d[i * 4 + 3] > 24) { pnt[L]++; sr[L] += d[i * 4]; sg[L] += d[i * 4 + 1]; sb[L] += d[i * 4 + 2]; }
+  }
+  const yb = (page.yb || 792) * PT, skip = new Uint8Array(n);
+  for (let L = 1; L < n; L++) {
+    if (!area[L]) { skip[L] = 1; continue; }
+    const c = cy[L] / area[L];
+    if (c > yb - 4 || area[L] < 400) skip[L] = 1;
+    for (const r of (page.circles || [])) { const ix = first[L]; if (ix >= 0) { const px = ix % W / PT, py = ix / W / PT; if (px >= r[0] && px <= r[2] && py >= r[1] && py <= r[3]) skip[L] = 1; } }
+    if (pnt[L]) { sr[L] /= pnt[L]; sg[L] /= pnt[L]; sb[L] /= pnt[L]; }
+  }
+  // color de una parte que invade la de al lado
+  const spill = new Uint32Array(n), D = 10;
+  for (let y = D; y < H - D; y += 2) for (let x = D; x < W - D; x += 2) {
+    const i = y * W + x, L = labels[i]; if (!L || skip[L] || d[i * 4 + 3] <= 24 || pnt[L] < 50) continue;
+    const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
+    if (Math.abs(r - sr[L]) + Math.abs(g - sg[L]) + Math.abs(b - sb[L]) < 110) continue;
+    for (const N of [labels[i - D], labels[i + D], labels[i - D * W], labels[i + D * W]]) {
+      if (!N || N === L || N === page.bg || !pnt[N]) continue;
+      if (Math.abs(r - sr[N]) + Math.abs(g - sg[N]) + Math.abs(b - sb[N]) < 60) { spill[L] += 4; break; }
+    }
+  }
+  const miss = [], part = [], sp = [];
+  for (let L = 1; L < n; L++) {
+    if (skip[L]) continue; const cov = pnt[L] / area[L];
+    if (cov < 0.15) miss.push(L); else if (cov < 0.88) part.push(L);
+    else if (spill[L] / area[L] > 0.05) sp.push(L);
+  }
+  const pl = (k, a, b) => k === 1 ? a : b.replace('#', k);
+  if (miss.length) rv.block.push(pl(miss.length, 'Le falta pintar <b>1 parte</b> de la lámina.', 'Le faltan por pintar <b>#</b> partes de la lámina.'));
+  if (part.length) rv.block.push(pl(part.length, '<b>1 parte</b> quedó a medio pintar: lleve el color hasta las líneas negras.', '<b>#</b> partes quedaron a medio pintar: lleve el color hasta las líneas negras.'));
+  if (sp.length) rv.block.push(pl(sp.length, 'En <b>1 parte</b> el color se pasó a la parte vecina. Límpiela con el borrador o encienda <b>No salirme</b>.', 'En <b>#</b> partes el color se pasó a la parte vecina. Límpielas con el borrador o encienda <b>No salirme</b>.'));
+  rv.zones = miss.concat(part, sp);
+  // lo escrito: cuadro y bolitas
+  const ink = xInk.getImageData(0, 0, W, H).data;
+  const hasInk = (r, key) => { if (texts[key] && String(texts[key]).trim()) return true; let c = 0;
+    for (let y = r[1] * PT | 0; y < r[3] * PT; y += 2) for (let x = r[0] * PT | 0; x < r[2] * PT; x += 2) if (ink[(y * W + x) * 4 + 3] > 40 && ++c > 12) return true; return false; };
+  const wr = page.write || [];
+  if (wr.length === 5) {
+    const nm = ['el músculo', 'el origen', 'la inserción', 'la acción'], falta = nm.filter((_, i) => !hasInk(wr[i], 'w' + i));
+    if (falta.length) rv.tips.push(`En el cuadro todavía falta escribir ${falta.length > 1 ? falta.slice(0, -1).join(', ') + ' y ' + falta[falta.length - 1] : falta[0]}.`);
+  } else if (wr.length) {
+    const k = wr.filter((r, i) => !hasInk(r, 'w' + i)).length;
+    if (k) rv.tips.push(pl(k, 'Queda <b>1 línea</b> de respuesta sin escribir.', 'Quedan <b>#</b> líneas de respuesta sin escribir.'));
+  }
+  const ck = (page.circles || []).filter((r, i) => !hasInk(r, 'c' + i)).length;
+  if (ck) rv.tips.push(pl(ck, 'Falta escribir el número en <b>1 bolita</b>.', 'Falta escribir el número en <b>#</b> bolitas.'));
+  return rv;
+}
+function flashZones(list) {
+  if (!list.length) return;
+  view.s = 1; clampView(); apply();
+  const set = new Uint8Array(65536); list.forEach(L => set[L] = 1);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; c.className = 'hint';
+  const x = c.getContext('2d'), id = x.createImageData(W, H), D = id.data;
+  for (let i = 0; i < labels.length; i++) if (set[labels[i]]) { D[i * 4] = 236; D[i * 4 + 1] = 0; D[i * 4 + 2] = 140; D[i * 4 + 3] = 150; }
+  x.putImageData(id, 0, 0); stage.appendChild(c);
+  setTimeout(() => c.remove(), 4600);
+}
+function showReview(rv) {
+  const ok = !rv.block.length;
+  $('#rvTitle').textContent = ok ? '¡Su obra va muy bien!' : 'Revisemos su obra';
+  $('#rvIntro').innerHTML = ok ? 'Antes de compartirla, un último vistazo de artista:' : 'Para compartirla, su lámina tiene que quedar pintada con cuidado, como una obra. Esto es lo que falta:';
+  $('#rvList').innerHTML = rv.block.map(t => `<li class="b">${t}</li>`).join('') + rv.tips.map(t => `<li class="t">${t}</li>`).join('');
+  $('#rvNote').innerHTML = 'Compare el origen, la inserción y la acción con la ficha de la unidad: así se asegura de que estén bien.';
+  $('#rvShow').hidden = !rv.zones.length; $('#rvGo').hidden = !ok;
+  $('#rvShow').onclick = () => { $('#reviewBox').hidden = true; flashZones(rv.zones); };
+  $('#reviewBox').hidden = false;
+}
+$('#rvBack').onclick = () => { $('#reviewBox').hidden = true; };
+$('#rvGo').onclick = () => { $('#reviewBox').hidden = true; SH.passed = true; $('#btnShare').onclick(); };
+$('#reviewBox').addEventListener('pointerdown', e => { if (e.target.id === 'reviewBox') $('#reviewBox').hidden = true; });
+
+/* ---------------- compartir: su obra firmada, en el estilo que elija ---------------- */
+const SHARE_STYLES = [
+  ['atril', 'Atril', 'Madera y lino'],
+  ['oleo', 'Óleo', 'Lienzo y marco dorado'],
+  ['acuarela', 'Acuarela', 'Papel de algodón'],
+  ['marcador', 'Marcadores', 'Trazo vivo'],
+  ['tiza', 'Tiza', 'En la pizarra'],
+  ['grafito', 'Grafito', 'Lápiz sobre papel'],
+  ['comic', 'Cómic', 'Revista de historietas'],
+  ['digital', 'Digital', 'Colores de pantalla'],
+  ['limpio', 'Limpio', 'La lámina tal cual']
+];
+const SH = { cache: {}, logo: null, style: store.get('shareStyle', 'atril'), busy: false };
+const mkC = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
+function rng(seed) { let t = seed >>> 0; return () => { t += 0x6D2B79F5; let r = Math.imul(t ^ t >>> 15, 1 | t); r ^= r + Math.imul(r ^ r >>> 7, 61 | r); return ((r ^ r >>> 14) >>> 0) / 4294967296; }; }
+const cl01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+/* ruido suave (0..1) con celdas de tamaño cx × cy */
+function noiseF(w, h, cx, cy, seed) {
+  const gw = Math.max(2, Math.ceil(w / Math.max(1, cx)) + 1), gh = Math.max(2, Math.ceil(h / Math.max(1, cy)) + 1);
+  const g = mkC(gw, gh), gx = g.getContext('2d'), id = gx.createImageData(gw, gh), R = rng(seed);
+  for (let i = 0; i < id.data.length; i += 4) { const v = R() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+  gx.putImageData(id, 0, 0);
+  const c = mkC(w, h), x = c.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.drawImage(g, 0, 0, gw * Math.max(1, cx), gh * Math.max(1, cy));
+  const d = x.getImageData(0, 0, w, h).data, o = new Float32Array(w * h);
+  for (let i = 0, j = 0; j < o.length; i += 4, j++) o[j] = d[i] / 255;
+  return o;
+}
+function blur1(a, w, h, r) {
+  r = Math.round(r); if (r < 1) return a;
+  const t = new Float32Array(a.length), o = new Float32Array(a.length), k = 1 / (2 * r + 1);
+  for (let y = 0; y < h; y++) { const off = y * w; let s = 0; for (let i = -r; i <= r; i++) s += a[off + Math.min(w - 1, Math.max(0, i))]; for (let x = 0; x < w; x++) { t[off + x] = s * k; s += a[off + Math.min(w - 1, x + r + 1)] - a[off + Math.max(0, x - r)]; } }
+  for (let x = 0; x < w; x++) { let s = 0; for (let i = -r; i <= r; i++) s += t[Math.min(h - 1, Math.max(0, i)) * w + x]; for (let y = 0; y < h; y++) { o[y * w + x] = s * k; s += t[Math.min(h - 1, y + r + 1) * w + x] - t[Math.max(0, y - r) * w + x]; } }
+  return o;
+}
+const blur2 = (a, w, h, r) => blur1(blur1(a, w, h, r), w, h, r);
+function chan(D, n, c) { const o = new Float32Array(n); for (let i = 0; i < n; i++) o[i] = D[i * 4 + c] / 255; return o; }
+function minRGB(D, w, h) {   // engrosa las líneas un píxel
+  const o = new Uint8ClampedArray(D.length);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4; let r = 255, g = 255, b = 255;
+    for (let dy = -1; dy <= 1; dy++) { const yy = y + dy; if (yy < 0 || yy >= h) continue; for (let dx = -1; dx <= 1; dx++) { const xx = x + dx; if (xx < 0 || xx >= w) continue; const j = (yy * w + xx) * 4; if (D[j] < r) r = D[j]; if (D[j + 1] < g) g = D[j + 1]; if (D[j + 2] < b) b = D[j + 2]; } }
+    o[i] = r; o[i + 1] = g; o[i + 2] = b; o[i + 3] = 255;
+  }
+  return o;
+}
+/* capas de la lámina a escala s: color, líneas (con escritura y marca) y figuras de arriba */
+async function shareLayers(s) {
+  if (SH.cache[s]) return SH.cache[s];
+  const w = Math.round(W * s), h = Math.round(H * s);
+  const col = mkC(w, h), cx = col.getContext('2d'); cx.drawImage(cColor, 0, 0, w, h);
+  const lin = mkC(w, h), x = lin.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.setTransform(s, 0, 0, s, 0, 0);
   x.drawImage(pageImg, 0, 0, W, H); if (wipeUsed) x.drawImage(cWipe, 0, 0);
-  x.globalCompositeOperation = 'multiply'; x.drawImage(cColor, 0, 0);
-  // marca de agua: logo grande y suave detrás del color
-  const logo = await loadImg('bb_logo.png').catch(() => null);
-  if (logo) { const lw = W * 0.7, lh = lw * logo.height / logo.width; x.globalAlpha = 0.1; x.drawImage(logo, (W - lw) / 2, (H - lh) / 2, lw, lh); x.globalAlpha = 1; }
-  x.globalCompositeOperation = 'source-over';
-  if (page.top) x.drawImage(cTop, 0, 0, W, H);
-  // marca de agua diagonal repetida, suave
-  x.save(); x.globalAlpha = 0.07; x.fillStyle = '#3F4A57'; x.font = '600 34px Montserrat, sans-serif'; x.textAlign = 'center';
+  x.save(); x.globalAlpha = 0.06; x.fillStyle = '#3F4A57'; x.font = '600 34px Montserrat, sans-serif'; x.textAlign = 'center';
   x.translate(W / 2, H / 2); x.rotate(-Math.PI / 6);
   for (let yy = -H, r = 0; yy <= H; yy += 200, r++) for (let xx = -W * 1.2; xx <= W * 1.2; xx += 820) x.fillText('ATLAS MUSCULAR · BALANCED BODY', xx + (r % 2 ? 410 : 0), yy);
   x.restore();
   x.drawImage(cInk, 0, 0);
-  // crédito pequeño dentro de la lámina
   x.save(); x.globalAlpha = 0.55; x.fillStyle = '#3F4A57'; x.font = '500 20px Montserrat, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'bottom';
   x.fillText('Atlas Muscular · Digital Coloring Book · © Balanced Body', W / 2, H - 14); x.restore();
   for (const [key, v] of Object.entries(texts)) {
@@ -1147,23 +1335,426 @@ $('#btnShare').onclick = async () => {
     x.textBaseline = 'middle'; x.textAlign = key[0] === 'c' ? 'center' : 'left';
     x.fillText(v, key[0] === 'c' ? (r[0] + r[2]) * PT / 2 : r[0] * PT + 8, (r[1] + r[3]) * PT / 2, (r[2] - r[0]) * PT - 12);
   }
-  // pie con la información del curso
-  x.fillStyle = '#3F4A57'; x.fillRect(0, H, W, FOOT);
-  let lwUsed = 0;
-  if (logo) { const lh = 48, lw = lh * logo.width / logo.height; x.drawImage(logo, 50, H + (FOOT - lh) / 2, lw, lh); lwUsed = lw; }
-  const avail = W - 50 - (50 + lwUsed + 60);
-  const fitFont = (txt, wt, size) => { let s = size; do { x.font = `${wt} ${s}px Montserrat, sans-serif`; s -= 1; } while (x.measureText(txt).width > avail && s > 12); };
-  x.fillStyle = '#fff'; x.textAlign = 'right'; x.textBaseline = 'alphabetic';
+  let top = null; if (page.top) { top = mkC(w, h); top.getContext('2d').drawImage(cTop, 0, 0, w, h); }
+  const L = { w, h, s, C: cx.getImageData(0, 0, w, h).data, L: x.getImageData(0, 0, w, h).data, top };
+  SH.cache[s] = L; return L;
+}
+function sat(r, g, b, f) { const l = 0.299 * r + 0.587 * g + 0.114 * b; return [l + (r - l) * f, l + (g - l) * f, l + (b - l) * f]; }
+/* filtro de óleo (Kuwahara) con imágenes integrales */
+function kuwahara(D, w, h, r) {
+  const W1 = w + 1, n = W1 * (h + 1), SR = new Float64Array(n), SG = new Float64Array(n), SB = new Float64Array(n), SL = new Float64Array(n), SQ = new Float64Array(n);
+  for (let y = 0; y < h; y++) { let ar = 0, ag = 0, ab = 0, al = 0, aq = 0; for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4, R = D[i], G = D[i + 1], B = D[i + 2], l = 0.299 * R + 0.587 * G + 0.114 * B;
+    ar += R; ag += G; ab += B; al += l; aq += l * l; const k = (y + 1) * W1 + x + 1, u = y * W1 + x + 1;
+    SR[k] = SR[u] + ar; SG[k] = SG[u] + ag; SB[k] = SB[u] + ab; SL[k] = SL[u] + al; SQ[k] = SQ[u] + aq; } }
+  const o = new Uint8ClampedArray(D.length);
+  const box = (A, x0, y0, x1, y1) => A[(y1 + 1) * W1 + x1 + 1] - A[y0 * W1 + x1 + 1] - A[(y1 + 1) * W1 + x0] + A[y0 * W1 + x0];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let best = 1e18, br = 0, bg = 0, bb = 0;
+    for (let q = 0; q < 4; q++) {
+      const x0 = Math.max(0, q & 1 ? x : x - r), x1 = Math.min(w - 1, q & 1 ? x + r : x), y0 = Math.max(0, q & 2 ? y : y - r), y1 = Math.min(h - 1, q & 2 ? y + r : y);
+      const cnt = (x1 - x0 + 1) * (y1 - y0 + 1), m = box(SL, x0, y0, x1, y1) / cnt, v = box(SQ, x0, y0, x1, y1) / cnt - m * m;
+      if (v < best) { best = v; br = box(SR, x0, y0, x1, y1) / cnt; bg = box(SG, x0, y0, x1, y1) / cnt; bb = box(SB, x0, y0, x1, y1) / cnt; }
+    }
+    const i = (y * w + x) * 4; o[i] = br; o[i + 1] = bg; o[i + 2] = bb; o[i + 3] = 255;
+  }
+  return o;
+}
+/* pinta la lámina en el estilo elegido */
+function styleArt(st, Ly) {
+  const { w, h, s, C, L } = Ly, n = w * h, out = mkC(w, h), ox = out.getContext('2d'), id = ox.createImageData(w, h), O = id.data;
+  const R = rng(cur * 7919 + 13);
+  const A = new Float32Array(n); for (let i = 0; i < n; i++) A[i] = C[i * 4 + 3] / 255;
+  const put = (i, r, g, b) => { O[i] = r; O[i + 1] = g; O[i + 2] = b; O[i + 3] = 255; };
+  if (st === 'atril' || st === 'limpio' || st === 'digital') {
+    const f = st === 'digital' ? 1.3 : 1;
+    for (let j = 0, i = 0; j < n; j++, i += 4) {
+      const a = A[j]; let [cr, cg, cb] = f !== 1 ? sat(C[i], C[i + 1], C[i + 2], f) : [C[i], C[i + 1], C[i + 2]];
+      let r = 255 * (1 - a + a * cr / 255), g = 255 * (1 - a + a * cg / 255), b = 255 * (1 - a + a * cb / 255);
+      if (st === 'digital') { r = (r - 128) * 1.08 + 132; g = (g - 128) * 1.08 + 132; b = (b - 128) * 1.08 + 132; }
+      put(i, r * L[i] / 255, g * L[i + 1] / 255, b * L[i + 2] / 255);
+    }
+  } else if (st === 'oleo') {
+    const hs = s > 0.5 ? 0.5 : 1, ww = Math.round(w * hs), hh = Math.round(h * hs);
+    const base = mkC(w, h), bx = base.getContext('2d'), bd = bx.createImageData(w, h), B = bd.data;
+    for (let j = 0, i = 0; j < n; j++, i += 4) { const a = A[j]; const [cr, cg, cb] = sat(C[i], C[i + 1], C[i + 2], 1.18);
+      B[i] = 246 * (1 - a + a * cr / 255); B[i + 1] = 239 * (1 - a + a * cg / 255); B[i + 2] = 224 * (1 - a + a * cb / 255); B[i + 3] = 255; }
+    bx.putImageData(bd, 0, 0);
+    const sm = mkC(ww, hh), sx = sm.getContext('2d'); sx.drawImage(base, 0, 0, ww, hh);
+    const kd = sx.createImageData(ww, hh); kd.data.set(kuwahara(sx.getImageData(0, 0, ww, hh).data, ww, hh, Math.max(1, Math.round(8 * s * hs)))); sx.putImageData(kd, 0, 0);
+    bx.imageSmoothingQuality = 'high'; bx.drawImage(sm, 0, 0, w, h); const K = bx.getImageData(0, 0, w, h).data;
+    const hz = noiseF(w, h, 46 * s, 3 * s + 0.5, cur + 1), vt = noiseF(w, h, 3 * s + 0.5, 46 * s, cur + 2), mx = noiseF(w, h, 140 * s, 140 * s, cur + 3);
+    let Hh = new Float32Array(n); for (let j = 0; j < n; j++) { const m = cl01((mx[j] - 0.3) * 2.5); Hh[j] = m * hz[j] + (1 - m) * vt[j]; }
+    Hh = blur1(Hh, w, h, Math.max(1, 1.5 * s));
+    const Ab = blur1(A, w, h, 2 * s), Lb = s > 0.5 ? [blur1(chan(L, n, 0), w, h, 1), blur1(chan(L, n, 1), w, h, 1), blur1(chan(L, n, 2), w, h, 1)] : [chan(L, n, 0), chan(L, n, 1), chan(L, n, 2)];
+    const cv = noiseF(w, h, Math.max(1, 2.2 * s), Math.max(1, 2.2 * s), cur + 14);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const j = y * w + x, i = j * 4, a = Ab[j];
+      const nb = Hh[Math.max(0, j - w - 1)] - Hh[Math.min(n - 1, j + w + 1)];
+      const sh = 1 + nb * 0.9 * a;
+      const weave = 0.955 + 0.045 * cv[j];
+      const lf = k => 1 - (1 - Lb[k][j]) * 0.86;
+      put(i, K[i] * sh * weave * lf(0) * 1.02, K[i + 1] * sh * weave * lf(1), K[i + 2] * sh * weave * lf(2) * 0.95);
+    }
+  } else if (st === 'acuarela') {
+    const r1 = Math.max(1, 2 * s), A2 = blur2(A, w, h, r1), Ab = blur2(A, w, h, Math.max(1, 6 * s));
+    const PR = new Float32Array(n), PG = new Float32Array(n), PB = new Float32Array(n);
+    for (let j = 0, i = 0; j < n; j++, i += 4) { PR[j] = A[j] * C[i]; PG[j] = A[j] * C[i + 1]; PB[j] = A[j] * C[i + 2]; }
+    const BR = blur2(PR, w, h, r1), BG = blur2(PG, w, h, r1), BB = blur2(PB, w, h, r1);
+    const g1 = noiseF(w, h, Math.max(1, 3 * s), Math.max(1, 3 * s), cur + 4), g2 = noiseF(w, h, 26 * s + 1, 26 * s + 1, cur + 5), g3 = noiseF(w, h, 90 * s + 1, 90 * s + 1, cur + 6);
+    const Lr = s > 0.5 ? blur1(chan(L, n, 0), w, h, 1) : chan(L, n, 0), Lg = s > 0.5 ? blur1(chan(L, n, 1), w, h, 1) : chan(L, n, 1), Lbb = s > 0.5 ? blur1(chan(L, n, 2), w, h, 1) : chan(L, n, 2);
+    for (let j = 0, i = 0; j < n; j++, i += 4) {
+      const a = A2[j], edge = cl01((A[j] - Ab[j]) * 3.2), d = a > 0.003 ? 1 / Math.max(a, 0.003) : 0;
+      const cr = a > 0.003 ? BR[j] * d : 255, cg = a > 0.003 ? BG[j] * d : 255, cb = a > 0.003 ? BB[j] * d : 255;
+      const stg = cl01(a * (0.62 + 0.22 * g2[j] + 0.16 * g3[j]) * (0.9 + 0.1 * g1[j]) + edge * 0.38 * A[j]);
+      const paper = 0.95 + 0.05 * g1[j];
+      const lf = v => 1 - (1 - v) * 0.7;
+      put(i, 251 * paper * (1 - stg * (1 - cr / 255)) * lf(Lr[j]), 248 * paper * (1 - stg * (1 - cg / 255)) * lf(Lg[j]), 240 * paper * (1 - stg * (1 - cb / 255)) * lf(Lbb[j]));
+    }
+  } else if (st === 'marcador') {
+    const Ab = blur2(A, w, h, Math.max(1, 2 * s)), nl = noiseF(w, h, 30 * s + 1, 30 * s + 1, cur + 7), sp = Math.max(4, 16 * s);
+    const LL = s > 0.9 ? minRGB(L, w, h) : L;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const j = y * w + x, i = j * 4, a = A[j];
+      const [cr, cg, cb] = sat(C[i], C[i + 1], C[i + 2], 1.28);
+      const stripe = 0.84 + 0.16 * (0.5 + 0.5 * Math.sin((x + y) * 6.283 / sp + nl[j] * 5));
+      const edge = cl01((a - Ab[j]) * 4) * 0.28, st2 = cl01(a * stripe + edge);
+      const dk = 1 - edge * 0.6;
+      put(i, 255 * (1 - st2 * (1 - cr * dk / 255)) * LL[i] / 255, 255 * (1 - st2 * (1 - cg * dk / 255)) * LL[i + 1] / 255, 255 * (1 - st2 * (1 - cb * dk / 255)) * LL[i + 2] / 255);
+    }
+  } else if (st === 'tiza') {
+    const n1 = noiseF(w, h, 90 * s + 1, 90 * s + 1, cur + 8), n2 = noiseF(w, h, 18 * s + 1, 18 * s + 1, cur + 9), sm = noiseF(w, h, 220 * s + 1, 60 * s + 1, cur + 10);
+    for (let j = 0, i = 0; j < n; j++, i += 4) {
+      const bv = 0.86 + 0.14 * n1[j] + 0.12 * cl01((sm[j] - 0.55) * 3);
+      let r = 40 * bv, g = 55 * bv, b = 49 * bv;
+      const a = A[j];
+      if (a > 0.01) { const k = a * (0.55 + 0.45 * R()) * (0.75 + 0.25 * n2[j]) * 0.9;
+        const pr = C[i] * 0.68 + 255 * 0.32, pg = C[i + 1] * 0.68 + 255 * 0.32, pb = C[i + 2] * 0.68 + 255 * 0.32;
+        r = r * (1 - k) + pr * k; g = g * (1 - k) + pg * k; b = b * (1 - k) + pb * k; }
+      const dl = 1 - (0.299 * L[i] + 0.587 * L[i + 1] + 0.114 * L[i + 2]) / 255;
+      if (dl > 0.02) { const k = cl01(dl * 1.25) * (0.62 + 0.38 * R()); r = r * (1 - k) + 242 * k; g = g * (1 - k) + 241 * k; b = b * (1 - k) + 232 * k; }
+      put(i, r, g, b);
+    }
+  } else if (st === 'grafito') {
+    const gr = noiseF(w, h, Math.max(1, 2 * s), Math.max(1, 2 * s), cur + 11), sp = Math.max(2.2, 6 * s);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const j = y * w + x, i = j * 4, a = A[j];
+      const lumC = (0.299 * C[i] + 0.587 * C[i + 1] + 0.114 * C[i + 2]) / 255;
+      const k = cl01(a * (1 - lumC) * 1.35 + a * 0.1);
+      const h1 = 0.5 + 0.5 * Math.cos((x + y) * 6.283 / sp), h2 = 0.5 + 0.5 * Math.cos((x - y) * 6.283 / sp);
+      let dark = k * (0.5 + 0.5 * h1); if (k > 0.42) dark += (k - 0.42) / 0.58 * h2 * 0.6;
+      dark = cl01(dark) * (0.72 + 0.28 * gr[j]);
+      const dl = 1 - (0.299 * L[i] + 0.587 * L[i + 1] + 0.114 * L[i + 2]) / 255, lf = 1 - cl01(dl * 1.1) * 0.86 * (0.85 + 0.15 * gr[j]);
+      const p = (0.965 + 0.035 * gr[j]) * (1 - dark * 0.78) * lf;
+      put(i, 247 * p * 0.985, 245 * p * 0.985, 240 * p);
+    }
+  } else if (st === 'comic') {
+    const sp = Math.max(3.2, 9 * s), ang = [15, 75, 0].map(d => [Math.cos(d * Math.PI / 180), Math.sin(d * Math.PI / 180)]);
+    const LL = L, yl = noiseF(w, h, 160 * s + 1, 160 * s + 1, cur + 12);
+    const dot = (x, y, k, v) => { if (v <= 0.01) return 0; const [c, sn] = ang[k], u = (x * c + y * sn) / sp, t = (-x * sn + y * c) / sp;
+      const fu = u - Math.round(u), ft = t - Math.round(t), d = Math.sqrt(fu * fu + ft * ft), rr = Math.sqrt(v / Math.PI) * 1.05; return cl01((rr - d) * sp * 0.9 + 0.5); };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const j = y * w + x, i = j * 4, a = A[j];
+      let [cr, cg, cb] = sat(C[i], C[i + 1], C[i + 2], 1.55);
+      const c = a * cl01(1 - cr / 255), m = a * cl01(1 - cg / 255), yv = a * cl01(1 - cb / 255);
+      const C1 = dot(x, y, 0, c), M1 = dot(x, y, 1, m), Y1 = dot(x, y, 2, yv);
+      const py = 0.97 + 0.03 * yl[j];
+      const l = (0.299 * LL[i] + 0.587 * LL[i + 1] + 0.114 * LL[i + 2]) / 255, lk = l < 0.5 ? 0.05 + l * 0.3 : cl01(0.2 + (l - 0.5) * 1.6);
+      put(i, 253 * py * (1 - 0.88 * C1) * lk, 246 * py * (1 - 0.86 * M1) * lk, 226 * py * (1 - 0.9 * Y1) * lk);
+    }
+  }
+  ox.putImageData(id, 0, 0);
+  if (Ly.top) {   // las figuras blancas de arriba toman el tono del papel de cada estilo
+    const tone = { comic: '#FBF0D2', oleo: '#F3EBD8', acuarela: '#FAF6EC', grafito: '#F4F2EC', atril: '#FBF8F1' }[st];
+    let tp = Ly.top;
+    if (tone) { tp = mkC(w, h); const tx = tp.getContext('2d'); tx.drawImage(Ly.top, 0, 0); tx.globalCompositeOperation = 'multiply'; tx.fillStyle = tone; tx.fillRect(0, 0, w, h); tx.globalCompositeOperation = 'destination-in'; tx.drawImage(Ly.top, 0, 0);
+      if (st === 'comic' || st === 'grafito' || st === 'acuarela') { const g = noiseF(w, h, Math.max(1, 2 * s), Math.max(1, 2 * s), cur + 21), gd = tx.getImageData(0, 0, w, h), D = gd.data;
+        for (let j = 0, i = 0; j < n; j++, i += 4) { const k = 0.955 + 0.045 * g[j]; D[i] *= k; D[i + 1] *= k; D[i + 2] *= k; } tx.putImageData(gd, 0, 0); } }
+    ox.globalAlpha = st === 'tiza' ? 0.85 : 1; ox.drawImage(tp, 0, 0); ox.globalAlpha = 1;
+  }
+  return out;
+}
+/* ---- texturas y piezas del marco ---- */
+function woodTex(len, th, s, seed, base, grainK = 1) {
+  const c = mkC(len, th), x = c.getContext('2d'), R = rng(seed);
+  const g = x.createLinearGradient(0, 0, 0, th), [r0, g0, b0] = base, cs = f => `rgb(${r0 * f | 0},${g0 * f | 0},${b0 * f | 0})`;
+  g.addColorStop(0, cs(0.78)); g.addColorStop(0.18, cs(1.0)); g.addColorStop(0.5, cs(1.06)); g.addColorStop(0.82, cs(0.96)); g.addColorStop(1, cs(0.74));
+  x.fillStyle = g; x.fillRect(0, 0, len, th);
+  const lines = Math.max(6, th / Math.max(1.5, 3 * s)) * grainK | 0;
+  for (let k = 0; k < lines; k++) {
+    const y0 = R() * th, amp = (1 + R() * 4) * s, f1 = (0.002 + R() * 0.006) / Math.max(s, 0.2), ph = R() * 6.3;
+    x.beginPath(); for (let px = 0; px <= len; px += Math.max(2, 8 * s)) x.lineTo(px, y0 + Math.sin(px * f1 + ph) * amp + Math.sin(px * f1 * 3.1 + ph * 2) * amp * 0.3);
+    const dk = R() < 0.72; x.strokeStyle = dk ? `rgba(60,30,10,${0.08 + R() * 0.2})` : `rgba(255,225,180,${0.05 + R() * 0.12})`; x.lineWidth = (0.5 + R() * 2) * Math.max(s, 0.4); x.stroke();
+  }
+  return c;
+}
+function woodBar(x, x1, y1, x2, y2, th, s, seed, base) {
+  const len = Math.hypot(x2 - x1, y2 - y1), t = woodTex(len, th, s, seed, base);
+  x.save(); x.translate(x1, y1); x.rotate(Math.atan2(y2 - y1, x2 - x1));
+  x.shadowColor = 'rgba(40,25,10,.35)'; x.shadowBlur = 18 * s; x.shadowOffsetY = 6 * s;
+  x.drawImage(t, 0, -th / 2); x.restore();
+}
+let LINEN = null;
+function linenPat(x, s, light) {
+  if (!LINEN) LINEN = {};
+  const key = light ? 'l' : 'm';
+  if (!LINEN[key]) {
+    const sz = 240, c = mkC(sz, sz), t = c.getContext('2d'), R = rng(light ? 91 : 77);
+    t.fillStyle = light ? '#F7F2E7' : '#E3D8C3'; t.fillRect(0, 0, sz, sz);
+    for (let y = 0; y < sz; y++) { t.fillStyle = R() < 0.5 ? `rgba(120,100,70,${R() * (light ? 0.07 : 0.14)})` : `rgba(255,255,250,${R() * (light ? 0.1 : 0.16)})`; t.fillRect(0, y, sz, 1); }
+    for (let xx = 0; xx < sz; xx++) { t.fillStyle = R() < 0.5 ? `rgba(120,100,70,${R() * (light ? 0.06 : 0.12)})` : `rgba(255,255,250,${R() * (light ? 0.08 : 0.14)})`; t.fillRect(xx, 0, 1, sz); }
+    for (let k = 0; k < 70; k++) { t.fillStyle = `rgba(110,90,60,${R() * (light ? 0.08 : 0.16)})`; if (R() < 0.5) t.fillRect(R() * sz, R() * sz, 8 + R() * 30, 1.4); else t.fillRect(R() * sz, R() * sz, 1.4, 8 + R() * 30); }
+    LINEN[key] = c;
+  }
+  const p = x.createPattern(LINEN[key], 'repeat'); const k = Math.max(0.35, s * 1.3);
+  if (p.setTransform) p.setTransform(new DOMMatrix().scaleSelf(k, k)); return p;
+}
+function tinted(img, color) { const c = mkC(img.width, img.height), t = c.getContext('2d'); t.drawImage(img, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = color; t.fillRect(0, 0, c.width, c.height); return c; }
+/* pie: logo y nombre del libro, centrados; engraved = tallado en madera */
+function caption(x, cx, cy, maxW, s, col, mode) {
   const L1 = 'ATLAS MUSCULAR · DIGITAL COLORING BOOK', L2 = 'Anatomía + Movimiento™ · Edición Digital 2026';
-  fitFont(L1, 600, 30); x.fillText(L1, W - 50, H + 68);
-  fitFont(L2, 400, 22); x.globalAlpha = .85; x.fillText(L2, W - 50, H + 104); x.globalAlpha = 1;
-  const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.9));
-  const file = new File([blob], `atlas-muscular-pagina-${cur}.jpg`, { type: 'image/jpeg' });
+  let f1 = 30 * s, f2 = 21 * s; const lh = 46 * s, logo = SH.logo, lw = logo ? lh * logo.width / logo.height : 0, gap = 26 * s;
+  const meas = () => { x.font = `700 ${f1}px Montserrat, sans-serif`; const a = x.measureText(L1).width; x.font = `500 ${f2}px Montserrat, sans-serif`; return Math.max(a, x.measureText(L2).width); };
+  let tw = meas(); while (lw + gap + tw > maxW && f1 > 6) { f1 *= 0.94; f2 *= 0.94; tw = meas(); }
+  const x0 = cx - (lw + gap + tw) / 2, tx = x0 + lw + gap;
+  const draw = (dx, dy, c, a) => {
+    x.save(); x.globalAlpha = a; x.translate(dx, dy);
+    if (logo) x.drawImage(tinted(logo, c), x0, cy - lh / 2, lw, lh);
+    x.fillStyle = c; x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+    x.font = `700 ${f1}px Montserrat, sans-serif`; x.fillText(L1, tx, cy - 2 * s);
+    x.font = `500 ${f2}px Montserrat, sans-serif`; x.fillText(L2, tx, cy + f2 + 4 * s); x.restore();
+  };
+  if (mode === 'engraved') { draw(0, 1.6 * s, 'rgba(255,232,190,1)', 0.35); draw(0, 0, col, 0.82); }
+  else draw(0, 0, col, 1);
+}
+function frameSides(x, x0, y0, bw, bh, fw) {
+  return [
+    [[x0, y0], [x0 + bw, y0], [x0 + bw - fw, y0 + fw], [x0 + fw, y0 + fw]],
+    [[x0, y0 + bh], [x0 + bw, y0 + bh], [x0 + bw - fw, y0 + bh - fw], [x0 + fw, y0 + bh - fw]],
+    [[x0, y0], [x0 + fw, y0 + fw], [x0 + fw, y0 + bh - fw], [x0, y0 + bh]],
+    [[x0 + bw, y0], [x0 + bw - fw, y0 + fw], [x0 + bw - fw, y0 + bh - fw], [x0 + bw, y0 + bh]]
+  ];
+}
+function drawFrame(x, x0, y0, bw, bh, fw, s, kind, seed) {
+  const sides = frameSides(x, x0, y0, bw, bh, fw), poly = p => { x.beginPath(); p.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); x.closePath(); };
+  x.save(); x.shadowColor = 'rgba(30,20,10,.45)'; x.shadowBlur = 40 * s; x.shadowOffsetY = 16 * s; x.fillStyle = '#5a3d22';
+  x.fillRect(x0, y0, bw, bh); x.restore();
+  const base = { walnut: [128, 82, 48], oak: [196, 158, 112], dark: [92, 62, 38] }[kind];
+  sides.forEach((p, k) => {
+    x.save(); poly(p); x.clip();
+    if (kind === 'gold') {
+      const hor = k < 2, g = hor ? x.createLinearGradient(0, k ? y0 + bh : y0, 0, k ? y0 + bh - fw : y0 + fw) : x.createLinearGradient(k === 2 ? x0 : x0 + bw, 0, k === 2 ? x0 + fw : x0 + bw - fw, 0);
+      [['#5E4110', 0], ['#C99A3B', .12], ['#F6DE8E', .22], ['#9A6E22', .36], ['#E3BE62', .5], ['#7A561A', .62], ['#F2D27C', .76], ['#A77A2A', .88], ['#4F370D', 1]].forEach(([c, o]) => g.addColorStop(o, c));
+      x.fillStyle = g; x.fillRect(x0, y0, bw, bh);
+      x.fillStyle = 'rgba(80,55,10,.12)'; const R = rng(seed + k); for (let i = 0; i < 900 * Math.max(s, .2); i++) x.fillRect(x0 + R() * bw, y0 + R() * bh, 2 * s + .5, 2 * s + .5);
+    } else {
+      const len = k < 2 ? bw : bh, t = woodTex(len, fw, s, seed + k * 17, base);
+      if (k < 2) x.drawImage(t, x0, k ? y0 + bh - fw : y0);
+      else { x.translate(k === 2 ? x0 + fw : x0 + bw, y0); x.rotate(Math.PI / 2); x.drawImage(t, 0, 0); }
+    }
+    x.restore();
+    poly(p); x.fillStyle = ['rgba(255,240,210,.14)', 'rgba(0,0,0,.2)', 'rgba(255,240,210,.06)', 'rgba(0,0,0,.12)'][k]; x.fill();
+  });
+  // molduras: líneas de luz y sombra
+  const ins = (d, c, lw) => { x.strokeStyle = c; x.lineWidth = lw; x.strokeRect(x0 + d, y0 + d, bw - 2 * d, bh - 2 * d); };
+  ins(1 * s, 'rgba(25,15,5,.55)', 2 * s); ins(fw * 0.22, 'rgba(255,240,200,.28)', 2.2 * s); ins(fw * 0.6, 'rgba(30,18,6,.35)', 2.4 * s); ins(fw * 0.64, 'rgba(255,240,200,.18)', 1.2 * s); ins(fw - 1.5 * s, 'rgba(20,12,4,.6)', 3 * s);
+  if (kind === 'gold') {   // perlas de la moldura dorada
+    const step = 22 * s, rr = 5.5 * s, d = fw * 0.42;
+    const bead = (px, py) => { const g = x.createRadialGradient(px - rr * .35, py - rr * .35, rr * .1, px, py, rr); g.addColorStop(0, '#FFF2C0'); g.addColorStop(.5, '#D9AE52'); g.addColorStop(1, '#6B4A12'); x.fillStyle = g; x.beginPath(); x.arc(px, py, rr, 0, 6.283); x.fill(); };
+    for (let px = x0 + d; px <= x0 + bw - d; px += step) { bead(px, y0 + d); bead(px, y0 + bh - d); }
+    for (let py = y0 + d + step; py < y0 + bh - d; py += step) { bead(x0 + d, py); bead(x0 + bw - d, py); }
+  }
+}
+function innerShadow(x, ix, iy, iw, ih, s, k = 1) {
+  const e = 26 * s, mk = (a, b, c, d, x1, y1, x2, y2, al) => { const g = x.createLinearGradient(x1, y1, x2, y2); g.addColorStop(0, `rgba(0,0,0,${al})`); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(a, b, c, d); };
+  mk(ix, iy, iw, e, 0, iy, 0, iy + e, 0.32 * k); mk(ix, iy, e, ih, ix, 0, ix + e, 0, 0.22 * k); mk(ix + iw - e, iy, e, ih, ix + iw, 0, ix + iw - e, 0, 0.12 * k); mk(ix, iy + ih - e, iw, e, 0, iy + ih, 0, iy + ih - e, 0.08 * k);
+}
+/* escenas */
+function sceneEasel(art, s, gold) {
+  const w = art.width, h = art.height, fw = (gold ? 96 : 62) * s, mat = gold ? 0 : 72 * s;
+  const bw = w + 2 * (mat + fw), bh = h + 2 * (mat + fw), M = 260 * s, T = 200 * s, LG = 176 * s, B = 330 * s;
+  const CW = bw + 2 * M, CH = T + bh + LG + B, c = mkC(CW, CH), x = c.getContext('2d'), cx = CW / 2, floorY = CH - 210 * s;
+  let g = x.createLinearGradient(0, 0, 0, floorY); g.addColorStop(0, '#EEE7DA'); g.addColorStop(1, '#D6C9B3'); x.fillStyle = g; x.fillRect(0, 0, CW, floorY);
+  g = x.createLinearGradient(0, floorY, 0, CH); g.addColorStop(0, '#A98D6B'); g.addColorStop(1, '#8A6E4F'); x.fillStyle = g; x.fillRect(0, floorY, CW, CH - floorY);
+  x.fillStyle = 'rgba(60,40,20,.25)'; x.fillRect(0, floorY, CW, 3 * s);
+  g = x.createRadialGradient(cx, CH * 0.42, CW * 0.15, cx, CH * 0.45, CW * 0.85); g.addColorStop(0, 'rgba(255,250,235,.35)'); g.addColorStop(1, 'rgba(60,40,20,.28)'); x.fillStyle = g; x.fillRect(0, 0, CW, CH);
+  const wood = [178, 132, 86], footY = CH - 120 * s, lx = cx - bw / 2 - 150 * s, rx = cx + bw / 2 + 150 * s;
+  for (const fx of [lx, rx, cx]) { x.fillStyle = 'rgba(40,25,10,.28)'; x.beginPath(); x.ellipse(fx, footY + 8 * s, 70 * s, 14 * s, 0, 0, 6.283); x.fill(); }
+  woodBar(x, cx, 34 * s, cx, footY + 4 * s, 78 * s, s, 301, wood.map(v => v * 0.86));
+  woodBar(x, cx - 60 * s, 80 * s, lx, footY, 68 * s, s, 302, wood);
+  woodBar(x, cx + 60 * s, 80 * s, rx, footY, 68 * s, s, 303, wood);
+  const cy2 = footY - 250 * s, t2 = (cy2 - 80 * s) / (footY - 80 * s), xl = cx - 60 * s + (lx - cx + 60 * s) * t2, xr = cx + 60 * s + (rx - cx - 60 * s) * t2;
+  woodBar(x, xl, cy2, xr, cy2, 44 * s, s, 304, wood);
+  const x0 = cx - bw / 2, y0 = T;
+  drawFrame(x, x0, y0, bw, bh, fw, s, gold ? 'gold' : 'walnut', 400 + cur);
+  const ix = x0 + fw, iy = y0 + fw, iw = bw - 2 * fw, ih = bh - 2 * fw;
+  if (!gold) {
+    x.fillStyle = linenPat(x, s, false); x.fillRect(ix, iy, iw, ih); innerShadow(x, ix, iy, iw, ih, s);
+    x.fillStyle = '#F6F0E3'; x.fillRect(ix + mat - 7 * s, iy + mat - 7 * s, w + 14 * s, h + 14 * s);
+    x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(ix + mat - 7 * s, iy + mat + h, w + 14 * s, 7 * s); x.fillRect(ix + mat + w, iy + mat - 7 * s, 7 * s, h + 14 * s);
+  }
+  x.drawImage(art, ix + mat, iy + mat);
+  if (!gold) { x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = 0.6; x.fillStyle = linenPat(x, s, true); x.fillRect(ix + mat, iy + mat, w, h); x.restore(); }
+  innerShadow(x, ix + mat, iy + mat, w, h, s, gold ? 1 : 0.55);
+  // repisa del atril
+  const yL = y0 + bh - 6 * s, lw2 = bw + 170 * s, lx0 = cx - lw2 / 2, top = 34 * s;
+  x.save(); x.shadowColor = 'rgba(30,20,10,.4)'; x.shadowBlur = 26 * s; x.shadowOffsetY = 12 * s; x.fillStyle = '#6b4a2c'; x.fillRect(lx0, yL, lw2, LG); x.restore();
+  x.drawImage(woodTex(lw2, top, s, 501, wood.map(v => v * 1.08)), lx0, yL);
+  x.drawImage(woodTex(lw2, LG - top, s, 502, wood), lx0, yL + top);
+  x.fillStyle = 'rgba(255,240,210,.35)'; x.fillRect(lx0, yL + top - 1.5 * s, lw2, 2 * s); x.fillStyle = 'rgba(30,15,5,.35)'; x.fillRect(lx0, yL + top + 1 * s, lw2, 2 * s); x.fillRect(lx0, yL + LG - 3 * s, lw2, 3 * s);
+  caption(x, cx, yL + top + (LG - top) / 2 - 6 * s, lw2 - 160 * s, s, 'rgb(52,30,12)', 'engraved');
+  // mordaza superior del atril
+  x.save(); x.shadowColor = 'rgba(30,20,10,.4)'; x.shadowBlur = 14 * s; x.shadowOffsetY = 5 * s;
+  x.drawImage(woodTex(130 * s, 86 * s, s, 503, wood.map(v => v * 0.95)), cx - 65 * s, y0 - 48 * s); x.restore();
+  return c;
+}
+function sceneWall(art, s) {
+  const w = art.width, h = art.height, fw = 34 * s, mat = 150 * s, bw = w + 2 * (mat + fw), bh = h + 2 * (mat + fw), M = 200 * s, T = 170 * s, B = 330 * s;
+  const CW = bw + 2 * M, CH = T + bh + B, c = mkC(CW, CH), x = c.getContext('2d'), cx = CW / 2;
+  let g = x.createLinearGradient(0, 0, 0, CH); g.addColorStop(0, '#F1EEE8'); g.addColorStop(1, '#DCD6CB'); x.fillStyle = g; x.fillRect(0, 0, CW, CH);
+  g = x.createRadialGradient(cx, T * 0.4, 30 * s, cx, T + bh * 0.4, CW * 0.8); g.addColorStop(0, 'rgba(255,252,240,.6)'); g.addColorStop(1, 'rgba(0,0,0,.12)'); x.fillStyle = g; x.fillRect(0, 0, CW, CH);
+  const x0 = cx - bw / 2, y0 = T; drawFrame(x, x0, y0, bw, bh, fw, s, 'oak', 600 + cur);
+  const ix = x0 + fw, iy = y0 + fw, iw = bw - 2 * fw, ih = bh - 2 * fw;
+  x.fillStyle = '#FBF9F4'; x.fillRect(ix, iy, iw, ih); x.save(); x.globalAlpha = .5; x.fillStyle = linenPat(x, s, true); x.fillRect(ix, iy, iw, ih); x.restore();
+  innerShadow(x, ix, iy, iw, ih, s, 0.8);
+  const bev = 9 * s; x.fillStyle = '#FFFFFF'; x.fillRect(ix + mat - bev, iy + mat - bev, w + 2 * bev, h + 2 * bev);
+  x.fillStyle = 'rgba(0,0,0,.07)'; x.fillRect(ix + mat - bev, iy + mat - bev, w + 2 * bev, bev * .5); x.fillRect(ix + mat - bev, iy + mat - bev, bev * .5, h + 2 * bev);
+  x.drawImage(art, ix + mat, iy + mat); innerShadow(x, ix + mat, iy + mat, w, h, s, 0.35);
+  const cw2 = Math.min(bw * 0.8, 1100 * s), ch2 = 120 * s, cy0 = y0 + bh + 90 * s;
+  x.save(); x.shadowColor = 'rgba(0,0,0,.18)'; x.shadowBlur = 16 * s; x.shadowOffsetY = 5 * s; x.fillStyle = '#FFFFFF'; x.fillRect(cx - cw2 / 2, cy0, cw2, ch2); x.restore();
+  caption(x, cx, cy0 + ch2 / 2 - 6 * s, cw2 - 60 * s, s, '#3F4A57');
+  return c;
+}
+function sceneDesk(art, s) {
+  const w = art.width, h = art.height, mg = 70 * s, pw = w + 2 * mg, ph = h + 2 * mg + 90 * s, M = 190 * s, CW = pw + 2 * M, CH = ph + 2 * M, c = mkC(CW, CH), x = c.getContext('2d'), cx = CW / 2;
+  const plank = 170 * s; for (let y = 0, k = 0; y < CH; y += plank, k++) { x.drawImage(woodTex(CW, plank, s, 700 + k, [150, 104, 64], 1.4), 0, y); x.fillStyle = 'rgba(30,15,5,.35)'; x.fillRect(0, y, CW, 2.5 * s); }
+  x.save(); x.translate(cx, CH / 2); x.rotate(-0.018);
+  x.shadowColor = 'rgba(20,10,0,.45)'; x.shadowBlur = 34 * s; x.shadowOffsetY = 14 * s; x.fillStyle = '#FFFFFF'; x.fillRect(-pw / 2, -ph / 2, pw, ph); x.shadowColor = 'transparent';
+  x.drawImage(art, -w / 2, -ph / 2 + mg);
+  caption(x, 0, ph / 2 - mg / 2 - 40 * s, pw - 2 * mg, s, '#55606E');
+  const tape = (tx, ty, ang) => { x.save(); x.translate(tx, ty); x.rotate(ang); x.fillStyle = 'rgba(236,224,190,.78)'; x.fillRect(-90 * s, -26 * s, 180 * s, 52 * s); x.fillStyle = 'rgba(255,255,255,.18)'; x.fillRect(-90 * s, -26 * s, 180 * s, 10 * s); x.restore(); };
+  tape(-pw / 2 + 40 * s, -ph / 2 + 10 * s, -0.7); tape(pw / 2 - 40 * s, -ph / 2 + 10 * s, 0.7); tape(-pw / 2 + 40 * s, ph / 2 - 10 * s, 0.7); tape(pw / 2 - 40 * s, ph / 2 - 10 * s, -0.7);
+  x.restore();
+  return c;
+}
+function sceneBoard(art, s) {
+  const w = art.width, h = art.height, fw = 58 * s, bw = w + 2 * fw, bh = h + 2 * fw, M = 170 * s, T = 150 * s, TR = 120 * s, CW = bw + 2 * M, CH = T + bh + TR + 170 * s, c = mkC(CW, CH), x = c.getContext('2d'), cx = CW / 2;
+  let g = x.createLinearGradient(0, 0, 0, CH); g.addColorStop(0, '#D9D0BF'); g.addColorStop(1, '#C3B8A3'); x.fillStyle = g; x.fillRect(0, 0, CW, CH);
+  const x0 = cx - bw / 2; drawFrame(x, x0, T, bw, bh, fw, s, 'oak', 800 + cur);
+  x.drawImage(art, x0 + fw, T + fw); innerShadow(x, x0 + fw, T + fw, w, h, s, 0.9);
+  const ty = T + bh - 8 * s, tw = bw + 60 * s, tx0 = cx - tw / 2;
+  x.save(); x.shadowColor = 'rgba(30,20,10,.4)'; x.shadowBlur = 20 * s; x.shadowOffsetY = 10 * s; x.fillStyle = '#7a5a3a'; x.fillRect(tx0, ty, tw, TR); x.restore();
+  x.drawImage(woodTex(tw, 30 * s, s, 811, [206, 170, 124]), tx0, ty); x.drawImage(woodTex(tw, TR - 30 * s, s, 812, [190, 152, 106]), tx0, ty + 30 * s);
+  x.fillStyle = 'rgba(30,15,5,.3)'; x.fillRect(tx0, ty + 30 * s, tw, 2 * s);
+  const chalk = (px, len, col, ang) => { x.save(); x.translate(px, ty + 16 * s); x.rotate(ang); x.fillStyle = col; x.shadowColor = 'rgba(0,0,0,.3)'; x.shadowBlur = 6 * s; x.fillRect(-len / 2, -9 * s, len, 18 * s); x.restore(); };
+  chalk(cx + bw * 0.28, 120 * s, '#F7F5EE', 0.04); chalk(cx + bw * 0.36, 80 * s, '#F4B6C2', -0.05); chalk(cx - bw * 0.33, 95 * s, '#BFE3F2', 0.03);
+  caption(x, cx, ty + 30 * s + (TR - 30 * s) / 2 - 4 * s, tw - 160 * s, s, 'rgb(60,36,16)', 'engraved');
+  return c;
+}
+function sceneClip(art, s) {
+  const w = art.width, h = art.height, mg = 60 * s, pw = w + 2 * mg, ph = h + 2 * mg + 100 * s, bd = 90 * s, bw = pw + 2 * bd, bh = ph + 2 * bd + 40 * s, M = 150 * s;
+  const CW = bw + 2 * M, CH = bh + 2 * M, c = mkC(CW, CH), x = c.getContext('2d'), cx = CW / 2;
+  let g = x.createLinearGradient(0, 0, CW, CH); g.addColorStop(0, '#E9E4DA'); g.addColorStop(1, '#D3CCBE'); x.fillStyle = g; x.fillRect(0, 0, CW, CH);
+  const bx0 = cx - bw / 2, by0 = M;
+  x.save(); x.shadowColor = 'rgba(30,20,10,.4)'; x.shadowBlur = 36 * s; x.shadowOffsetY = 14 * s; x.fillStyle = '#9B7650'; x.beginPath(); x.roundRect ? x.roundRect(bx0, by0, bw, bh, 24 * s) : x.rect(bx0, by0, bw, bh); x.fill(); x.restore();
+  x.save(); x.beginPath(); x.roundRect ? x.roundRect(bx0, by0, bw, bh, 24 * s) : x.rect(bx0, by0, bw, bh); x.clip(); x.drawImage(woodTex(bw, bh, s, 901, [176, 140, 98], 3), bx0, by0); x.restore();
+  const px0 = cx - pw / 2, py0 = by0 + bd + 40 * s;
+  x.save(); x.shadowColor = 'rgba(30,20,10,.3)'; x.shadowBlur = 14 * s; x.shadowOffsetY = 5 * s; x.fillStyle = '#F8F6F1'; x.fillRect(px0, py0, pw, ph); x.restore();
+  x.drawImage(art, px0 + mg, py0 + mg);
+  caption(x, cx, py0 + ph - mg / 2 - 46 * s, pw - 2 * mg, s, '#4A4A4A');
+  // pinza metálica
+  const cw = 300 * s, chh = 110 * s, cy0 = py0 - 50 * s;
+  g = x.createLinearGradient(0, cy0, 0, cy0 + chh); g.addColorStop(0, '#E9ECEF'); g.addColorStop(.45, '#9AA1A8'); g.addColorStop(.55, '#C9CED3'); g.addColorStop(1, '#6D747B');
+  x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 14 * s; x.shadowOffsetY = 6 * s; x.fillStyle = g; x.beginPath(); x.roundRect ? x.roundRect(cx - cw / 2, cy0, cw, chh, 14 * s) : x.rect(cx - cw / 2, cy0, cw, chh); x.fill(); x.restore();
+  x.strokeStyle = '#5E656C'; x.lineWidth = 9 * s; x.beginPath(); x.ellipse(cx, cy0 - 6 * s, cw * 0.32, 44 * s, 0, Math.PI, 2 * Math.PI); x.stroke();
+  // lápiz
+  x.save(); x.translate(px0 + pw + bd * 0.5, py0 + ph * 0.55); x.rotate(Math.PI / 2 - 0.12); const pl = 520 * s, pt = 26 * s;
+  x.shadowColor = 'rgba(0,0,0,.3)'; x.shadowBlur = 10 * s; x.shadowOffsetY = 5 * s;
+  g = x.createLinearGradient(0, -pt / 2, 0, pt / 2); g.addColorStop(0, '#F2C230'); g.addColorStop(.5, '#FFDE5C'); g.addColorStop(1, '#C99A12'); x.fillStyle = g; x.fillRect(-pl / 2, -pt / 2, pl, pt);
+  x.shadowColor = 'transparent'; x.fillStyle = '#E8C9A0'; x.beginPath(); x.moveTo(pl / 2, -pt / 2); x.lineTo(pl / 2 + 60 * s, 0); x.lineTo(pl / 2, pt / 2); x.fill();
+  x.fillStyle = '#2E2E2E'; x.beginPath(); x.moveTo(pl / 2 + 40 * s, -pt * 0.17); x.lineTo(pl / 2 + 60 * s, 0); x.lineTo(pl / 2 + 40 * s, pt * 0.17); x.fill();
+  x.fillStyle = '#B9B9B9'; x.fillRect(-pl / 2 - 26 * s, -pt / 2, 26 * s, pt); x.fillStyle = '#E58C9A'; x.fillRect(-pl / 2 - 56 * s, -pt / 2, 30 * s, pt); x.restore();
+  return c;
+}
+function sceneComic(art, s) {
+  const w = art.width, h = art.height, mg = 80 * s, bt = 12 * s, head = 150 * s, CW = w + 2 * mg, CH = h + 2 * mg + head + 110 * s, c = mkC(CW, CH), x = c.getContext('2d');
+  x.fillStyle = '#FBF2D9'; x.fillRect(0, 0, CW, CH);
+  const ay = mg + head; x.drawImage(art, mg, ay);
+  x.lineWidth = bt; x.strokeStyle = '#111'; x.strokeRect(mg - bt / 2, ay - bt / 2, w + bt, h + bt);
+  // título de portada
+  x.save(); x.translate(mg, mg - 10 * s); x.rotate(-0.025);
+  x.fillStyle = '#FFD83A'; x.strokeStyle = '#111'; x.lineWidth = 7 * s; x.fillRect(0, 0, w * 0.72, head - 30 * s); x.strokeRect(0, 0, w * 0.72, head - 30 * s);
+  x.fillStyle = '#E3262E'; x.font = `italic 900 ${66 * s}px Montserrat, sans-serif`; x.textBaseline = 'middle';
+  x.lineWidth = 8 * s; x.strokeStyle = '#111'; x.strokeText('¡ATLAS MUSCULAR!', 26 * s, (head - 30 * s) / 2, w * 0.72 - 50 * s); x.fillText('¡ATLAS MUSCULAR!', 26 * s, (head - 30 * s) / 2, w * 0.72 - 50 * s); x.restore();
+  x.save(); x.translate(mg + w - 150 * s, mg + 40 * s); x.rotate(0.12); x.fillStyle = '#fff'; x.strokeStyle = '#111'; x.lineWidth = 6 * s;
+  x.beginPath(); for (let k = 0; k < 24; k++) { const a = k * Math.PI / 12, r = (k % 2 ? 70 : 108) * s; x.lineTo(Math.cos(a) * r * 1.3, Math.sin(a) * r * .8); } x.closePath(); x.fill(); x.stroke();
+  x.fillStyle = '#111'; x.font = `italic 900 ${40 * s}px Montserrat, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(`N.º ${cur}`, 0, 0); x.restore();
+  caption(x, CW / 2, ay + h + 70 * s, w, s, '#111');
+  return c;
+}
+function sceneDigital(art, s) {
+  const w = art.width, h = art.height, M = 150 * s, CW = w + 2 * M, CH = h + 2 * M + 150 * s, c = mkC(CW, CH), x = c.getContext('2d');
+  let g = x.createLinearGradient(0, 0, CW, CH); g.addColorStop(0, '#0E1A2B'); g.addColorStop(1, '#22385A'); x.fillStyle = g; x.fillRect(0, 0, CW, CH);
+  g = x.createRadialGradient(CW / 2, M + h / 2, 50 * s, CW / 2, M + h / 2, CW * 0.7); g.addColorStop(0, 'rgba(120,170,255,.25)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, CW, CH);
+  const r = 34 * s; x.save(); x.shadowColor = 'rgba(80,140,255,.45)'; x.shadowBlur = 60 * s; x.fillStyle = '#fff'; x.beginPath(); x.roundRect ? x.roundRect(M, M, w, h, r) : x.rect(M, M, w, h); x.fill(); x.restore();
+  x.save(); x.beginPath(); x.roundRect ? x.roundRect(M, M, w, h, r) : x.rect(M, M, w, h); x.clip(); x.drawImage(art, M, M); x.restore();
+  caption(x, CW / 2, M + h + 85 * s, w, s, '#FFFFFF');
+  return c;
+}
+function sceneClean(art, s) {
+  const w = art.width, h = art.height, M = 50 * s, CW = w + 2 * M, CH = h + 2 * M + 110 * s, c = mkC(CW, CH), x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, CW, CH); x.drawImage(art, M, M);
+  x.fillStyle = '#E4E6EA'; x.fillRect(M, M + h + 18 * s, w, 2 * s);
+  caption(x, CW / 2, M + h + 72 * s, w, s, '#3F4A57');
+  return c;
+}
+async function shareRender(st, s) {
+  if (!SH.logo) SH.logo = await loadImg('bb_logo.png').catch(() => null);
+  const Ly = await shareLayers(s), art = styleArt(st, Ly);
+  return ({ atril: a => sceneEasel(a, s, false), oleo: a => sceneEasel(a, s, true), acuarela: a => sceneWall(a, s), marcador: a => sceneDesk(a, s), tiza: a => sceneBoard(a, s), grafito: a => sceneClip(a, s), comic: a => sceneComic(a, s), digital: a => sceneDigital(a, s), limpio: a => sceneClean(a, s) })[st](art);
+}
+$('#btnShare').onclick = async () => {
+  if (!page) return;
+  if (!page.plate) { toast('Solo se comparten las láminas que usted colorea'); return; }
+  if (!SH.passed) { const rv = reviewArt(); if (rv.block.length || rv.tips.length) { showReview(rv); return; } toast('¡Quedó preciosa! Elija cómo compartirla'); checkDone(true); }
+  SH.passed = false;
+  await saveNow(); SH.cache = {}; SH.ready = null; $('#sgYes').textContent = 'Compartir mi obra';
+  try { await Promise.all([document.fonts.load('700 40px Caveat'), document.fonts.load('700 30px Montserrat'), document.fonts.load('italic 900 40px Montserrat')]); } catch (e) {}
+  const grid = $('#sgGrid'); grid.innerHTML = '';
+  for (const [k, t, d] of SHARE_STYLES) {
+    const b = document.createElement('button'); b.className = 'sgc' + (k === SH.style ? ' on' : ''); b.dataset.k = k;
+    b.innerHTML = `<div class="sgt"></div><b>${t}</b><small>${d}</small>`;
+    b.onclick = () => { SH.style = k; store.set('shareStyle', k); grid.querySelectorAll('.sgc').forEach(e => e.classList.toggle('on', e === b)); };
+    grid.appendChild(b);
+  }
+  $('#shareBox').hidden = false;
+  for (const b of grid.querySelectorAll('.sgc')) {
+    await new Promise(r => requestAnimationFrame(r)); if ($('#shareBox').hidden) return;
+    const cv = await shareRender(b.dataset.k, 0.16); b.querySelector('.sgt').appendChild(cv);
+  }
+};
+$('#sgNo').onclick = () => { $('#shareBox').hidden = true; SH.ready = null; $('#sgYes').textContent = 'Compartir mi obra'; };
+$('#shareBox').addEventListener('pointerdown', e => { if (e.target.id === 'shareBox') $('#shareBox').hidden = true; });
+async function shareFile(file, blob) {
   try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Atlas Muscular · Digital Coloring Book' }); return; }
-  } catch (e) { if (e && e.name === 'AbortError') return; }
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Atlas Muscular · Digital Coloring Book' }); return true; }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return true;
+    if (e && e.name === 'NotAllowedError') return false;   // el teléfono pide otro toque
+  }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
-  toast('Lámina guardada en Descargas');
+  toast('Lámina guardada en Descargas'); return true;
+}
+$('#sgYes').onclick = async () => {
+  if (SH.ready) { const { file, blob } = SH.ready; SH.ready = null; $('#sgYes').textContent = 'Compartir mi obra'; $('#shareBox').hidden = true; await shareFile(file, blob); return; }
+  if (SH.busy) return; SH.busy = true; $('#sgYes').classList.add('wait');
+  try {
+    const c = await shareRender(SH.style, 1);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.9));
+    const file = new File([blob], `atlas-muscular-pagina-${cur}.jpg`, { type: 'image/jpeg' });
+    $('#shareBox').hidden = true;
+    if (!(await shareFile(file, blob))) { SH.ready = { file, blob }; $('#shareBox').hidden = false; $('#sgYes').textContent = 'Su obra está lista: toque para compartir'; }
+  } finally { SH.busy = false; $('#sgYes').classList.remove('wait'); }
 };
 
 
