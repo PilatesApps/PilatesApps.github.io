@@ -27,9 +27,10 @@ const BRUSHES = [
   { id: 'marcador', name: 'Marcador', size: 18, opa: 70, hard: 85 },
   { id: 'lapiz', name: 'Lápiz', size: 6, opa: 90, hard: 60 },
   { id: 'creyon', name: 'Creyón', size: 16, opa: 90, hard: 50 },
-  { id: 'tiza', name: 'Tiza', size: 22, opa: 80, hard: 40 },
-  { id: 'acuarela', name: 'Acuarela', size: 34, opa: 70, hard: 10 },
-  { id: 'oleo', name: 'Óleo', size: 20, opa: 100, hard: 90 },
+  { id: 'tiza', name: 'Tiza', size: 22, opa: 70, hard: 40 },
+  { id: 'carboncillo', name: 'Carboncillo', size: 18, opa: 85, hard: 30 },
+  { id: 'acuarela', name: 'Acuarela', size: 34, opa: 80, hard: 10 },
+  { id: 'oleo', name: 'Óleo', size: 30, opa: 100, hard: 90 },
   { id: 'aero', name: 'Aerógrafo', size: 50, opa: 25, hard: 0 },
   { id: 'balde', name: 'Balde', size: 0, opa: 90, hard: 100 },
   { id: 'borrador', name: 'Borrador', size: 26, opa: 100, hard: 80 },
@@ -43,7 +44,8 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('am:' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('am:' + k, JSON.stringify(v)); } catch (e) {} }
 };
-let brush = store.get('brush', 'marcador');
+let brush = store.get('brush', 'marcador'); if (brush === 'gotero') brush = 'marcador';
+let prevBrush = null;   // para volver del cuentagotas
 let color = store.get('color', COLORS[0][1]);
 let recent = store.get('recent', []);
 let settings = store.get('settings', {});   // por lápiz: {size,opa,hard}
@@ -96,70 +98,90 @@ function setupInstall() {
 /* ---------------- sonido y vibración ---------------- */
 let sound = store.get('sound', true);
 const SFX = (() => {
-  let ac = null, bufs = {}, live = null;
-  const ctx = () => { if (!ac) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ac = new A(); } if (ac.state === 'suspended') ac.resume(); return ac; };
+  // sonidos suaves: ruido rosa y marrón filtrado, nada de chasquidos; volumen general bajo
+  let ac = null, bufs = {}, live = null, master = null;
+  const ctx = () => {
+    if (!ac) {
+      const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; ac = new A();
+      const comp = ac.createDynamicsCompressor(); comp.threshold.value = -28; comp.ratio.value = 6; comp.attack.value = 0.01; comp.release.value = 0.2;
+      master = ac.createGain(); master.gain.value = 0.55; master.connect(comp).connect(ac.destination);
+    }
+    if (ac.state === 'suspended') ac.resume(); return ac;
+  };
   function buf(kind) {
     if (bufs[kind]) return bufs[kind];
-    const a = ctx(), n = a.sampleRate * 2, b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
-    let br = 0;
+    const a = ctx(), n = a.sampleRate * 3, b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
+    let b0 = 0, b1 = 0, b2 = 0, br = 0, env = 0.5, tgt = 0.5;
     for (let i = 0; i < n; i++) {
       const w = Math.random() * 2 - 1;
-      if (kind === 'grain') { d[i] = w * (Math.random() < 0.035 ? 1 : 0.18); }          /* tiza y creyón: granos */
-      else if (kind === 'brown') { br = (br + 0.02 * w) / 1.02; d[i] = br * 3.5; }        /* óleo y acuarela: suave */
-      else d[i] = w;
+      b0 = 0.99765 * b0 + w * 0.0990460; b1 = 0.96300 * b1 + w * 0.2965164; b2 = 0.57000 * b2 + w * 1.0526913;
+      const pink = (b0 + b1 + b2 + w * 0.1848) * 0.2;
+      br = (br + 0.02 * w) / 1.02;
+      if (i % 600 === 0) tgt = 0.35 + Math.random() * 0.65;      // textura lenta, sin golpes
+      env += (tgt - env) * 0.002;
+      d[i] = kind === 'brown' ? br * 3.2 : kind === 'paper' ? pink * env : pink;
     }
+    // bordes del bucle sin clic
+    const f = 2000; for (let i = 0; i < f; i++) { const k = i / f; d[i] *= k; d[n - 1 - i] *= k; }
     return (bufs[kind] = b);
   }
   const P = {
-    tiza:      { b: 'grain', t: 'bandpass', f: 2600, q: 0.7, g: 0.55 },
-    creyon:    { b: 'grain', t: 'bandpass', f: 1500, q: 0.9, g: 0.45 },
-    lapiz:     { b: 'white', t: 'highpass', f: 3800, q: 0.7, g: 0.22 },
-    marcador:  { b: 'white', t: 'bandpass', f: 1100, q: 2.2, g: 0.28 },
-    resaltador:{ b: 'white', t: 'bandpass', f: 1400, q: 1.8, g: 0.24 },
-    acuarela:  { b: 'brown', t: 'lowpass',  f: 900,  q: 0.5, g: 0.5 },
-    oleo:      { b: 'brown', t: 'lowpass',  f: 500,  q: 1.2, g: 0.6 },
-    aero:      { b: 'white', t: 'highpass', f: 5200, q: 0.5, g: 0.12, steady: true },
-    borrador:  { b: 'grain', t: 'bandpass', f: 380,  q: 1.1, g: 0.6 },
-    pluma:     { b: 'white', t: 'highpass', f: 3000, q: 0.8, g: 0.14 },
-    boligrafo: { b: 'white', t: 'highpass', f: 3000, q: 0.8, g: 0.14 },
+    lapiz:      { b: 'paper', t: 'bandpass', f: 4200, q: 0.8, g: 0.10 },
+    creyon:     { b: 'paper', t: 'bandpass', f: 1900, q: 0.7, g: 0.13 },
+    tiza:       { b: 'paper', t: 'bandpass', f: 2600, q: 0.6, g: 0.12 },
+    carboncillo:{ b: 'paper', t: 'bandpass', f: 1500, q: 0.6, g: 0.12 },
+    marcador:   { b: 'pink',  t: 'bandpass', f: 1300, q: 1.0, g: 0.08 },
+    resaltador: { b: 'pink',  t: 'bandpass', f: 1500, q: 1.0, g: 0.08 },
+    acuarela:   { b: 'brown', t: 'lowpass',  f: 700,  q: 0.4, g: 0.16 },
+    oleo:       { b: 'brown', t: 'lowpass',  f: 520,  q: 0.6, g: 0.18 },
+    aero:       { b: 'pink',  t: 'highpass', f: 3500, q: 0.4, g: 0.05, steady: true },
+    borrador:   { b: 'paper', t: 'bandpass', f: 700,  q: 0.6, g: 0.12 },
+    pluma:      { b: 'paper', t: 'highpass', f: 3200, q: 0.6, g: 0.06 },
+    boligrafo:  { b: 'paper', t: 'highpass', f: 3200, q: 0.6, g: 0.06 },
   };
   return {
     start(id) {
       if (!sound) return; const p = P[id]; const a = ctx(); if (!p || !a) return;
       this.stop();
       const src = a.createBufferSource(); src.buffer = buf(p.b); src.loop = true;
-      src.playbackRate.value = 0.9 + Math.random() * 0.2;
+      src.playbackRate.value = 0.95 + Math.random() * 0.1;
       const f = a.createBiquadFilter(); f.type = p.t; f.frequency.value = p.f; f.Q.value = p.q;
-      const g = a.createGain(); g.gain.value = p.steady ? p.g : 0;
-      src.connect(f).connect(g).connect(a.destination); src.start(0, Math.random() * 1.5);
-      live = { src, f, g, p, t: performance.now(), d: 0 };
+      const g = a.createGain(); g.gain.value = 0;
+      if (p.steady) g.gain.setTargetAtTime(p.g, a.currentTime, 0.08);
+      src.connect(f).connect(g).connect(master); src.start(0, Math.random() * 2);
+      live = { src, f, g, p, t: performance.now(), d: 0, v: 0 };
     },
     move(dist) {
       if (!live) return; const now = performance.now(), dt = Math.max(8, now - live.t);
-      live.t = now; const v = Math.min(1, dist / dt / 1.6);
+      live.t = now; const v = Math.min(1, dist / dt / 1.8);
+      live.v += (v - live.v) * 0.25;                       // la velocidad se suaviza: no hay saltos de volumen
       const p = live.p, a = ac;
-      if (!p.steady) live.g.gain.setTargetAtTime(p.g * (0.15 + 0.85 * v), a.currentTime, 0.03);
-      live.f.frequency.setTargetAtTime(p.f * (0.85 + 0.35 * v), a.currentTime, 0.05);
-      live.d += dist; if (live.d > 260 && (p.b === 'grain')) { live.d = 0; buzz(4); }
+      if (!p.steady) live.g.gain.setTargetAtTime(p.g * Math.min(1, live.v * 1.2), a.currentTime, 0.06);
+      live.f.frequency.setTargetAtTime(p.f * (0.9 + 0.2 * live.v), a.currentTime, 0.08);
     },
     stop() {
       if (!live) return; const l = live; live = null;
-      try { l.g.gain.setTargetAtTime(0, ac.currentTime, 0.04); l.src.stop(ac.currentTime + 0.25); } catch (e) {}
+      try { l.g.gain.setTargetAtTime(0, ac.currentTime, 0.07); l.src.stop(ac.currentTime + 0.5); } catch (e) {}
     },
     blip(kind) {
       if (!sound) return; const a = ctx(); if (!a) return; const t = a.currentTime;
-      if (kind === 'page') {                               /* hoja que pasa */
-        const s = a.createBufferSource(); s.buffer = buf('white');
-        const f = a.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.8;
-        f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(3800, t + 0.22);
-        const g = a.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.32, t + 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-        s.connect(f).connect(g).connect(a.destination); s.start(t); s.stop(t + 0.32); return;
+      if (kind === 'page') {                               /* hoja que pasa, suave */
+        const s = a.createBufferSource(); s.buffer = buf('pink');
+        const f = a.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.6;
+        f.frequency.setValueAtTime(700, t); f.frequency.exponentialRampToValueAtTime(2600, t + 0.28);
+        const g = a.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+        s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + 0.4); return;
       }
-      const o = a.createOscillator(), g = a.createGain();
-      if (kind === 'fill') { o.type = 'sine'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(170, t + 0.16); g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22); }
-      else if (kind === 'undo') { o.type = 'triangle'; o.frequency.setValueAtTime(700, t); o.frequency.exponentialRampToValueAtTime(380, t + 0.08); g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1); }
-      else { o.type = 'sine'; o.frequency.value = 880; g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07); }
-      o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.25);
+      if (kind === 'fill') {                               /* gota de pintura que cae */
+        const o = a.createOscillator(), g = a.createGain(); o.type = 'sine';
+        o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(760, t + 0.09);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.10, t + 0.015); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        o.connect(g).connect(master); o.start(t); o.stop(t + 0.2); return;
+      }
+      const o = a.createOscillator(), g = a.createGain(); o.type = 'sine';
+      o.frequency.value = kind === 'undo' ? 520 : 760;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.06, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+      o.connect(g).connect(master); o.start(t); o.stop(t + 0.12);
     }
   };
 })();
@@ -182,10 +204,26 @@ function noiseCanvas(sz, scale, density, streak) {
   }
   x.putImageData(id, 0, 0); return c;
 }
+// textura de papel con transparencias suaves (no blanco y negro): para tiza y acuarela
+function toothCanvas(sz, scale, lo, hi, streak) {
+  const c = noiseCanvas(sz, scale, 0, streak), x = c.getContext('2d'), id = x.getImageData(0, 0, sz, sz), d = id.data;
+  // rehacer el alfa como gradiente continuo
+  const g = sz / scale | 0, grid = []; for (let i = 0; i < (g + 1) * (g + 1); i++) grid.push(Math.random());
+  const at = (i, j) => grid[(j % g) * (g + 1) + (i % g)];
+  for (let y = 0; y < sz; y++) for (let x2 = 0; x2 < sz; x2++) {
+    const fx = x2 / scale, fy = y / (streak ? scale * 0.3 : scale), i = fx | 0, j = fy | 0, tx = fx - i, ty = fy - j;
+    const v = (at(i, j) * (1 - tx) + at(i + 1, j) * tx) * (1 - ty) + (at(i, j + 1) * (1 - tx) + at(i + 1, j + 1) * tx) * ty;
+    const r = v * 0.7 + Math.random() * 0.3; const k = Math.max(0, Math.min(1, (r - lo) / (hi - lo)));
+    d[(y * sz + x2) * 4 + 3] = 255 * (1 - k);
+  }
+  x.putImageData(id, 0, 0); return c;
+}
 const GRAIN = {
   lapiz: noiseCanvas(128, 2, 0.55, false),
   creyon: noiseCanvas(256, 5, 0.62, true),
-  tiza: noiseCanvas(256, 4, 0.42, false),
+  tiza: toothCanvas(256, 2.2, 0.3, 0.75, false),
+  carboncillo: toothCanvas(256, 3, 0.25, 0.85, true),
+  papel: toothCanvas(256, 3, 0.2, 0.9, false),
 };
 
 /* ---------------- interfaz ---------------- */
@@ -196,10 +234,11 @@ function preview(id) {
   if (id === 'marcador') { x.globalAlpha = .6; wave(10); }
   else if (id === 'lapiz') wave(2.5);
   else if (id === 'creyon') { wave(9); x.globalCompositeOperation = 'destination-in'; x.drawImage(GRAIN.creyon, 0, 0); }
-  else if (id === 'tiza') { wave(12); x.globalCompositeOperation = 'destination-in'; x.drawImage(GRAIN.tiza, 0, 0); }
-  else if (id === 'acuarela') { x.filter = 'blur(3px)'; x.globalAlpha = .5; wave(14); }
-  else if (id === 'oleo') { wave(10); x.strokeStyle = '#fff'; x.globalAlpha = .35; wave(2); }
-  else if (id === 'aero') { const g = x.createRadialGradient(44, 22, 2, 44, 22, 20); g.addColorStop(0, 'rgba(63,74,87,.7)'); g.addColorStop(1, 'rgba(63,74,87,0)'); x.fillStyle = g; x.fillRect(0, 0, 88, 44); }
+  else if (id === 'tiza') { x.globalAlpha = .8; wave(12); x.globalCompositeOperation = 'destination-in'; x.drawImage(GRAIN.tiza, 0, 0); x.drawImage(GRAIN.tiza, 40, 7); }
+  else if (id === 'carboncillo') { wave(9); x.globalCompositeOperation = 'destination-in'; x.drawImage(GRAIN.carboncillo, 0, 0); }
+  else if (id === 'acuarela') { x.globalAlpha = .35; wave(15); x.globalAlpha = .7; x.lineWidth = 1.5; x.beginPath(); x.moveTo(10, 23); x.bezierCurveTo(30, -1, 55, 33, 78, 7); x.stroke(); x.beginPath(); x.moveTo(10, 37); x.bezierCurveTo(30, 13, 55, 47, 78, 21); x.stroke(); x.globalAlpha = .5; for (const [a, b, r] of [[22, 40, 2.5], [64, 36, 2], [80, 26, 1.6]]) { x.beginPath(); x.arc(a, b, r, 0, 7); x.fill(); } }
+  else if (id === 'oleo') { wave(11); x.strokeStyle = '#fff'; x.globalAlpha = .55; x.lineWidth = 1.4; x.beginPath(); x.moveTo(10, 27); x.bezierCurveTo(30, 3, 55, 37, 78, 11); x.stroke(); x.strokeStyle = '#1d232b'; x.globalAlpha = .6; x.beginPath(); x.moveTo(12, 34); x.bezierCurveTo(32, 10, 56, 44, 78, 18); x.stroke(); }
+  else if (id === 'aero') { const g = x.createRadialGradient(44, 22, 2, 44, 22, 18); g.addColorStop(0, 'rgba(63,74,87,.55)'); g.addColorStop(1, 'rgba(63,74,87,0)'); x.fillStyle = g; x.fillRect(0, 0, 88, 44); for (let i = 0; i < 70; i++) { const a = Math.random() * 7, d = Math.abs((Math.random() + Math.random() - 1)) * 20; x.globalAlpha = .6; x.fillRect(44 + Math.cos(a) * d, 22 + Math.sin(a) * d, 1, 1); } }
   else if (id === 'balde') { x.font = '28px sans-serif'; x.textAlign = 'center'; x.fillText('🪣', 44, 33); }
   else if (id === 'borrador') { x.fillRect(26, 12, 36, 20); x.clearRect(29, 15, 14, 14); }
   else if (id === 'resaltador') { x.save(); x.translate(44, 22); x.rotate(-0.5); x.fillStyle = '#FFF200'; x.fillRect(-26, -5, 30, 10); x.fillStyle = '#3F4A57'; x.fillRect(4, -6, 22, 12); x.beginPath(); x.moveTo(-26, -5); x.lineTo(-34, -1); x.lineTo(-34, 3); x.lineTo(-26, 5); x.closePath(); x.fillStyle = '#E6D800'; x.fill(); x.restore(); }
@@ -226,8 +265,9 @@ function openSheet(sec) {
 function closeSheet() { document.body.classList.remove('sheet'); document.querySelectorAll('.dk').forEach(d => d.classList.remove('on')); }
 function buildBrushes() {
   const row = $('#brushRow'); row.innerHTML = '';
-  const GROUPS = [['Pintar', ['marcador', 'lapiz', 'creyon', 'tiza', 'acuarela', 'oleo', 'aero', 'balde', 'borrador', 'gotero']],
-                  ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']]];
+  const GROUPS = [['Pintar', ['marcador', 'lapiz', 'creyon', 'tiza', 'carboncillo', 'acuarela', 'oleo', 'aero', 'balde']],
+                  ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
+                  ['Borrar', ['borrador']]];
   for (const [gname, ids] of GROUPS) {
     const list = ids.map(B).filter(b => !(isText() && !TEXT_BRUSHES.includes(b.id)) && !(page && page.nobucket && b.id === 'balde'));
     if (!list.length) continue;
@@ -235,7 +275,7 @@ function buildBrushes() {
     for (const b of list) {
       const bt = document.createElement('button'); bt.setAttribute('aria-pressed', b.id === brush);
       bt.appendChild(preview(b.id)); const s = document.createElement('span'); s.textContent = b.name; bt.appendChild(s);
-      bt.onclick = () => { brush = b.id; store.set('brush', brush); buildBrushes(); buildColors(); syncSliders(); updateDock(); };
+      bt.onclick = () => { brush = b.id; store.set(isText() ? 'tbrush' : 'brush', brush); buildBrushes(); buildColors(); syncSliders(); updateDock(); };
       row.appendChild(bt);
     }
   }
@@ -262,6 +302,11 @@ function buildColors() {
   const gl = document.createElement('div'); gl.className = 'glabel'; gl.textContent = extra.length ? 'Otros colores y usados hace poco' : 'Otro color'; row.appendChild(gl);
   const wh = document.createElement('button'); wh.className = 'tool wheel'; wh.title = 'Otro color'; wh.setAttribute('aria-label', 'Elegir otro color');
   wh.onclick = () => { const p = $('#colorPick'); p.value = color; p.click(); }; row.appendChild(wh);
+  const gt = document.createElement('button'); gt.className = 'tool drop'; gt.title = 'Cuentagotas: tomar un color de la lámina'; gt.setAttribute('aria-label', 'Cuentagotas');
+  gt.setAttribute('aria-pressed', brush === 'gotero');
+  gt.innerHTML = '<svg viewBox="0 0 24 24"><path d="m14 4 6 6M12 6l6 6-9 9H3v-6z"/></svg><span>Cuentagotas</span>';
+  gt.onclick = () => { if (brush !== 'gotero') prevBrush = brush; brush = 'gotero'; updateDock(); closeSheet(); toast('Toque un color ya pintado en la lámina'); };
+  row.appendChild(gt);
   for (const c of extra) {
     const b = document.createElement('button'); b.className = 'sw recent'; b.style.background = c; b.title = 'Usado hace poco';
     b.setAttribute('aria-pressed', c.toLowerCase() === color.toLowerCase()); b.onclick = () => setColor(c); row.appendChild(b);
@@ -373,8 +418,11 @@ async function openPage(n) {
   labels = null; lockCanvas = null; zoneCache.clear(); texts = {};
   const plate = !!page.plate;
   $('#tools').hidden = false; document.body.classList.add('tools'); document.body.classList.toggle('textmode', !plate);
+  // cada tipo de página recuerda su herramienta: al pasar de lámina se queda como usted la tenía
+  if (brush !== 'gotero') brush = plate ? store.get('brush', 'marcador') : store.get('tbrush', 'resaltador');
+  if (brush === 'gotero' && !plate) brush = store.get('tbrush', 'resaltador');
   if (!plate && !TEXT_BRUSHES.includes(brush)) { brush = 'resaltador'; }
-  if (page.nobucket && brush === 'balde') { brush = 'marcador'; }
+  if (page.nobucket && brush === 'balde') { brush = 'marcador'; }   // solo en esta página, no se guarda
   buildBrushes(); buildColors(); syncSliders(); updateDock();
   view.s = 1; fit();
   buildHotspots();
@@ -442,6 +490,35 @@ function jitter(hex, amt) {
   const ch = s => Math.max(0, Math.min(255, Math.round((v >> s & 255) * f)));
   return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
 }
+function mix(a, b, k) {
+  const p = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const A = p(a.length === 4 ? '#' + [...a.slice(1)].map(c => c + c).join('') : a), B2 = p(b);
+  return `rgb(${A.map((v, i) => Math.round(v + (B2[i] - v) * k)).join(',')})`;
+}
+// acuarela: máscara húmeda + capas (aguada, borde de pigmento, granulado del papel)
+const WC = (() => { const m = document.createElement('canvas'); m.width = W; m.height = H; const t = document.createElement('canvas'); t.width = W; t.height = H; const s = document.createElement('canvas'); return { m, x: m.getContext('2d'), t, tx: t.getContext('2d'), s, sx: s.getContext('2d'), pat: null }; })();
+function wcRender() {
+  const b = stroke.box, x0 = Math.max(0, b[0] | 0), y0 = Math.max(0, b[1] | 0), x1 = Math.min(W, Math.ceil(b[2])), y1 = Math.min(H, Math.ceil(b[3]));
+  const w = x1 - x0, h = y1 - y0; if (w <= 0 || h <= 0) return;
+  const k = Math.max(3, Math.min(10, stroke.s.size / 7));            // ancho del borde húmedo
+  const sw = Math.max(1, Math.round(w / k)), sh = Math.max(1, Math.round(h / k));
+  WC.s.width = sw; WC.s.height = sh; WC.sx.imageSmoothingEnabled = true; WC.sx.drawImage(WC.m, x0, y0, w, h, 0, 0, sw, sh);
+  const T = WC.tx, X = xLive;
+  X.save(); X.clearRect(x0, y0, w, h);
+  // 1. aguada: color transparente en toda la mancha
+  T.save(); T.globalCompositeOperation = 'copy'; T.drawImage(WC.m, x0, y0, w, h, x0, y0, w, h);
+  T.globalCompositeOperation = 'source-in'; T.fillStyle = color; T.fillRect(x0, y0, w, h); T.restore();
+  X.globalAlpha = .38; X.drawImage(WC.t, x0, y0, w, h, x0, y0, w, h);
+  // 2. borde: el pigmento se acumula donde se seca el agua
+  T.save(); T.globalCompositeOperation = 'copy'; T.drawImage(WC.m, x0, y0, w, h, x0, y0, w, h);
+  T.globalCompositeOperation = 'destination-out'; T.imageSmoothingEnabled = true; T.drawImage(WC.s, 0, 0, sw, sh, x0, y0, w, h);
+  T.globalCompositeOperation = 'source-in'; T.fillStyle = color; T.fillRect(x0, y0, w, h); T.restore();
+  X.globalAlpha = .75; X.drawImage(WC.t, x0, y0, w, h, x0, y0, w, h);
+  // 3. granulado: el papel deja ver su textura
+  if (!WC.pat) WC.pat = X.createPattern(GRAIN.papel, 'repeat');
+  X.globalCompositeOperation = 'destination-out'; X.globalAlpha = .28; X.fillStyle = WC.pat; X.fillRect(x0, y0, w, h);
+  X.restore();
+}
 let patCache = {};
 function grainPattern(kind) {
   const key = kind + color; if (patCache[key]) return patCache[key];
@@ -462,25 +539,82 @@ function dab(x, y, r, p, dir) {
       else { const g = X.createRadialGradient(x, y, r * hard, x, y, r); const c = stroke.brush === 'pluma' ? stroke.ink : color; g.addColorStop(0, rgba(c, 1)); g.addColorStop(1, rgba(c, 0)); X.fillStyle = g; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill(); }
       break;
     }
-    case 'lapiz': case 'creyon': case 'tiza': {
+    case 'lapiz': case 'creyon': {
       X.fillStyle = grainPattern(stroke.brush);
-      const n = stroke.brush === 'tiza' ? 3 : 1;
-      for (let i = 0; i < n; i++) { const ox = (Math.random() - .5) * r * .5, oy = (Math.random() - .5) * r * .5; X.beginPath(); X.arc(x + ox, y + oy, r * (0.85 + Math.random() * .2), 0, 7); X.fill(); }
+      const ox = (Math.random() - .5) * r * .3, oy = (Math.random() - .5) * r * .3; X.beginPath(); X.arc(x + ox, y + oy, r * (0.88 + Math.random() * .16), 0, 7); X.fill();
       break;
     }
+    case 'tiza': {
+      // tiza sutil: solo se pega en el grano del papel y se va cargando con las pasadas
+      X.save(); X.globalAlpha = 0.22 + 0.25 * hard; X.fillStyle = grainPattern('tiza');
+      for (let i = 0; i < 2; i++) { const a = Math.random() * 7, d = Math.random() * r * .25; X.beginPath(); X.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, r * (0.75 + Math.random() * .3), 0, 7); X.fill(); }
+      X.globalAlpha = .18; X.fillStyle = color;           // polvo suelto en el borde
+      for (let i = 0; i < 5; i++) { const a = Math.random() * 7, d = r * (0.8 + Math.random() * .45); X.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d, 1.2, 1.2); }
+      X.restore(); break;
+    }
+    case 'carboncillo': {
+      // carboncillo: núcleo oscuro con grano alargado, bordes difuminados y polvo
+      X.save(); X.fillStyle = grainPattern('carboncillo');
+      X.globalAlpha = .55; X.beginPath(); X.ellipse(x, y, r * .95, r * .6, dir + Math.PI / 2, 0, 7); X.fill();
+      const g = X.createRadialGradient(x, y, r * .2, x, y, r * 1.25); g.addColorStop(0, rgba(color, .10)); g.addColorStop(1, rgba(color, 0));
+      X.globalAlpha = 1; X.fillStyle = g; X.beginPath(); X.arc(x, y, r * 1.25, 0, 7); X.fill();
+      X.globalAlpha = .3; X.fillStyle = color;
+      for (let i = 0; i < 3; i++) { const a = Math.random() * 7, d = r * (0.6 + Math.random() * .7); X.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d, 1, 1); }
+      X.restore(); break;
+    }
     case 'acuarela': {
-      const g = X.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(color, .38)); g.addColorStop(.7, rgba(color, .28)); g.addColorStop(1, rgba(color, 0));
-      X.fillStyle = g; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill(); break;
+      // la acuarela se dibuja como máscara húmeda; el color, los bordes y las gotas los pone wcRender
+      const M = WC.x; M.fillStyle = '#000';
+      const rr = r * (0.9 + Math.random() * 0.2); M.beginPath();
+      for (let i = 0; i <= 16; i++) { const a = i / 16 * Math.PI * 2, k = rr * (0.84 + Math.random() * 0.26); i ? M.lineTo(x + Math.cos(a) * k, y + Math.sin(a) * k) : M.moveTo(x + Math.cos(a) * k, y + Math.sin(a) * k); }
+      M.fill();
+      if (Math.random() < 0.045) {                          // gota que salta
+        const a = Math.random() * 7, d = rr * (1.15 + Math.random() * .7), q = rr * (0.06 + Math.random() * 0.12);
+        M.beginPath(); M.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, q, 0, 7); M.fill(); grow(x + Math.cos(a) * d - q - 4, y + Math.sin(a) * d - q - 4, x + Math.cos(a) * d + q + 4, y + Math.sin(a) * d + q + 4);
+      }
+      if (Math.random() < 0.02) {                           // mancha que se expande
+        const a = Math.random() * 7, d = rr * (0.5 + Math.random() * .4), q = rr * (0.35 + Math.random() * 0.25);
+        M.beginPath(); for (let i = 0; i <= 12; i++) { const b = i / 12 * 7, k = q * (0.7 + Math.random() * .5); i ? M.lineTo(x + Math.cos(a) * d + Math.cos(b) * k, y + Math.sin(a) * d + Math.sin(b) * k) : M.moveTo(x + Math.cos(a) * d + Math.cos(b) * k, y + Math.sin(a) * d + Math.sin(b) * k); } M.fill();
+      }
+      const pad = rr * 2.1 + 6; grow(x - pad, y - pad, x + pad, y + pad); return;
     }
     case 'oleo': {
-      X.save(); X.translate(x, y); X.rotate(dir);
-      X.fillStyle = color; X.beginPath(); X.ellipse(0, 0, r * .55, r, 0, 0, 7); X.fill();
-      for (let i = -3; i <= 3; i++) { X.strokeStyle = jitter(color, .12); X.lineWidth = Math.max(1, r * .12); X.beginPath(); X.moveTo(-r * .5, i * r * .27); X.lineTo(r * .5, i * r * .27 + (Math.random() - .5) * 2); X.stroke(); }
+      // óleo con cerdas: cada cerda deja su surco; luz y sombra dan volumen; la carga se acaba en trazos largos
+      const st = stroke; if (!st.br) {
+        st.br = []; const n = Math.max(7, Math.min(22, r * 0.9 | 0));
+        for (let i = 0; i < n; i++) st.br.push({ o: ((i / (n - 1)) * 2 - 1) * 0.9 + (Math.random() - .5) * .08, w: 0.6 + Math.random() * 0.6, c: Math.random() < .5 ? mix(color, '#ffffff', Math.random() * .22) : mix(color, '#000000', Math.random() * .22), last: null });
+        st.load = 1;
+      }
+      const nx = -Math.sin(dir), ny = Math.cos(dir);
+      st.load = Math.max(0.25, st.load - 0.0009 * (r / 10));
+      X.save(); X.lineCap = 'round'; X.lineJoin = 'round';
+      // cuerpo de pintura continuo (cubre el papel), con borde algo irregular
+      const L = [x + nx * r * (0.92 + Math.random() * .1), y + ny * r * (0.92 + Math.random() * .1)], R = [x - nx * r * (0.92 + Math.random() * .1), y - ny * r * (0.92 + Math.random() * .1)];
+      if (st.eL && (st.load > 0.4 || Math.random() < st.load * 2)) { X.globalAlpha = 1; X.fillStyle = st.base || (st.base = mix(color, '#000000', .04)); X.beginPath(); X.moveTo(st.eL[0], st.eL[1]); X.lineTo(L[0], L[1]); X.lineTo(R[0], R[1]); X.lineTo(st.eR[0], st.eR[1]); X.closePath(); X.fill(); }
+      st.eL = L; st.eR = R;
+      for (let i = 0; i < st.br.length; i++) {
+        const b = st.br[i], px = x + nx * b.o * r, py = y + ny * b.o * r;
+        if (b.last && (st.load > 0.55 || Math.random() < st.load * 1.4)) {
+          const lw = Math.max(1.2, (2 * r / st.br.length) * 1.15 * b.w);
+          X.globalAlpha = 1; X.strokeStyle = b.c; X.lineWidth = lw; X.beginPath(); X.moveTo(b.last[0], b.last[1]); X.lineTo(px, py); X.stroke();
+          if (i % 3 === 0) { X.globalAlpha = .55; X.strokeStyle = mix(color, '#ffffff', .45); X.lineWidth = Math.max(.6, lw * .35); X.beginPath(); X.moveTo(b.last[0] - nx * lw * .4, b.last[1] - ny * lw * .4); X.lineTo(px - nx * lw * .4, py - ny * lw * .4); X.stroke(); }
+          if (i % 3 === 1) { X.globalAlpha = .4; X.strokeStyle = mix(color, '#000000', .35); X.lineWidth = Math.max(.6, lw * .3); X.beginPath(); X.moveTo(b.last[0] + nx * lw * .45, b.last[1] + ny * lw * .45); X.lineTo(px + nx * lw * .45, py + ny * lw * .45); X.stroke(); }
+        }
+        b.last = [px, py];
+      }
+      if (Math.random() < 0.025 * st.load) {               // grumo de pintura con brillo
+        const a = (Math.random() - .5) * 2, gx = x + nx * a * r * .9, gy = y + ny * a * r * .9, q = r * (0.12 + Math.random() * .12);
+        X.globalAlpha = 1; X.fillStyle = mix(color, '#000000', .15); X.beginPath(); X.ellipse(gx, gy, q * 1.4, q, dir, 0, 7); X.fill();
+        X.fillStyle = mix(color, '#ffffff', .6); X.globalAlpha = .7; X.beginPath(); X.ellipse(gx - nx * q * .3, gy - ny * q * .3, q * .5, q * .25, dir, 0, 7); X.fill();
+      }
       X.restore(); break;
     }
     case 'aero': {
-      const g = X.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(color, .08)); g.addColorStop(1, rgba(color, 0));
-      X.fillStyle = g; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill(); break;
+      const g = X.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgba(color, .07)); g.addColorStop(1, rgba(color, 0));
+      X.fillStyle = g; X.beginPath(); X.arc(x, y, r, 0, 7); X.fill();
+      X.save(); X.fillStyle = color;                        // gotitas finas del aerosol
+      for (let i = 0; i < Math.max(4, r * 0.35); i++) { const a = Math.random() * 7, d = Math.abs(Math.random() + Math.random() + Math.random() - 1.5) / 1.5 * r; X.globalAlpha = 0.15 + Math.random() * .3; const q = 0.5 + Math.random() * 0.9; X.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d, q, q); }
+      X.restore(); break;
     }
   }
   const pad = r + 6; grow(x - pad, y - pad, x + pad, y + pad);
@@ -507,7 +641,8 @@ function startStroke(e) {
   }
   if (isText() && brush === 'borrador') {
     stroke = { brush, s, layer: 'both', free: true, zone: null, wzone: null, pts: [[x, y]], box: [x, y, x, y], last: [x, y], dist: 0, id: e.pointerId };
-    cLive.style.opacity = 0; const r = radius(e); dab(x, y, r, e.pressure, 0); SFX.start('borrador'); return;
+    stroke.snap = snapLayers('both');
+    cLive.style.opacity = 0; const r = radius(e); dab(x, y, r, e.pressure, 0); eraseLive(stroke.box); SFX.start('borrador'); return;
   }
   const layer = brush === 'pluma' ? 'ink' : 'color';
   let zone = null, wzone = null, eraseInk = false;
@@ -523,14 +658,35 @@ function startStroke(e) {
   }
   if (layer === 'color' && !eraseInk && tape && !page.nobucket) {
     const L = labelAt(x, y);
-    if (!L) return;
-    zone = zoneMask(L);
+    if (!L && brush !== 'borrador') return;
+    if (L) zone = zoneMask(L);   // el borrador sobre una raya borra libre
   }
   stroke = { brush, s, layer: eraseInk ? 'ink' : layer, zone, wzone, eraseInk, ink: '#1F3B73', pts: [[x, y]], box: [x, y, x, y], last: [x, y], dist: 0, id: e.pointerId };
   cLive.style.opacity = (stroke.brush === 'borrador' ? 0 : s.opa / 100);
   cLive.style.mixBlendMode = stroke.layer === 'ink' ? 'normal' : 'multiply'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';
-  if (stroke.brush === 'acuarela') cLive.style.filter = 'blur(1.5px)'; else cLive.style.filter = '';
-  const r = radius(e); dab(x, y, r, e.pressure, 0); clipLive(stroke.box); SFX.start(brush);
+  cLive.style.filter = '';
+  if (stroke.brush === 'acuarela') { WC.x.clearRect(0, 0, W, H); stroke.wc = true; }
+  if (brush === 'borrador') stroke.snap = snapLayers(stroke.layer);
+  const r = radius(e); dab(x, y, r, e.pressure, 0); if (stroke.wc) wcRender(); clipLive(stroke.box); if (stroke.snap) eraseLive(stroke.box); SFX.start(brush);
+}
+// borrador en vivo: se ve lo que borra mientras arrastra
+function snapLayers(layer) {
+  const out = {};
+  for (const [k, cx] of [['color', xColor], ['ink', xInk]]) {
+    if (layer !== 'both' && layer !== k) continue;
+    const c = document.createElement('canvas'); c.width = W; c.height = H; c.getContext('2d').drawImage(cx.canvas, 0, 0); out[k] = c;
+  }
+  return out;
+}
+function eraseLive(box) {
+  const [x0, y0, x1, y1] = box.map((v, i) => Math.max(0, Math.min(i % 2 ? H : W, Math.round(v))));
+  const w = x1 - x0, h = y1 - y0; if (w <= 0 || h <= 0) return;
+  for (const k in stroke.snap) {
+    const cx = k === 'ink' ? xInk : xColor;
+    cx.save(); cx.clearRect(x0, y0, w, h); cx.drawImage(stroke.snap[k], x0, y0, w, h, x0, y0, w, h);
+    cx.globalCompositeOperation = 'destination-out'; cx.globalAlpha = stroke.s.opa / 100;
+    cx.drawImage(cLive, x0, y0, w, h, x0, y0, w, h); cx.restore();
+  }
 }
 function radius(e) {
   const s = stroke ? stroke.s : S(); let r = Math.max(0.8, s.size / 2) * 1.0;
@@ -547,21 +703,29 @@ function moveStroke(e) {
     if (stroke.sm) { x = stroke.sm[0] + (x - stroke.sm[0]) * k; y = stroke.sm[1] + (y - stroke.sm[1]) * k; }
     stroke.sm = [x, y];
     const [lx, ly] = stroke.last, dx = x - lx, dy = y - ly, d = Math.hypot(dx, dy);
-    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'oleo' ? 0.25 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
+    const sp = Math.max(0.5, r * (stroke.brush === 'aero' ? 0.15 : stroke.brush === 'oleo' ? 0.12 : stroke.brush === 'acuarela' ? 0.22 : stroke.brush === 'tiza' ? 0.3 : stroke.brush === 'carboncillo' ? 0.2 : (stroke.brush === 'marcador' || stroke.brush === 'pluma' || stroke.brush === 'borrador' || stroke.brush === 'resaltador' || stroke.brush === 'boligrafo') ? 0.08 : 0.18));
     const dir = Math.atan2(dy, dx);
     let t = sp - stroke.dist;
     while (t <= d) { dab(lx + dx * t / d, ly + dy * t / d, r, ev.pressure, dir); t += sp; }
     stroke.dist = d - (t - sp); stroke.last = [x, y]; SFX.move(d);
   }
   const nb = [Math.min(b0[0], stroke.box[0]), Math.min(b0[1], stroke.box[1]), Math.max(b0[2], stroke.box[2]), Math.max(b0[3], stroke.box[3])];
-  clipLive(nb);
+  if (stroke.wc) { if (!stroke.raf) stroke.raf = requestAnimationFrame(() => { if (!stroke || !stroke.wc) return; stroke.raf = 0; wcRender(); clipLive(stroke.box); }); return; }
+  if (stroke.layer !== 'both') clipLive(nb);
+  if (stroke.snap) eraseLive(nb);
 }
 function endStroke() {
   SFX.stop();
   if (!stroke) return;
+  if (stroke.wc) { if (stroke.raf) cancelAnimationFrame(stroke.raf); wcRender(); clipLive(stroke.box); }
   const st = stroke; stroke = null;
   const box = st.box.map((v, i) => Math.max(0, Math.min(i % 2 ? H : W, Math.round(v))));
   const [x0, y0, x1, y1] = box; const w = x1 - x0, h = y1 - y0;
+  if (w > 0 && h > 0 && st.snap) {
+    // el borrado ya se aplicó en vivo: solo guardamos el deshacer con lo que había antes
+    for (const k in st.snap) { undo.push({ layer: k, x: x0, y: y0, data: st.snap[k].getContext('2d').getImageData(x0, y0, w, h) }); if (undo.length > 30) undo.shift(); }
+    redo.length = 0; xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = ''; queueSave(); return;
+  }
   if (w > 0 && h > 0) {
     if (st.layer === 'both') {
       for (const [lay, cx] of [['color', xColor], ['ink', xInk]]) { pushUndo(lay, x0, y0, w, h); cx.save(); cx.globalCompositeOperation = 'destination-out'; cx.drawImage(cLive, x0, y0, w, h, x0, y0, w, h); cx.restore(); }
@@ -571,7 +735,7 @@ function endStroke() {
     pushUndo(st.layer, x0, y0, w, h);
     ctx.save();
     if (st.brush === 'borrador') ctx.globalCompositeOperation = 'destination-out';
-    else if (st.brush === 'acuarela') { ctx.globalCompositeOperation = 'multiply'; ctx.filter = 'blur(1.5px)'; }
+    else if (st.brush === 'acuarela') { ctx.globalCompositeOperation = 'multiply'; }
     ctx.globalAlpha = st.brush === 'borrador' ? st.s.opa / 100 : st.s.opa / 100;
     ctx.drawImage(cLive, x0, y0, w, h, x0, y0, w, h);
     ctx.restore();
@@ -596,7 +760,7 @@ function pickColor(x, y) {
   const d = xColor.getImageData(x | 0, y | 0, 1, 1).data;
   if (d[3] < 10) { toast('Ahí no hay color todavía'); return; }
   const hex = '#' + [d[0], d[1], d[2]].map(v => v.toString(16).padStart(2, '0')).join('');
-  brush = 'marcador'; store.set('brush', brush); setColor(hex); buildBrushes(); syncSliders(); toast('Color tomado');
+  brush = (prevBrush && prevBrush !== 'gotero' && prevBrush !== 'borrador') ? prevBrush : 'marcador'; prevBrush = null; store.set('brush', brush); setColor(hex); buildBrushes(); syncSliders(); updateDock(); toast('Color tomado');
 }
 
 /* deshacer y rehacer por recuadro */
