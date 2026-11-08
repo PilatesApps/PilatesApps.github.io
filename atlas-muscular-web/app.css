@@ -281,3 +281,12 @@ html,body{background:#EEECE9 url(bg_wm.jpg) center/100% 100% no-repeat}
 #instText .ico{display:inline-grid;place-items:center;width:26px;height:22px;border:1.5px solid #9AA3AD;border-radius:6px;vertical-align:-5px;margin:0 2px}
 #instText .ico svg{width:15px;height:15px}
 #instText p{margin:8px 0}
+/* Gus 8 nov: franja blanca arriba (no se mezcla con la barra del teléfono) y título en dos líneas */
+:root{--gapT:16px}
+.top{background:linear-gradient(#fff 0 calc(var(--sat) + var(--gapT)),var(--chrome) 0)}
+@media (max-width:599px){
+  .top .ttl span{white-space:normal!important;display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px!important;line-height:1.15}
+  .top .pgbtn{flex:none}
+}
+/* etiquetas del dock en dos líneas si no caben (Stay / inside) */
+@media (max-width:899px){.dk span{white-space:normal!important;text-align:center;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:54px;word-break:normal}}

@@ -851,7 +851,7 @@ $('#clearYes').onclick = () => {
   pushUndo('color', 0, 0, W, H); xColor.clearRect(0, 0, W, H);
   pushUndo('ink', 0, 0, W, H); xInk.clearRect(0, 0, W, H);
   if (wipeUsed) { pushUndo('wipe', 0, 0, W, H); xMask.clearRect(0, 0, W, H); renderWipe(); }
-  texts = {}; renderTexts(); $('#confirmClear').hidden = true; queueSave(); toast('Lámina borrada');
+  texts = {}; renderTexts(); $('#confirmClear').hidden = true; closeSheet(); queueSave(); toast('Lámina borrada');
 };
 $('#btnRedo').onclick = () => swap(redo, undo);
 
@@ -944,8 +944,11 @@ async function idbKeys() { try { const d = await db(); return await new Promise(
 const GUIDE = [
   ['<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>', 'Elija y pinte', 'Abajo toque <b>la herramienta</b> y <b>el color</b>. Con <b>No salirme</b> encendido, el color se queda dentro del músculo que empezó a pintar.'],
   ['<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'Acerque con dos dedos', 'Pellizque para ampliar y mueva con dos dedos. <b>Toque con dos dedos</b> para deshacer el último trazo.'],
-  ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'Todas sus láminas', 'Deslice de lado o use las flechas para pasar de página. Toque <b>el número de página</b> para ver todas las láminas y lo que ya pintó.'],
-  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Música y se guarda solo', 'Toque <b>la nota musical</b> para poner música relajante. Todo lo que pinta <b>se guarda solo</b> en este dispositivo.']
+  ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'Todas sus láminas', 'Deslice de lado o use <b>Anterior</b> y <b>Siguiente</b>, arriba de la lámina. Toque <b>el número de página</b> para ver todas las láminas y lo que ya pintó.'],
+  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Música y se guarda solo', 'Toque <b>la nota musical</b> para poner música relajante. Todo lo que pinta <b>se guarda solo</b> en este dispositivo.'],
+  ['<path d="M4 19.5V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>', 'Aprenda pintando', 'Antes de colorear, ubique <b>dónde nace</b> el músculo (su origen) y <b>dónde termina</b> (su inserción). Píntelo de punta a punta, siga la dirección de sus fibras y complete el cuadro: <b>músculo, origen, inserción y acción</b>. Así su mano y su ojo aprenden juntos.'],
+  ['<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.2 5.2 0 0 0 22 9.2C22 5.8 17.5 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>', 'Libere su artista', 'No hay una forma correcta de pintar un músculo. Mezcle acuarela con lápiz, invente su paleta, dibuje en el <b>lienzo libre</b>. Cuando el cuerpo se pinta con creatividad, <b>se recuerda mejor</b> y se enseña con más pasión.'],
+  ['<path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>', 'Comparta su obra', 'Cuando su lámina esté lista, toque <b>la flecha hacia arriba</b>, arriba a la derecha, y compártala por WhatsApp o en sus redes con sus compañeros. Su lámina sale con la marca del Atlas Muscular. ¡Inspire a otros a aprender pintando!']
 ];
 let gi = 0;
 function showGuide() {
