@@ -2125,13 +2125,14 @@ function caption(x, cx, cy, maxW, s, col, mode) {
   let f1 = 30 * s, f2 = 21 * s; const lh = 46 * s, logo = SH.logo, lw = logo ? lh * logo.width / logo.height : 0, gap = 26 * s;
   const meas = () => { x.font = `700 ${f1}px Montserrat, sans-serif`; const a = x.measureText(L1).width; x.font = `500 ${f2}px Montserrat, sans-serif`; return Math.max(a, x.measureText(L2).width); };
   let tw = meas(); while (lw + gap + tw > maxW && f1 > 6) { f1 *= 0.94; f2 *= 0.94; tw = meas(); }
-  const x0 = cx - (lw + gap + tw) / 2, tx = x0 + lw + gap;
+  /* logo pegado al margen izquierdo, texto al margen derecho */
+  const x0 = cx - maxW / 2, xr = cx + maxW / 2;
   const draw = (dx, dy, c, a) => {
     x.save(); x.globalAlpha = a; x.translate(dx, dy);
     if (logo) x.drawImage(tinted(logo, c), x0, cy - lh / 2, lw, lh);
-    x.fillStyle = c; x.textAlign = 'left'; x.textBaseline = 'alphabetic';
-    x.font = `700 ${f1}px Montserrat, sans-serif`; x.fillText(L1, tx, cy - 2 * s);
-    x.font = `500 ${f2}px Montserrat, sans-serif`; x.fillText(L2, tx, cy + f2 + 4 * s); x.restore();
+    x.fillStyle = c; x.textAlign = 'right'; x.textBaseline = 'alphabetic';
+    x.font = `700 ${f1}px Montserrat, sans-serif`; x.fillText(L1, xr, cy - 2 * s);
+    x.font = `500 ${f2}px Montserrat, sans-serif`; x.fillText(L2, xr, cy + f2 + 4 * s); x.restore();
   };
   if (mode === 'engraved') { draw(0, 1.6 * s, 'rgba(255,232,190,1)', 0.35); draw(0, 0, col, 0.82); }
   else draw(0, 0, col, 1);
