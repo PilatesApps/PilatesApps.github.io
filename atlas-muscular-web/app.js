@@ -2700,11 +2700,7 @@ async function start() {
     let swUpdated = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (swUpdated) return; swUpdated = true;
-      const bar = document.createElement('div');
-      bar.textContent = '✦ Nueva versión lista — toque para actualizar';
-      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1A6FFF;color:#fff;text-align:center;padding:14px 16px;font:600 15px/1.4 system-ui,sans-serif;cursor:pointer;letter-spacing:.02em';
-      bar.onclick = () => location.reload();
-      document.body.appendChild(bar);
+      setTimeout(() => location.reload(), 400);
     });
   }
   setupInstall();
