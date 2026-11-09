@@ -1650,6 +1650,7 @@ const RETO = (() => {
     box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[S.u].unidad}</b><span>${Math.min(i + 1, tot)} / ${tot}</span><div class="rtdots">${S.lista.map((_, k) => `<i class="${k < i ? (S.res[k] ? 'ok' : 'no') : k === i ? 'cur' : ''}"></i>`).join('')}</div>`;
   }
   function abrir(u) {
+    toast('¡Reto próximamente! 🏆'); return;
     if (!U[u]) { toast('El reto de esta unidad viene pronto'); return; }
     closeHome(); box().hidden = false;
     if (!store.get('perfil', '')) { perfil(u); return; }
