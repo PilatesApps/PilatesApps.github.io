@@ -311,7 +311,7 @@ function buildBrushes() {
   for (const [gname, ids] of GROUPS) {
     const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && (b.id === 'balde' || b.id === 'textura' || b.id === 'degradado')));
     if (!list.length) continue;
-    { const h = document.createElement('div'); h.className = 'glabel'; h.textContent = gname; row.appendChild(h); }
+    { const h = document.createElement('div'); h.className = gname === 'ERASE' ? 'glabel il' : 'glabel'; h.textContent = gname; row.appendChild(h); }
     for (const b of list) {
       const bt = document.createElement('button'); bt.setAttribute('aria-pressed', b.id === brush);
       bt.appendChild(preview(b.id)); const s = document.createElement('span'); s.textContent = b.name; bt.appendChild(s);
@@ -380,6 +380,7 @@ function setColor(c) {
   recent = [c, ...recent.filter(r => r.toLowerCase() !== c.toLowerCase())].slice(0, 6); store.set('recent', recent);
   if (['borrador', 'magia', 'gotero', 'pluma', 'teclado'].includes(brush)) { brush = (lastPaint && !(isText() && TEXT_OFF.includes(lastPaint))) ? lastPaint : 'marcador'; store.set(isText() ? 'tbrush' : 'brush', brush); buildBrushes(); syncSliders(); }
   buildColors();
+  if (document.body.dataset.sheet === 'color') setTimeout(closeSheet, 100);
 }
 function syncSliders() {
   const s = S(), tx = brush === 'textura';
@@ -1228,6 +1229,7 @@ $('#wipeYes').onclick = async () => {
   if (wipeStep < 2) { wipeStep++; wipeRender(); return; }
   try { const d = await db(); await new Promise(ok => { const t = d.transaction('p', 'readwrite'); t.objectStore('p').clear(); t.oncomplete = ok; t.onerror = ok; }); } catch (e) {}
   locks = {}; store.set('locks', locks); clearTimeout(saveT); dirty = false;
+  store.set('reto', {}); DONE = {}; store.set('done', {});
   xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xMask.clearRect(0, 0, W, H); xWipe.clearRect(0, 0, W, H); wipeUsed = false; texts = {}; renderTexts(); undo.length = 0; redo.length = 0;
   if (typeof renderWipe === 'function') renderWipe(); syncLock(); $('#wipeBox').hidden = true; closeHome(); toast('Book erased: all plates are now blank');
 };
