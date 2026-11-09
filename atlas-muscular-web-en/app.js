@@ -1688,7 +1688,7 @@ const RETO = (() => {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
     html(`<p class="rtst">Find the muscle</p><p class="rtq">Tap <b>${r.en || r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_huellas.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
+    const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_hueso.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
     const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
     cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
     const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
