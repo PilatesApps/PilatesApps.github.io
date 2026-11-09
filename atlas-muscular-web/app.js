@@ -2121,9 +2121,9 @@ function linenPat(x, s, light) {
 function tinted(img, color) { const c = mkC(img.width, img.height), t = c.getContext('2d'); t.drawImage(img, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = color; t.fillRect(0, 0, c.width, c.height); return c; }
 /* pie: logo y nombre del libro, centrados; engraved = tallado en madera */
 function caption(x, cx, cy, maxW, s, col, mode) {
-  const L1 = 'ATLAS MUSCULAR · DIGITAL COLORING BOOK', L2 = 'Anatomía + Movimiento™ · Edición Digital 2026';
+  const L1 = 'ATLAS MUSCULAR', L2 = 'DIGITAL COLORING BOOK', L3 = 'Edición Digital 2026';
   let f1 = 22 * s, f2 = 15 * s; const lh = 38 * s, logo = SH.logo, lw = logo ? lh * logo.width / logo.height : 0, gap = 26 * s;
-  const meas = () => { x.font = `700 ${f1}px Montserrat, sans-serif`; const a = x.measureText(L1).width; x.font = `500 ${f2}px Montserrat, sans-serif`; return Math.max(a, x.measureText(L2).width); };
+  const meas = () => { x.font = `700 ${f1}px Montserrat, sans-serif`; const a = Math.max(x.measureText(L1).width, x.measureText(L2).width); x.font = `500 ${f2}px Montserrat, sans-serif`; return Math.max(a, x.measureText(L3).width); };
   let tw = meas(); while (lw + gap + tw > maxW && f1 > 6) { f1 *= 0.94; f2 *= 0.94; tw = meas(); }
   /* logo hacia la izquierda, texto hacia la derecha, ambos con margen interior */
   const x0 = cx - maxW / 2 + gap / 2, xr = cx + maxW / 2 - gap / 2;
@@ -2131,8 +2131,9 @@ function caption(x, cx, cy, maxW, s, col, mode) {
     x.save(); x.globalAlpha = a; x.translate(dx, dy);
     if (logo) x.drawImage(tinted(logo, c), x0, cy - lh / 2, lw, lh);
     x.fillStyle = c; x.textAlign = 'right'; x.textBaseline = 'alphabetic';
-    x.font = `700 ${f1}px Montserrat, sans-serif`; x.fillText(L1, xr, cy - 2 * s);
-    x.font = `500 ${f2}px Montserrat, sans-serif`; x.fillText(L2, xr, cy + f2 + 4 * s); x.restore();
+    x.font = `700 ${f1}px Montserrat, sans-serif`; x.fillText(L1, xr, cy - f2 - 2 * s);
+    x.fillText(L2, xr, cy + 2 * s);
+    x.font = `500 ${f2}px Montserrat, sans-serif`; x.fillText(L3, xr, cy + f2 + f1 * 0.3 + 4 * s); x.restore();
   };
   if (mode === 'engraved') { draw(0, 1.6 * s, 'rgba(255,232,190,1)', 0.35); draw(0, 0, col, 0.82); }
   else draw(0, 0, col, 1);
