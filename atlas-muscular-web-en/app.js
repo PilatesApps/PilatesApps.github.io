@@ -1688,7 +1688,7 @@ const RETO = (() => {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
     html(`<p class="rtst">Find the muscle</p><p class="rtq">Tap <b>${r.en || r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, li] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
+    const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_huellas.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
     const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
     cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
     const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
@@ -1711,9 +1711,10 @@ const RETO = (() => {
   /* estación 2: origen e inserción sobre el esqueleto */
   async function origenInsercion(r) {
     const base = `reto/u${S.u}_${r.img}_`;
-    html(`<p class="rtst">Where it comes from and where it goes</p><p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Posterolateral view, as in your book. Draw on the bone to mark.</p>`);
+    const n = U[S.u].lamina;
+    html(`<p class="rtst">Where it comes from and where it goes</p><p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Draw on the page to mark.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, mk] = await Promise.all([loadImg(base + 'huellas.jpg'), loadImg(base + 'marcas.png')]);
+    const [im, mk] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
