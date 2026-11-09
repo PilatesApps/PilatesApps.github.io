@@ -66,7 +66,7 @@ const HL = [['Yellow', '#FFF200'], ['Teal', '#3FE6FF'], ['Pink', '#FF58C8'], ['G
 const PEN = [['Blue', '#1F3B9E'], ['Black', '#1C1C1C'], ['Red', '#C62828']];
 const FREE = ['resaltador', 'boligrafo'];
 const TEXT_BRUSHES = ['resaltador', 'boligrafo', 'borrador'];
-const TEXT_OFF = ['balde', 'textura', 'degradado', 'teclado', 'pluma'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
+const TEXT_OFF = ['balde', 'textura', 'degradado', 'teclado', 'pluma', 'magia'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
 const ERASERS = ['borrador', 'magia'];
 let hlColor = store.get('hl', HL[0][1]), penColor = store.get('pen', PEN[0][1]);
 const isText = () => page && !page.plate;
@@ -280,6 +280,7 @@ function updateDock() {
   sw.classList.toggle('erase', er); sw.style.background = er ? '' : c;
   sw.innerHTML = er ? '<svg viewBox="0 0 24 24"><path d="M7 21h10M5.5 15.5l8-8a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L12 19H8z"/><path d="m9.5 11.5 5 5"/></svg>' : '';
   const lb = document.getElementById('dkColorName'); if (lb) lb.textContent = er ? 'Erasing' : 'Color';
+  const szBadge = document.getElementById('dkSz'); if (szBadge) { const sz = S().size; szBadge.textContent = sz > 0 ? sz : ''; szBadge.hidden = sz === 0; }
 }
 function openSheet(sec) {
   const b = document.body;
@@ -287,6 +288,16 @@ function openSheet(sec) {
   b.dataset.sheet = sec; b.classList.add('sheet');
   document.querySelectorAll('.dk').forEach(d => d.classList.toggle('on', d.id === 'dk' + sec[0].toUpperCase() + sec.slice(1)));
   $('#tools').scrollTop = 0;
+  // Primera vez que abre herramientas: flash rápido al sliderRow para que se note
+  if (sec === 'tool' && !store.get('shownSliders')) {
+    store.set('shownSliders', true);
+    setTimeout(() => {
+      const sr = $('#sliderRow'); if (!sr) return;
+      sr.classList.add('slider-pulse');
+      sr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setTimeout(() => { $('#tools').scrollTop = 0; sr.classList.remove('slider-pulse'); }, 1200);
+    }, 400);
+  }
 }
 function closeSheet() { document.body.classList.remove('sheet'); document.querySelectorAll('.dk').forEach(d => d.classList.remove('on')); }
 function buildBrushes() {
@@ -294,9 +305,9 @@ function buildBrushes() {
   const GROUPS = [['Draw', ['lapiz', 'marcador', 'creyon', 'carboncillo', 'tiza']],
                   ['Paint', ['acuarela', 'oleo', 'aero', 'chispeado']],
                   ['Anatomy: fibers and volume', ['fibras', 'sombreado', 'degradado']],
-                  ['Fill', ['balde', 'textura']],
                   ['Write and mark', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
-                  ['Erase', ['borrador', 'magia']]];
+                  ['Fill', ['balde', 'textura']],
+                  ['ERASE', ['borrador', 'magia']]];
   for (const [gname, ids] of GROUPS) {
     const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && (b.id === 'balde' || b.id === 'textura' || b.id === 'degradado')));
     if (!list.length) continue;
@@ -331,7 +342,7 @@ function buildColors() {
   const extra = recent.filter(c => !COLORS.some(k => k[1].toLowerCase() === c.toLowerCase()));
   const gl = document.createElement('div'); gl.className = 'glabel'; gl.textContent = extra.length ? 'Other and recent colors' : 'Other color'; row.appendChild(gl);
   const wh = document.createElement('button'); wh.className = 'tool wheel'; wh.title = 'Other color'; wh.setAttribute('aria-label', 'Choose another color');
-  wh.onclick = () => { const p = $('#colorPick'); p.value = color; p.click(); }; row.appendChild(wh);
+  wh.onclick = () => { const p = $('#colorPick'); p.value = color; setTimeout(closeSheet, 80); p.click(); }; row.appendChild(wh);
   const gt = document.createElement('button'); gt.className = 'tool drop'; gt.title = 'Eyedropper: pick a color from the plate'; gt.setAttribute('aria-label', 'Eyedropper');
   gt.setAttribute('aria-pressed', brush === 'gotero');
   gt.innerHTML = '<svg viewBox="0 0 24 24"><path d="m14 4 6 6M12 6l6 6-9 9H3v-6z"/></svg><span>Eyedropper</span>';
@@ -343,7 +354,8 @@ function buildColors() {
   }
 }
 $('#colorPick').addEventListener('input', e => setColor(e.target.value));
-document.addEventListener('click', e => { if (e.target.closest('#colorRow .sw')) { updateDock(); if (window.innerWidth < 900) setTimeout(closeSheet, 150); } });
+$('#colorPick').addEventListener('change', () => setTimeout(closeSheet, 150));
+document.addEventListener('click', e => { if (e.target.closest('#colorRow .sw')) { updateDock(); setTimeout(closeSheet, 150); } });
 $('#dkTool').onclick = () => openSheet('tool');
 $('#dkColor').onclick = () => openSheet('color');
 $('#dkMore').onclick = () => openSheet('more');
@@ -381,6 +393,7 @@ for (const [id, key, out, suf] of [['#sSize', 'size', '#oSize', ''], ['#sOpa', '
   $(id).addEventListener('input', e => {
     settings[brush] = Object.assign({}, settings[brush], { [key]: +e.target.value }); store.set('settings', settings);
     $(out).textContent = e.target.value + suf;
+    if (key === 'size') updateDock();
   });
   if (key === 'size') $(id).addEventListener('change', () => { if (brush === 'textura') buildTex(); });
 }
@@ -496,7 +509,17 @@ function pageFlip(fwd) {
 }
 async function openPage(n) {
   n = Math.max(1, Math.min(N, n));
-  if (typeof RETO !== 'undefined' && META.length && !RETO.unidadAbierta(n)) { toast('Modo progresivo: complete la unidad anterior y apruebe su reto para abrir esta'); if (page) return; n = 1; }
+  if (typeof RETO !== 'undefined' && META.length && !RETO.unidadAbierta(n)) {
+    // En modo progresivo: abrir el reto de la unidad que lo bloquea, en vez de solo mostrar toast
+    const si = SECTIONS.findIndex(([, , a, b]) => n >= a && n <= b);
+    let retoAbierto = false;
+    for (let k = 1; k < si; k++) {
+      const [, , a, b] = SECTIONS[k]; const [d, t] = plateCount(a, b);
+      if (!RETO.aprobado(k) && RETO.U[k]) { setTimeout(() => RETO.abrir(k), 100); retoAbierto = true; break; }
+    }
+    if (!retoAbierto) toast('Progressive mode: complete the previous unit and pass its challenge to open this one');
+    if (page) return; n = 1;
+  }
   if (page && n !== cur) { try { checkDone(true); } catch (e) {} }
   await saveNow();
   if (n !== cur && META.length) { SFX.blip('page'); buzz(8); if (page) pageFlip(n > cur); }
@@ -881,7 +904,7 @@ function startStroke(e) {
   let zone = null, wzone = null, eraseInk = false;
   if (layer === 'ink' || brush === 'borrador') {
     const wz = writeZoneAt(x, y);
-    if (layer === 'ink' && !wz) { toast('Write inside the boxes or the circles'); return; }
+    if (layer === 'ink' && !wz) { toast('Write inside the small boxes or circles'); return; }
     if (wz) { const r = wz.r; wzone = [r[0] * PT, r[1] * PT, (r[2] - r[0]) * PT, (r[3] - r[1]) * PT]; if (brush === 'borrador') eraseInk = true; }
   }
   if (brush === 'borrador' && !eraseInk) {
@@ -914,7 +937,7 @@ function startStroke(e) {
     }, 45);
   }
   cLive.style.opacity = (stroke.brush === 'borrador' ? 0 : s.opa / 100);
-  cLive.style.mixBlendMode = stroke.brush === 'acuarela' ? 'multiply' : 'normal'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';   // se ve igual que como queda, también encima de texturas y fotos oscuras
+  cLive.style.mixBlendMode = 'normal'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';   // source-over: siempre encima, incluido sobre texturas oscuras
   cLive.style.filter = '';
   if (stroke.brush === 'acuarela') { WC.x.clearRect(0, 0, W, H); stroke.wc = true; }
   if (brush === 'borrador') stroke.snap = snapLayers(stroke.layer);
@@ -998,7 +1021,7 @@ function endStroke() {
     const st = stroke; stroke = null; xLive.clearRect(0, 0, W, H);
     if (st.dragged) { gradA = null; gradCommit(st.z, st.p0, st.last); return; }
     if (gradA && gradA.L === st.L && gradA.n === cur) { const a = gradA.p; gradA = null; gradCommit(st.z, a, st.p0); return; }
-    gradA = { L: st.L, p: st.p0, n: cur }; gradMark(st.p0[0], st.p0[1]); toast('Now tap where the color gets lighter (or drag from dark to light)'); return;
+    gradA = { L: st.L, p: st.p0, n: cur }; gradMark(st.p0[0], st.p0[1]); toast('Now tap where the color lightens (or drag from dark to light)'); return;
   }
   if (stroke.brush === 'chispeado' && !stroke.held && performance.now() - stroke.t0 < 320 && Math.hypot(stroke.last[0] - stroke.x0, stroke.last[1] - stroke.y0) < 12) { splash(stroke.x0, stroke.y0, radius({ pointerType: 'touch' })); clipLive(stroke.box); }
   if (stroke.wc) { if (stroke.raf) cancelAnimationFrame(stroke.raf); wcRender(); clipLive(stroke.box); }
@@ -1010,7 +1033,17 @@ function endStroke() {
     const grp = []; for (const k in st.snap) grp.push({ layer: k, x: x0, y: y0, data: st.snap[k].getContext('2d').getImageData(x0, y0, w, h) });
     if (st.msnap) { grp.push({ layer: 'wipe', x: x0, y: y0, data: st.msnap.getContext('2d').getImageData(x0, y0, w, h) }); wipeUsed = true; }
     undo.push(grp.length === 1 ? grp[0] : { group: grp }); if (undo.length > 30) undo.shift();
-    redo.length = 0; xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = ''; queueSave(); return;
+    redo.length = 0; xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = '';
+    if (st.magic && Object.keys(texts).length) {
+      let changed = false;
+      for (const key of Object.keys(texts)) {
+        const r = zoneRect(key); if (!r) continue;
+        const rx0 = r[0] * PT, ry0 = r[1] * PT, rx1 = r[2] * PT, ry1 = r[3] * PT;
+        if (rx1 >= x0 && rx0 <= x1 && ry1 >= y0 && ry0 <= y1) { delete texts[key]; changed = true; }
+      }
+      if (changed) { renderTexts(); store.set('texts', texts); }
+    }
+    queueSave(); return;
   }
   if (w > 0 && h > 0) {
     if (st.layer === 'both') {
@@ -1021,12 +1054,12 @@ function endStroke() {
     pushUndo(st.layer, x0, y0, w, h);
     ctx.save();
     if (st.brush === 'borrador') ctx.globalCompositeOperation = 'destination-out';
-    else if (st.brush === 'acuarela') { ctx.globalCompositeOperation = 'multiply'; }
     ctx.globalAlpha = st.brush === 'borrador' ? st.s.opa / 100 : st.s.opa / 100;
     ctx.drawImage(cLive, x0, y0, w, h, x0, y0, w, h);
     ctx.restore();
   }
   xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = '';
+  try { checkDone(true); } catch(e) {}
   queueSave();
 }
 function cancelStroke() { SFX.stop(); if (stroke) { if (stroke.hold) clearInterval(stroke.hold); stroke = null; xLive.clearRect(0, 0, W, H); } }
@@ -1044,7 +1077,7 @@ function bucket(x, y) {
 }
 /* ---------------- texturas, estampados y su foto ---------------- */
 const TEXTURES = [['lino', 'Linen'], ['acuarela', 'Watercolor paper'], ['madera', 'Wood'], ['marmol', 'Marble'], ['jean', 'Denim'], ['kraft', 'Kraft paper'],
-  ['puntos', 'Dots'], ['rayas', 'Stripes'], ['cuadros', 'Gingham'], ['ondas', 'Waves'], ['estrellas', 'Stars'], ['flores', 'Flowers'], ['corazones', 'Hearts']];
+  ['puntos', 'Puntos'], ['rayas', 'Rayas'], ['cuadros', 'Cuadritos'], ['ondas', 'Ondas'], ['estrellas', 'Estrellas'], ['flores', 'Flores'], ['corazones', 'Corazones']];
 let texId = store.get('tex', 'lino'), texFit = store.get('texFit', 'mosaico'), texPhoto = null, texPhotoTry = false;
 const rgbOf = h => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 const mixC = (c, w, k) => c.map((v, i) => Math.round(v + (w[i] - v) * k));
@@ -1104,7 +1137,7 @@ function choosePhoto() {
       const c = document.createElement('canvas'); c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
       const b = await new Promise(ok => c.toBlob(ok, 'image/jpeg', .86)); await idbSet('foto', b); texPhoto = c; texPhotoTry = true;
       texId = 'foto'; store.set('tex', texId); buildTex(); toast('Photo ready: tap the part you want to fill');
-    } catch (e) { toast('That photo could not be opened'); }
+    } catch (e) { toast('No se pudo abrir esa foto'); }
   };
   inp.click();
 }
@@ -1119,18 +1152,18 @@ function buildTex() {
     b.onclick = () => { if (id === 'foto' && !texPhoto) { choosePhoto(); return; } texId = id; store.set('tex', id); buildTex(); };
     row.appendChild(b); return b;
   };
-  head('Materials');
+  head('Materiales');
   for (const [id, nm] of TEXTURES.slice(0, 6)) btn(id, nm, x => { x.fillStyle = x.createPattern(texTile(id, color, Math.min(k, .5)), 'repeat'); x.fillRect(0, 0, 96, 48); });
-  head('Patterns (in the chosen color)');
+  head('Estampados (en el color elegido)');
   for (const [id, nm] of TEXTURES.slice(6)) btn(id, nm, x => { x.fillStyle = x.createPattern(texTile(id, color, Math.min(k, .4)), 'repeat'); x.fillRect(0, 0, 96, 48); });
-  head('Your photo');
-  btn('foto', texPhoto ? 'Your photo' : 'Choose photo', x => {
+  head('Su foto');
+  btn('foto', texPhoto ? 'Su foto' : 'Elegir foto', x => {
     if (texPhoto) { const r = Math.max(96 / texPhoto.width, 48 / texPhoto.height); x.drawImage(texPhoto, (96 - texPhoto.width * r) / 2, (48 - texPhoto.height * r) / 2, texPhoto.width * r, texPhoto.height * r); }
     else { x.fillStyle = '#EEF1F4'; x.fillRect(0, 0, 96, 48); x.strokeStyle = '#3F4A57'; x.lineWidth = 2; x.strokeRect(30, 12, 36, 26); x.beginPath(); x.arc(48, 25, 7, 0, 7); x.stroke(); x.fillStyle = '#3F4A57'; x.fillRect(42, 8, 12, 5); }
   });
   if (texPhoto) {
-    const ch = document.createElement('button'); ch.className = 'texopt'; ch.textContent = 'Change photo'; ch.onclick = choosePhoto; row.appendChild(ch);
-    for (const [v, nm] of [['completa', 'Full'], ['mosaico', 'Pattern']]) {
+    const ch = document.createElement('button'); ch.className = 'texopt'; ch.textContent = 'Cambiar foto'; ch.onclick = choosePhoto; row.appendChild(ch);
+    for (const [v, nm] of [['completa', 'Completa'], ['mosaico', 'Estampado']]) {
       const b = document.createElement('button'); b.className = 'texopt'; b.textContent = nm; b.setAttribute('aria-pressed', texFit === v);
       b.onclick = () => { texFit = v; store.set('texFit', v); texId = 'foto'; store.set('tex', 'foto'); buildTex(); }; row.appendChild(b);
     }
@@ -1159,9 +1192,9 @@ async function texFill(x, y) {
 
 function pickColor(x, y) {
   const d = xColor.getImageData(x | 0, y | 0, 1, 1).data;
-  if (d[3] < 10) { toast('There is no color there yet'); return; }
+  if (d[3] < 10) { toast('Ahí no hay color todavía'); return; }
   const hex = '#' + [d[0], d[1], d[2]].map(v => v.toString(16).padStart(2, '0')).join('');
-  brush = (prevBrush && prevBrush !== 'gotero' && prevBrush !== 'borrador') ? prevBrush : 'marcador'; prevBrush = null; store.set('brush', brush); setColor(hex); buildBrushes(); syncSliders(); updateDock(); toast('Color picked');
+  brush = (prevBrush && prevBrush !== 'gotero' && prevBrush !== 'borrador') ? prevBrush : 'marcador'; prevBrush = null; store.set('brush', brush); setColor(hex); buildBrushes(); syncSliders(); updateDock(); toast('Color tomado');
 }
 
 /* deshacer y rehacer por recuadro */
@@ -1185,10 +1218,10 @@ $('#btnUndo').onclick = () => { if (isLocked()) { toast('Plate locked'); return;
 $('#btnClear').onclick = () => { if (isLocked()) { toast('Plate locked'); return; } $('#confirmClear').hidden = false; };
 // borrar todo el libro: tres confirmaciones
 let wipeStep = 0;
-const WIPE = ['This will erase <b>the whole book</b>: everything painted and written on <b>every plate</b>. Do you want to continue?',
+const WIPE = ['This will erase <b>the whole book</b>: everything painted and written on <b>all plates</b>. Do you want to continue?',
   'Are you sure? <b>This cannot be undone.</b> All your plates will be blank.',
-  'Final confirmation: tap <b>Erase all</b> to leave the whole book blank.'];
-function wipeRender() { $('#wipeText').innerHTML = WIPE[wipeStep]; $('#wipeSteps').innerHTML = WIPE.map((_, i) => `<i class="${i <= wipeStep ? 'on' : ''}"></i>`).join(''); $('#wipeYes').textContent = wipeStep < 2 ? `Confirm (${wipeStep + 1} of 3)` : 'Erase all'; }
+  'Final confirmation: tap <b>Erase everything</b> to leave the whole book blank.'];
+function wipeRender() { $('#wipeText').innerHTML = WIPE[wipeStep]; $('#wipeSteps').innerHTML = WIPE.map((_, i) => `<i class="${i <= wipeStep ? 'on' : ''}"></i>`).join(''); $('#wipeYes').textContent = wipeStep < 2 ? `Confirmar (${wipeStep + 1} de 3)` : 'Borrar todo'; }
 $('#btnWipeAll').onclick = () => { wipeStep = 0; wipeRender(); $('#wipeBox').hidden = false; };
 $('#wipeNo').onclick = () => { $('#wipeBox').hidden = true; };
 $('#wipeYes').onclick = async () => {
@@ -1196,21 +1229,21 @@ $('#wipeYes').onclick = async () => {
   try { const d = await db(); await new Promise(ok => { const t = d.transaction('p', 'readwrite'); t.objectStore('p').clear(); t.oncomplete = ok; t.onerror = ok; }); } catch (e) {}
   locks = {}; store.set('locks', locks); clearTimeout(saveT); dirty = false;
   xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xMask.clearRect(0, 0, W, H); xWipe.clearRect(0, 0, W, H); wipeUsed = false; texts = {}; renderTexts(); undo.length = 0; redo.length = 0;
-  if (typeof renderWipe === 'function') renderWipe(); syncLock(); $('#wipeBox').hidden = true; closeHome(); toast('Book cleared: every plate is blank again');
+  if (typeof renderWipe === 'function') renderWipe(); syncLock(); $('#wipeBox').hidden = true; closeHome(); toast('Book erased: all plates are now blank');
 };
 $('#clearNo').onclick = () => { $('#confirmClear').hidden = true; };
 $('#clearYes').onclick = () => {
   pushUndo('color', 0, 0, W, H); xColor.clearRect(0, 0, W, H);
   pushUndo('ink', 0, 0, W, H); xInk.clearRect(0, 0, W, H);
   if (wipeUsed) { pushUndo('wipe', 0, 0, W, H); xMask.clearRect(0, 0, W, H); renderWipe(); }
-  texts = {}; renderTexts(); $('#confirmClear').hidden = true; closeSheet(); queueSave(); toast('Plate cleared');
+  texts = {}; renderTexts(); $('#confirmClear').hidden = true; closeSheet(); queueSave(); toast('Plate erased');
 };
 $('#btnRedo').onclick = () => swap(redo, undo);
 
 /* ---------------- escribir con teclado ---------------- */
 let kbdZone = null;
 function openKeyboard(x, y) {
-  const wz = writeZoneAt(x, y); if (!wz) { toast('Tap a box or a circle to write'); return; }
+  const wz = writeZoneAt(x, y); if (!wz) { toast('Toca un cuadrito o una bolita para escribir'); return; }
   kbdZone = wz.kind + wz.i; $('#kbdText').value = texts[kbdZone] || ''; $('#kbd').hidden = false; $('#kbdText').focus();
 }
 function closeKeyboard() {
@@ -1241,12 +1274,12 @@ function renderTexts() {
 }
 
 /* ---------------- biblioteca de láminas ---------------- */
-const PN = ['Cover', '2026 Digital Edition', 'Welcome', 'Table of contents', 'Build order', 'Build order (2)',
-  'Unit 1 story', 'Unit 1 muscles', 'Group plate', 'Obturator externus', 'Obturator internus', 'Superior gemellus',
+const PN = ['Portada', 'Edición Digital 2026', 'Bienvenida', 'Índice de contenido', 'Orden de construcción', 'Orden de construcción (2)',
+  'The story of Unit 1', 'The muscles of Unit 1', 'Group plate', 'Obturator externus', 'Obturator internus', 'Superior gemellus',
   'Inferior gemellus', 'Quadratus femoris', 'Piriformis', 'Free canvas: draw Unit 1',
-  'Unit 2 story', 'Unit 2 muscles', 'Group plate', 'Iliacus', 'Psoas major', 'Psoas minor', 'Free canvas: draw Unit 2',
-  'Unit 3 story', 'Unit 3 muscles', 'Group plate', 'Vastus intermedius', 'Vastus medialis', 'Vastus lateralis', 'Rectus femoris', 'Sartorius', 'Free canvas: draw Unit 3'];
-const SECTIONS = [['Start', '', 1, 6], ['Unit 1', 'Deep posterior hip muscles', 7, 16], ['Unit 2', 'Deep anterior hip muscles', 17, 23], ['Unit 3', 'Anterior hip and thigh muscles', 24, 32]];
+  'The story of Unit 2', 'The muscles of Unit 2', 'Group plate', 'Iliacus', 'Psoas major', 'Psoas minor', 'Free canvas: draw Unit 2',
+  'The story of Unit 3', 'The muscles of Unit 3', 'Group plate', 'Vastus intermedius', 'Vastus medialis', 'Vastus lateralis', 'Rectus femoris', 'Sartorius', 'Free canvas: draw Unit 3'];
+const SECTIONS = [['Inicio', '', 1, 6], ['Unidad 1', 'Músculos posteriores profundos de la cadera', 7, 16], ['Unidad 2', 'Músculos anteriores profundos de la cadera', 17, 23], ['Unidad 3', 'Músculos anteriores de la cadera y el muslo', 24, 32]];
 const thumbCache = {};
 async function drawThumb(cv, n) {
   const x = cv.getContext('2d'), w = cv.width, h = cv.height;
@@ -1274,12 +1307,12 @@ async function buildHome() {
   const keys = await idbKeys();
   const [bd, bk] = plateCount(1, N), pct = bk ? Math.round(bd / bk * 100) : 0;
   const pr = document.createElement('div'); pr.className = 'hprog';
-  pr.innerHTML = `<div class="hp1"><svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Your progress</b><span>${bd} of ${bk} plates completed</span><em>${pct}%</em></div><div class="hbar"><i style="width:${pct}%"></i></div>`;
+  pr.innerHTML = `<div class="hp1"><svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Your progress</b><span>${bd} of ${bk} plates complete</span><em>${pct}%</em></div><div class="hbar"><i style="width:${pct}%"></i></div>`;
   g.appendChild(pr);
   for (const [t, sub, a, b] of SECTIONS) {
     const sec = document.createElement('div'); sec.className = 'hsec';
     const [sd, sk] = plateCount(a, b);
-    const badge = sk ? (sd === sk ? `<span class="ribbon"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="m8.5 13.5-2 7.5 5.5-3 5.5 3-2-7.5"/></svg>Ribbon earned</span>` : `<span class="stars">${sd}/${sk} <svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span>`) : '';
+    const badge = sk ? (sd === sk ? `<span class="ribbon"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="m8.5 13.5-2 7.5 5.5-3 5.5 3-2-7.5"/></svg>Listón ganado</span>` : `<span class="stars">${sd}/${sk} <svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span>`) : '';
     sec.innerHTML = `<h2>${t}${badge}${sub ? `<small>${sub}</small>` : ''}</h2>`;
     const cards = document.createElement('div'); cards.className = 'cards';
     for (let n = a; n <= Math.min(b, N); n++) {
@@ -1289,16 +1322,15 @@ async function buildHome() {
       cards.appendChild(c); drawThumb(c.querySelector('canvas'), n);
     }
     const ui = SECTIONS.indexOf(SECTIONS.find(s => s[0] === t));
-    if (false && RETO.U[ui]) {   // el reto es piloto en español
+    if (RETO.U[ui]) {
       const rr = (store.get('reto', {})[ui]) || {}, rb = document.createElement('button'); rb.className = 'card reto' + (rr.ok ? ' won' : '');
-      rb.innerHTML = `<span class="th rtth"><b>${rr.ok ? '⭐' : '🏆'}</b><em>${rr.ok ? 'Aprobado' : 'Reto'}</em>${rr.mejor ? `<small>${rr.mejor}%</small>` : ''}</span><span class="t">Reto de la ${t}</span>`;
+      rb.innerHTML = `<span class="th rtth"><b>${rr.ok ? '⭐' : '🏆'}</b><em>${rr.ok ? 'Aprobado' : 'Reto'}</em>${rr.mejor ? `<small>${rr.mejor}%</small>` : ''}</span><span class="t">Challenge · ${t}</span>`;
       rb.onclick = () => RETO.abrir(ui); cards.appendChild(rb);
     }
-    if (!RETO.unidadAbierta(a)) { sec.classList.add('locked'); cards.querySelectorAll('.card').forEach(c => { c.onclick = () => toast('Modo progresivo: complete la unidad anterior y apruebe su reto para abrir esta'); }); }
+    if (!RETO.unidadAbierta(a)) { sec.classList.add('locked'); cards.querySelectorAll('.card').forEach(c => { c.onclick = () => toast('Progressive mode: complete the previous unit and pass its challenge to open this one'); }); }
     sec.appendChild(cards); g.appendChild(sec);
   }
-  if (false) {}
-  const md = document.createElement('div'); md.className = 'hmodo'; md.hidden = true; const mo = store.get('modo', 'libre');
+  const md = document.createElement('div'); md.className = 'hmodo'; const mo = store.get('modo', 'libre');
   md.innerHTML = `<b>Cómo quiere avanzar</b><div><button data-m="progresivo" class="${mo === 'progresivo' ? 'on' : ''}">Progresivo<small>Cada unidad se abre al completar la anterior y aprobar su reto</small></button><button data-m="libre" class="${mo === 'libre' ? 'on' : ''}">Libre<small>Todas las unidades abiertas</small></button></div>`;
   md.querySelectorAll('button').forEach(b => b.onclick = () => { store.set('modo', b.dataset.m); buildHome(); });
   g.insertBefore(md, g.children[1]);
@@ -1314,13 +1346,14 @@ async function idbKeys() { try { const d = await db(); return await new Promise(
 /* ---------------- guía de primer uso ---------------- */
 const GUIDE = [
   ['<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>', 'Choose and paint', 'At the bottom, tap <b>the tool</b> and <b>the color</b>. With <b>Stay inside</b> on, the color stays inside the part you started painting: a muscle, a tendon, a bone or a segment.'],
-  ['<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'Zoom and move the plate', 'Spread two fingers to zoom in and drag them to move the plate: while you use two fingers <b>nothing gets painted</b>. At the top right you also have <b>the magnifier</b> to zoom in or out and <b>the hand</b> to move the plate with one finger, up, down and sideways. Tap the hand again to go back to painting.'],
-  ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'All your plates', 'Swipe sideways or use <b>Previous</b> and <b>Next</b>, above the plate. Tap <b>the page number</b> to see all the plates and what you have painted.'],
-  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Music for painting', 'Tap <b>the music note</b> and choose the music that keeps you company while you color. It plays inside the app, even offline.'],
-  ['<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>', 'Your work stays', 'What you paint <b>stays on your plate</b>: you can close the app, change pages or come back another day and everything is still there, just as you left it.'],
-  ['<path d="M4 19.5V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>', 'Learn by painting', 'Before coloring, find <b>where the muscle starts</b> (its origin) and <b>where it ends</b> (its insertion). Paint it end to end, follow the direction of its fibers and fill in the table: <b>muscle, origin, insertion and action</b>. Your hand and your eye learn together.'],
-  ['<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.2 5.2 0 0 0 22 9.2C22 5.8 17.5 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>', 'Free your inner artist', 'When your muscles are done, <b>the whole plate is your canvas</b>. Decorate, add backgrounds, drawings and details, mix watercolor with pencil, invent your own palette. Feel free and expand your mind: what you paint with creativity <b>is remembered better</b> and taught with more passion.'],
-  ['<path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>', 'Sign and share your work', 'As the artist you are, <b>sign and date your work</b> with the pen, wherever you like. Then tap <b>the up arrow</b> at the top right and choose how it will look: on the painter\'s easel, in oil, watercolor, chalk, graphite, comic and more. Share it on WhatsApp or social media and inspire others to learn by painting.']
+  ['<circle cx="6" cy="12" r="2.5"/><line x1="9" y1="12" x2="22" y2="12"/><circle cx="18" cy="6" r="2.5"/><line x1="2" y1="6" x2="15" y2="6"/><circle cx="10" cy="18" r="2.5"/><line x1="2" y1="18" x2="7" y2="18"/><line x1="13" y1="18" x2="22" y2="18"/>', 'Size, opacity and hardness', 'Inside the tool panel, <b>scroll down</b> to see three controls: <b>Size</b> (thin or thick line), <b>Opacity</b> (transparent or opaque) and <b>Hardness</b> (soft or sharp edge). Adjust them before painting to get exactly the effect you want.'],
+  ['<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'Zoom and move the plate', 'Pinch to zoom and drag to move the plate: while using two fingers <b>nothing is painted</b>. You also have, at the top right, <b>the magnifying glass</b> to zoom in or out and <b>the hand</b> to move the plate with one finger, up, down and sideways. Tap the hand again to paint.'],
+  ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'All your plates', 'Swipe sideways or use <b>Previous</b> and <b>Next</b>, above the plate. Tap <b>the page number</b> to see all plates and what you have already painted.'],
+  ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Music to paint', 'Tap <b>the music note</b> and choose the music that accompanies you while coloring. It plays inside the app, even without internet.'],
+  ['<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>', 'Your work is never lost', 'What you paint <b>stays on your plate</b>: you can close the app, change pages or come back another day and everything is still there, just as you left it.'],
+  ['<path d="M4 19.5V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>', 'Aprenda pintando', 'Antes de colorear, ubique <b>dónde nace</b> el músculo (su origen) y <b>dónde termina</b> (su inserción). Píntelo de punta a punta, siga la dirección de sus fibras y complete el cuadro: <b>músculo, origen, inserción y acción</b>. Así su mano y su ojo aprenden juntos.'],
+  ['<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.2 5.2 0 0 0 22 9.2C22 5.8 17.5 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>', 'Libere su artista', 'Cuando termine sus músculos, <b>la lámina entera es su lienzo</b>. Decore, agregue fondos, dibujos y detalles, mezcle acuarela con lápiz, invente su paleta. Siéntase libre y expanda su mente: lo que se pinta con creatividad <b>se recuerda mejor</b> y se enseña con más pasión.'],
+  ['<path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>', 'Sign and share your work', 'Like the artist you are, <b>sign your work and add the date</b> with the pen, wherever you like. Then tap <b>the upward arrow</b>, at the top right, and choose how it will look: on a painter\'s easel, in oil, watercolor, chalk, graphite, comic style and more. Share it on WhatsApp or your social media and inspire others to learn through painting.']
 ];
 let gi = 0;
 function showGuide() {
@@ -1330,7 +1363,7 @@ function renderGuide() {
   const [ic, t, p] = GUIDE[gi];
   $('#gSlides').innerHTML = `<div class="gslide"><div class="gi"><svg viewBox="0 0 24 24">${ic}</svg></div><b>${t}</b><p>${p}</p></div>`;
   $('#gDots').innerHTML = GUIDE.map((_, i) => `<i class="${i === gi ? 'on' : ''}"></i>`).join('');
-  $('#gNext').textContent = gi === GUIDE.length - 1 ? 'Let\'s paint!' : 'Next';
+  $('#gNext').textContent = gi === GUIDE.length - 1 ? 'Start painting!' : 'Next';
 }
 $('#gNext').onclick = () => { if (gi < GUIDE.length - 1) { gi++; renderGuide(); } else { $('#guide').hidden = true; store.set('guided', true); } };
 $('#gSkip').onclick = () => { $('#guide').hidden = true; store.set('guided', true); };
@@ -1409,7 +1442,7 @@ viewport.addEventListener('pointerdown', e => {
   if (document.body.classList.contains('sheet')) { closeSheet(); return; }
   if (e.target.closest('#toast')) return;
   const hs = e.target.closest('#hot a');
-  if (hs) { const n = +hs.dataset.n; if (n) openPage(n); else toast('Available in the next version'); return; }
+  if (hs) { const n = +hs.dataset.n; if (n) openPage(n); else toast('Disponible en la próxima versión'); return; }
   viewport.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
@@ -1423,7 +1456,7 @@ viewport.addEventListener('pointerdown', e => {
   const drawing = page && !onHot;
   if (e.pointerType === 'mouse' && (e.button === 1 || e.button === 2 || e.altKey || spaceDown)) { e.preventDefault(); swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now(), pan: true }; return; }
   if (location.hash === '#mapa' && labels && page.plate) { const [mx2, my2] = toPage(e), Lz = labelAt(mx2, my2); const nm = ((MAP[cur] || {}).zones || {})[Lz];
-    toast(Lz ? (nm ? `Zone ${Lz}: ${nm}` : `Zone ${Lz}: no name yet`) : 'Black line'); if (Lz && Lz !== page.bg) flashZones([Lz]); return; }
+    toast(Lz ? (nm ? `Zona ${Lz}: ${nm}` : `Zona ${Lz}: sin nombre todavía`) : 'Línea negra'); if (Lz && Lz !== page.bg) flashZones([Lz]); return; }
   if (hand) { swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now(), pan: true }; return; }
   if (drawing) {
     if (e.pointerType === 'touch') { pend = { ev: snapEv(e), moves: [], far: false, multi: false }; pend.t = setTimeout(() => firePend(false), 120); }
@@ -1455,7 +1488,7 @@ viewport.addEventListener('pointermove', e => {
 function up(e) {
   pointers.delete(e.pointerId);
   if (pend && e.pointerId === pend.ev.pointerId) { firePend(true); if (stroke && e.pointerId === stroke.id) endStroke(); return; }
-  if (gesture) { if (pointers.size < 2) { if (!gesture.moved && Date.now() - gesture.t < 300) { swap(undo, redo); toast('Undone'); } gesture = null; } return; }
+  if (gesture) { if (pointers.size < 2) { if (!gesture.moved && Date.now() - gesture.t < 300) { swap(undo, redo); toast('Deshecho'); } gesture = null; } return; }
   if (stroke && e.pointerId === stroke.id) endStroke();
   if (swipe) {
     const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
@@ -1482,7 +1515,7 @@ function zoomAt(f) {
 $('#zIn').onclick = () => zoomAt(1.4);
 $('#zOut').onclick = () => zoomAt(1 / 1.4);
 $('#zFit').onclick = () => { view.s = 1; clampView(); apply(); };
-$('#zHand').onclick = () => { hand = !hand; $('#zHand').classList.toggle('on', hand); document.body.classList.toggle('hand', hand); toast(hand ? 'Move: drag with one finger to move the plate. Tap the hand again to go back to painting' : 'Ready to paint'); };
+$('#zHand').onclick = () => { hand = !hand; $('#zHand').classList.toggle('on', hand); document.body.classList.toggle('hand', hand); toast(hand ? 'Move: drag with one finger to move the plate. Tap the hand again to paint' : 'Ready to paint'); };
 ['zIn','zOut','zFit','zHand'].forEach(id => document.getElementById(id).addEventListener('pointerdown', e => e.stopPropagation()));
 viewport.addEventListener('contextmenu', e => e.preventDefault());
 viewport.addEventListener('auxclick', e => e.preventDefault());
@@ -1497,13 +1530,26 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; viewport.style.cursor = ''; } });
 $('#btnPrev').onclick = () => openPage(cur - 1);
-$('#btnNext').onclick = () => openPage(cur + 1);
+$('#btnNext').onclick = () => {
+  // En modo progresivo: si estamos en la última página de una unidad que tiene reto, mostrar el reto antes de avanzar
+  if (store.get('modo', 'libre') === 'progresivo' && typeof RETO !== 'undefined' && META.length) {
+    const si = SECTIONS.findIndex(([, , a, b]) => cur >= a && cur <= b);
+    if (si > 0) {
+      const [, , , lastPage] = SECTIONS[si];
+      if (cur === lastPage && RETO.U[si] && !RETO.aprobado(si)) {
+        setTimeout(() => RETO.abrir(si), 100);
+        return;
+      }
+    }
+  }
+  openPage(cur + 1);
+};
 
 
 /* ---------------- guardado (IndexedDB) ---------------- */
 let dbp = null;
 function db() {
-  if (!dbp) dbp = new Promise((ok, ko) => { const r = indexedDB.open('atlas-muscular-en', 1); r.onupgradeneeded = () => r.result.createObjectStore('p'); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
+  if (!dbp) dbp = new Promise((ok, ko) => { const r = indexedDB.open('atlas-muscular', 1); r.onupgradeneeded = () => r.result.createObjectStore('p'); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
   return dbp;
 }
 async function idbGet(k) { try { const d = await db(); return await new Promise(ok => { const q = d.transaction('p').objectStore('p').get(k); q.onsuccess = () => ok(q.result); q.onerror = () => ok(null); }); } catch (e) { return null; } }
@@ -1591,7 +1637,7 @@ const RETO = (() => {
   const esPil = () => { const p = store.get('perfil', ''); return p && p !== 'nopilates'; };
   function aprobado(u) { return !!(R()[u] && R()[u].ok); }
   function unidadAbierta(n) {   // modo progresivo: la unidad siguiente se abre con todo completo y el reto aprobado
-    return true;
+    if (store.get('modo', 'libre') !== 'progresivo') return true;
     const si = SECTIONS.findIndex(([, , a, b]) => n >= a && n <= b); if (si <= 1) return true;
     for (let k = 1; k < si; k++) { const [, , a, b] = SECTIONS[k]; const [d, t] = plateCount(a, b); if (d < t || !aprobado(k)) return false; }
     return true;
@@ -1599,7 +1645,7 @@ const RETO = (() => {
   function html(h) { const b = box(); b.querySelector('.rtbody').innerHTML = h; b.querySelector('.rtbody').scrollTop = 0; }
   function head() {
     const tot = S.lista.length, i = S.i;
-    box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[S.u].unidad}</b><span>${Math.min(i + 1, tot)} / ${tot}</span><div class="rtdots">${S.lista.map((_, k) => `<i class="${k < i ? (S.res[k] ? 'ok' : 'no') : k === i ? 'cur' : ''}"></i>`).join('')}</div>`;
+    box().querySelector('.rthead').innerHTML = `<b>Challenge · ${U[S.u].unidad}</b><span>${Math.min(i + 1, tot)} / ${tot}</span><div class="rtdots">${S.lista.map((_, k) => `<i class="${k < i ? (S.res[k] ? 'ok' : 'no') : k === i ? 'cur' : ''}"></i>`).join('')}</div>`;
   }
   function abrir(u) {
     if (!U[u]) { toast('El reto de esta unidad viene pronto'); return; }
@@ -1608,15 +1654,15 @@ const RETO = (() => {
     empezar(u);
   }
   function perfil(u) {
-    box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[u].unidad}</b>`;
+    box().querySelector('.rthead').innerHTML = `<b>Challenge · ${U[u].unidad}</b>`;
     html(`<h3>Antes de empezar</h3><p class="rtq">¿Qué relación tiene usted con el método Pilates?</p><div class="rtops">${PERFIL.map(([k, t]) => `<button data-k="${k}">${t}</button>`).join('')}</div><p class="rtsmall">Con esto el reto le hace preguntas de Pilates o de anatomía. Puede cambiarlo cuando quiera.</p>`);
     box().querySelectorAll('.rtops button').forEach(b => b.onclick = () => { store.set('perfil', b.dataset.k); empezar(u); });
   }
   function empezar(u) {
     const pil = esPil();
-    S = { u, i: 0, res: [], lista: U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil)) };
-    html(`<div class="rtintro"><div class="rtbig">🦸</div><h3>${U[u].titulo}</h3><p>${S.lista.length} retos cortos. Se aprueba con el <b>80%</b>.</p><p class="rtsmall">Ubique cada músculo, toque su origen y su inserción en el esqueleto y demuestre lo que sabe de la liga.</p><button class="pill on rtgo">¡Empezar!</button><button class="pill rtperfil">Cambiar mi perfil</button></div>`);
-    box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[u].unidad}</b>`;
+    S = { u, i: 0, res: [], lista: U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil)).sort(() => Math.random() - .5) };
+    html(`<div class="rtintro"><div class="rtbig">🦸</div><h3>${U[u].titulo}</h3><p>${S.lista.length} short challenges. Pass with <b>80%</b>.</p><p class="rtsmall">Find each muscle, mark its origin and insertion on the skeleton and show what you know about the league.</p><button class="pill on rtgo">Start!</button><button class="pill rtperfil">Change my profile</button></div>`);
+    box().querySelector('.rthead').innerHTML = `<b>Challenge · ${U[u].unidad}</b>`;
     box().querySelector('.rtgo').onclick = () => paso();
     box().querySelector('.rtperfil').onclick = () => perfil(u);
   }
@@ -1631,14 +1677,14 @@ const RETO = (() => {
   function resultado(ok, msg) {
     S.res[S.i] = ok; head(); SFX.blip(ok ? 'fill' : 'undo'); buzz(ok ? 18 : 40);
     const f = document.createElement('div'); f.className = 'rtfb ' + (ok ? 'ok' : 'no');
-    f.innerHTML = `<b>${ok ? ['¡Muy bien!', '¡Exacto!', '¡Así es!', '¡Perfecto!'][S.i % 4] : '¡Casi!'}</b>${msg ? `<span>${msg}</span>` : ''}<button class="pill on">${S.i + 1 < S.lista.length ? 'Next' : 'Ver resultado'}</button>`;
+    f.innerHTML = `<b>${ok ? ['Well done!', 'Exactly!', 'That\'s right!', 'Perfect!'][S.i % 4] : 'Almost!'}</b>${msg ? `<span>${msg}</span>` : ''}<button class="pill on">${S.i + 1 < S.lista.length ? 'Next' : 'See results'}</button>`;
     box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
     f.querySelector('button').onclick = () => { S.i++; paso(); };
   }
   /* estación 1: tocar el músculo en la lámina del grupo */
   async function tocaMusculo(r) {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
-    html(`<p class="rtst">Encuentre al músculo</p><p class="rtq">Toque <b>${r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
+    html(`<p class="rtst">Find the muscle</p><p class="rtq">Tap <b>${r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
     const [im, li] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
     const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
@@ -1663,25 +1709,34 @@ const RETO = (() => {
   /* estación 2: origen e inserción sobre el esqueleto */
   async function origenInsercion(r) {
     const base = `reto/u${S.u}_${r.img}_`;
-    html(`<p class="rtst">De dónde sale y a dónde llega</p><p class="rtq"><b>${cap(r.m)}</b>: toque primero su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><div class="rtpair" hidden><img alt=""><img alt=""></div><p class="rtsmall rthint">Pelvis y fémur. Puede ampliar con dos dedos.</p>`);
+    html(`<p class="rtst">Where it comes from and where it goes</p><p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Posterolateral view, as in your book. Draw on the bone to mark.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
     const [im, mk] = await Promise.all([loadImg(base + 'hueso.jpg'), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
     const toPx = e => { const rc = cv.getBoundingClientRect(); return [(e.clientX - rc.left) / rc.width * im.width, (e.clientY - rc.top) / rc.height * im.height]; };
-    const near = (p, ch) => { const R = 16; for (let dy = -R; dy <= R; dy += 2) for (let dx = -R; dx <= R; dx += 2) { if (dx * dx + dy * dy > R * R) continue; const X = (p[0] + dx) | 0, Y = (p[1] + dy) | 0; if (X < 0 || Y < 0 || X >= im.width || Y >= im.height) continue; if (M[(Y * im.width + X) * 4 + ch] > 128) return true; } return false; };
-    const dot = (p, col) => { x.beginPath(); x.arc(p[0], p[1], 7, 0, 7); x.fillStyle = col; x.fill(); x.lineWidth = 2; x.strokeStyle = '#fff'; x.stroke(); };
-    let fase = 0, okO = false;
-    cv.onclick = async e => {
-      const p = toPx(e);
-      if (fase === 0) { okO = near(p, 0); dot(p, okO ? '#1E9E4A' : '#D7322F'); fase = 1; box().querySelector('.rtq').innerHTML = `<b>${cap(r.m)}</b>: ahora toque su <b class="rti">inserción</b>.`; return; }
-      if (fase !== 1) return;
-      fase = 2; const okI = near(p, 2); dot(p, okI ? '#1E9E4A' : '#D7322F');
-      const pr = box().querySelector('.rtpair'), ims = pr.querySelectorAll('img'); ims[0].src = base + 'huellas.jpg'; ims[1].src = base + 'musculo.jpg'; pr.hidden = false;
-      box().querySelector('.rthint').textContent = 'Rojo: origen. Azul: inserción. A la derecha, el músculo en su lugar.';
+    const nearPts = (pts, ch) => pts.some(p => { const R = 20; for (let dy = -R; dy <= R; dy += 2) for (let dx = -R; dx <= R; dx += 2) { if (dx * dx + dy * dy > R * R) continue; const X = (p[0] + dx) | 0, Y = (p[1] + dy) | 0; if (X < 0 || Y < 0 || X >= im.width || Y >= im.height) continue; if (M[(Y * im.width + X) * 4 + ch] > 128) return true; } return false; });
+    const drawStroke = (pts, col) => { if (!pts.length) return; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); pts.forEach(p => x.lineTo(p[0], p[1])); x.strokeStyle = col; x.lineWidth = 6; x.lineCap = 'round'; x.lineJoin = 'round'; x.globalAlpha = 0.7; x.stroke(); x.globalAlpha = 1; };
+    let fase = 0, okO = false, drawing = false, pts = [];
+    cv.addEventListener('pointerdown', e => { if (fase > 1) return; e.preventDefault(); drawing = true; pts = [toPx(e)]; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => { if (!drawing) return; e.preventDefault(); const p = toPx(e); pts.push(p); x.beginPath(); x.moveTo(pts[pts.length - 2][0], pts[pts.length - 2][1]); x.lineTo(p[0], p[1]); x.strokeStyle = fase === 0 ? '#C62828' : '#2F62D6'; x.lineWidth = 6; x.lineCap = 'round'; x.globalAlpha = 0.7; x.stroke(); x.globalAlpha = 1; });
+    cv.addEventListener('pointerup', e => {
+      if (!drawing || fase > 1) return; drawing = false;
+      if (pts.length < 2) return;
+      if (fase === 0) {
+        okO = nearPts(pts, 0);
+        if (!okO) drawStroke(pts, '#D7322F');
+        fase = 1; pts = [];
+        box().querySelector('.rtq').innerHTML = `<b>${cap(r.m)}</b>: now mark its <b class="rti">insertion</b>.`;
+        return;
+      }
+      fase = 2;
+      const okI = nearPts(pts, 2);
+      if (!okI) drawStroke(pts, '#D7322F');
+      box().querySelector('.rthint').textContent = `Origin: ${r.no}. Insertion: ${r.ni}.`;
       resultado(okO && okI, `Sale de ${r.no} y llega ${r.ni.replace(/^el /, 'al ').replace(/^la /, 'a la ')}.`);
-    };
+    });
   }
   /* estación 3, 4 y 6: opciones */
   function opciones(r) {
@@ -1721,13 +1776,13 @@ const RETO = (() => {
   function fin() {
     const tot = S.lista.length, ok = S.res.filter(Boolean).length, pct = Math.round(ok / tot * 100), pasa = pct >= 80;
     const r = R(); const prev = r[S.u] || {}; r[S.u] = { ok: prev.ok || pasa, mejor: Math.max(prev.mejor || 0, pct), fecha: Date.now() }; store.set('reto', r);
-    box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[S.u].unidad}</b>`;
+    box().querySelector('.rthead').innerHTML = `<b>Challenge · ${U[S.u].unidad}</b>`;
     if (pasa) {
-      html(`<div class="rtfin ok"><div class="rtconf"></div><div class="rtstar">⭐</div><h3>¡Felicidades!</h3><p class="rtbigtxt">${ok} de ${tot}</p><p>Usted ya conoce a <b>${U[S.u].titulo}</b>: sabe dónde vive cada uno, de dónde sale y a dónde llega.</p><p class="rtsmall">¡Ya está listo para construirlos con sus manos!</p><button class="pill on rtok">¡Seguir!</button></div>`);
+      html(`<div class="rtfin ok"><div class="rtconf"></div><div class="rtstar">⭐</div><h3>Congratulations!</h3><p class="rtbigtxt">${ok} de ${tot}</p><p>You already know <b>${U[S.u].titulo}</b>: you know where each one lives, where it comes from and where it goes.</p><p class="rtsmall">You are ready to build them with your hands!</p><button class="pill on rtok">Keep going!</button></div>`);
       const cf = box().querySelector('.rtconf'); for (let i = 0; i < 60; i++) { const e = document.createElement('i'); e.style.left = Math.random() * 100 + '%'; e.style.background = ['#E0457B', '#F2C230', '#2EC4B6', '#3A86FF', '#8AC926'][i % 5]; e.style.animationDelay = Math.random() * .8 + 's'; cf.appendChild(e); }
       buzz(60);
     } else {
-      html(`<div class="rtfin"><div class="rtstar">💪</div><h3>¡Ya casi!</h3><p class="rtbigtxt">${ok} de ${tot}</p><p>Necesita el 80% (${Math.ceil(tot * .8)} de ${tot}). Repase la ficha y las láminas y vuelva a intentarlo: cada intento le enseña algo nuevo.</p><button class="pill on rtre">Intentar de nuevo</button><button class="pill rtok">Volver al libro</button></div>`);
+      html(`<div class="rtfin"><div class="rtstar">💪</div><h3>Almost there!</h3><p class="rtbigtxt">${ok} de ${tot}</p><p>You need 80% (${Math.ceil(tot * .8)} of ${tot}). Review the card and the plates and try again: each attempt teaches you something new.</p><button class="pill on rtre">Try again</button><button class="pill rtok">Back to book</button></div>`);
       box().querySelector('.rtre').onclick = () => empezar(S.u);
     }
     box().querySelector('.rtok').onclick = cerrar;
@@ -1770,11 +1825,20 @@ function reviewArt() {
     }
   }
   const miss = [], part = [], sp = [];
+  let totalArea = 0, totalPnt = 0;
   for (let L = 1; L < n; L++) {
-    if (skip[L]) continue; const cov = pnt[L] / area[L];
+    if (skip[L]) continue;
+    totalArea += area[L]; totalPnt += pnt[L];
+    const cov = pnt[L] / area[L];
     if (cov < 0.15) miss.push(L); else if (cov < 0.88) part.push(L);
     else if (spill[L] / area[L] > 0.05) sp.push(L);
   }
+  // Bloqueo único: menos del 50% de la lámina pintada en total
+  if (totalArea > 0 && totalPnt / totalArea < 0.50) {
+    const pct = Math.round(totalPnt / totalArea * 100);
+    rv.block.push(`Pinte al menos el <b>50%</b> de la lámina para compartirla. Lleva el <b>${pct}%</b>.`);
+  }
+  rv.zones = miss.concat(part, sp);
   const pl = (k, a, b) => k === 1 ? a : b.replace('#', k);
   const zn = (MAP[cur] || {}).zones || {}, mus = new Set((MAP[cur] || {}).muscles || []);
   // con el Mapa de músculos se nombra cada parte: primero los músculos, luego los huesos
@@ -1785,13 +1849,13 @@ function reviewArt() {
     const extra = nm.length > 4 ? nm.length - 3 : 0, lst = (extra ? nm.slice(0, 3) : nm).map(t => `<b>${t}</b>`).concat(extra ? [`${extra} more parts`] : []), txt = lst.length > 1 ? lst.slice(0, -1).join(', ') + ' and ' + lst.at(-1) : lst[0];
     return rest ? `${txt} (and ${pl(rest, '1 small part', '# small parts')})` : txt; };
   const nMiss = named(miss), nPart = named(part), nSp = named(sp);
+  // sugerencias (ya no bloquean):
   if (nMiss) rv.block.push(`Still to paint: ${nMiss}.`);
   else if (miss.length) rv.block.push(pl(miss.length, '<b>1 part</b> of the plate still needs painting.', '<b>#</b> parts of the plate still need painting.'));
   if (nPart) rv.block.push(`Half painted: ${nPart}. Take the color all the way to the black lines.`);
   else if (part.length) rv.block.push(pl(part.length, '<b>1 part</b> is only half painted: take the color all the way to the black lines.', '<b>#</b> parts are only half painted: take the color all the way to the black lines.'));
   if (nSp) rv.block.push(`In ${nSp} the color went into the neighboring part. Clean it with the eraser or turn on <b>Stay inside</b>.`);
   else if (sp.length) rv.block.push(pl(sp.length, 'In <b>1 part</b> the color went into the neighboring part. Clean it with the eraser or turn on <b>Stay inside</b>.', 'In <b>#</b> parts the color went into the neighboring part. Clean them with the eraser or turn on <b>Stay inside</b>.'));
-  rv.zones = miss.concat(part, sp);
   // lo escrito: cuadro y bolitas
   const ink = xInk.getImageData(0, 0, W, H).data;
   const hasInk = (r, key) => { if (texts[key] && String(texts[key]).trim()) return true; let c = 0;
@@ -1820,7 +1884,7 @@ function flashZones(list) {
 }
 function showReview(rv) {
   const ok = !rv.block.length;
-  $('#rvTitle').textContent = ok ? 'Your work is looking great!' : 'Let\'s review your work';
+  $('#rvTitle').textContent = ok ? 'Your work is looking great!' : "Let's review your work";
   $('#rvIntro').innerHTML = ok ? 'Before you share it, one last artist\'s look:' : 'To share it, your plate has to be painted with care, like a real work of art. This is what is missing:';
   $('#rvList').innerHTML = rv.block.map(t => `<li class="b">${t}</li>`).join('') + rv.tips.map(t => `<li class="t">${t}</li>`).join('');
   $('#rvNote').innerHTML = 'Compare the origin, insertion and action with the unit\'s card: that way you make sure they are right.';
@@ -2090,17 +2154,21 @@ function linenPat(x, s, light) {
 function tinted(img, color) { const c = mkC(img.width, img.height), t = c.getContext('2d'); t.drawImage(img, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = color; t.fillRect(0, 0, c.width, c.height); return c; }
 /* pie: logo y nombre del libro, centrados; engraved = tallado en madera */
 function caption(x, cx, cy, maxW, s, col, mode) {
-  const L1 = 'MUSCLE ATLAS · DIGITAL COLORING BOOK', L2 = 'Anatomy + Movement™ · 2026 Digital Edition';
-  let f1 = 30 * s, f2 = 21 * s; const lh = 46 * s, logo = SH.logo, lw = logo ? lh * logo.width / logo.height : 0, gap = 26 * s;
-  const meas = () => { x.font = `700 ${f1}px Montserrat, sans-serif`; const a = x.measureText(L1).width; x.font = `500 ${f2}px Montserrat, sans-serif`; return Math.max(a, x.measureText(L2).width); };
+  const L1 = 'MUSCLE ATLAS', L2 = 'DIGITAL COLORING BOOK', L3 = 'Digital Edition 2026';
+  let f1 = 26 * s, f2 = 11 * s; const lh = 40 * s, logo = SH.logo, lw = logo ? lh * logo.width / logo.height : 0, gap = 26 * s;
+  const meas = () => { x.font = `700 ${f1}px Montserrat, sans-serif`; const a = Math.max(x.measureText(L1).width, x.measureText(L2).width); x.font = `400 ${f2}px Montserrat, sans-serif`; return Math.max(a, x.measureText(L3).width); };
   let tw = meas(); while (lw + gap + tw > maxW && f1 > 6) { f1 *= 0.94; f2 *= 0.94; tw = meas(); }
-  const x0 = cx - (lw + gap + tw) / 2, tx = x0 + lw + gap;
+  /* logo hacia la izquierda, texto hacia la derecha, ambos con margen interior */
+  const x0 = cx - maxW / 2 + gap / 2, xr = cx + maxW / 2 - gap / 2;
   const draw = (dx, dy, c, a) => {
     x.save(); x.globalAlpha = a; x.translate(dx, dy);
     if (logo) x.drawImage(tinted(logo, c), x0, cy - lh / 2, lw, lh);
-    x.fillStyle = c; x.textAlign = 'left'; x.textBaseline = 'alphabetic';
-    x.font = `700 ${f1}px Montserrat, sans-serif`; x.fillText(L1, tx, cy - 2 * s);
-    x.font = `500 ${f2}px Montserrat, sans-serif`; x.fillText(L2, tx, cy + f2 + 4 * s); x.restore();
+    x.fillStyle = c; x.textAlign = 'right'; x.textBaseline = 'alphabetic';
+    x.font = `700 ${f1}px Montserrat, sans-serif`;
+    x.fillText(L1, xr, cy - f1 * 0.65);
+    x.fillText(L2, xr, cy + f1 * 0.55);
+    x.font = `400 ${f2}px Montserrat, sans-serif`;
+    x.globalAlpha = a * 0.60; x.fillText(L3, xr, cy + f1 * 0.55 + f2 * 1.9); x.restore();
   };
   if (mode === 'engraved') { draw(0, 1.6 * s, 'rgba(255,232,190,1)', 0.35); draw(0, 0, col, 0.82); }
   else draw(0, 0, col, 1);
@@ -2296,10 +2364,15 @@ function scenePhoto(art, s) {
 }
 /* lo que se comparte: solo la obra con un borde fino (la escena es para elegir el estilo) */
 function shareBorder(art) {
-  const w = art.width, h = art.height, b = Math.round(Math.max(w, h) * .025), k = w / 1224, foot = Math.round(120 * k), c = mkC(w + 2 * b, h + 2 * b + foot), x = c.getContext('2d');
+  const w = art.width, h = art.height, b = Math.round(Math.max(w, h) * .025), k = w / 1224, foot = Math.round(150 * k), c = mkC(w + 2 * b, h + 2 * b + foot), x = c.getContext('2d');
   x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, c.width, c.height); x.drawImage(art, b, b);
   x.strokeStyle = 'rgba(63,74,87,.25)'; x.lineWidth = 1.5; x.strokeRect(b - .75, b - .75, w + 1.5, h + 1.5);
-  caption(x, c.width / 2, b + h + foot * .55, w * .9, k * 1.1, '#3F4A57');   // pie: logo, Atlas Muscular, Anatomía + Movimiento, Edición Digital 2026
+  // marca de agua: fecha y hora compartida (esquina superior derecha, dentro del arte)
+  const now = new Date(), pad = n => String(n).padStart(2, '0');
+  const hh = now.getHours(), mm = now.getMinutes(), ampm = hh >= 12 ? 'p.m.' : 'a.m.';
+  const ts = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} · ${pad(hh > 12 ? hh - 12 : hh || 12)}:${pad(mm)} ${ampm}`;
+  const tf = Math.round(14 * k); x.save(); x.font = `400 ${tf}px Montserrat, sans-serif`; x.fillStyle = 'rgba(63,74,87,.28)'; x.textAlign = 'right'; x.textBaseline = 'top'; x.fillText(ts, b + w - 14 * k, b + 12 * k); x.restore();
+  caption(x, c.width / 2, b + h + foot * .52, w * .9, k * 1.1, '#3F4A57');
   return c;
 }
 async function shareRender(st, s, final) {
@@ -2620,7 +2693,18 @@ async function start() {
   buildBrushes(); buildColors(); syncSliders(); syncTape(); updateDock();
   await openPage(store.get('page', 1));
   if (!store.get('guided', false)) showGuide();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => { reg.update(); }).catch(() => {});
+    let swUpdated = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (swUpdated) return; swUpdated = true;
+      const bar = document.createElement('div');
+      bar.textContent = '✦ Nueva versión lista — toque para actualizar';
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1A6FFF;color:#fff;text-align:center;padding:14px 16px;font:600 15px/1.4 system-ui,sans-serif;cursor:pointer;letter-spacing:.02em';
+      bar.onclick = () => location.reload();
+      document.body.appendChild(bar);
+    });
+  }
   setupInstall();
 }
 new ResizeObserver(() => { const ph = stage.style.height; $('#texts').style.setProperty('--ph', ph); }).observe(stage);

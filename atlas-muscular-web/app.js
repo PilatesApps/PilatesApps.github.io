@@ -305,8 +305,9 @@ function buildBrushes() {
   const GROUPS = [['Dibujar', ['lapiz', 'marcador', 'creyon', 'carboncillo', 'tiza']],
                   ['Pintar', ['acuarela', 'oleo', 'aero', 'chispeado']],
                   ['Anatomía: fibras y volumen', ['fibras', 'sombreado', 'degradado']],
-                  ['Rellenar y borrar', ['balde', 'textura', 'borrador', 'magia']],
-                  ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']]];
+                  ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
+                  ['Rellenar', ['balde', 'textura']],
+                  ['BORRAR', ['borrador', 'magia']]];
   for (const [gname, ids] of GROUPS) {
     const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && (b.id === 'balde' || b.id === 'textura' || b.id === 'degradado')));
     if (!list.length) continue;
@@ -1708,25 +1709,34 @@ const RETO = (() => {
   /* estación 2: origen e inserción sobre el esqueleto */
   async function origenInsercion(r) {
     const base = `reto/u${S.u}_${r.img}_`;
-    html(`<p class="rtst">De dónde sale y a dónde llega</p><p class="rtq"><b>${cap(r.m)}</b>: toque primero su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><div class="rtpair" hidden><img alt=""><img alt=""></div><p class="rtsmall rthint">Vista posterolateral, como en su libro. Puede ampliar con dos dedos.</p>`);
+    html(`<p class="rtst">De dónde sale y a dónde llega</p><p class="rtq"><b>${cap(r.m)}</b>: marque su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Vista posterolateral, como en su libro. Dibuje sobre el hueso para marcar.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
     const [im, mk] = await Promise.all([loadImg(base + 'hueso.jpg'), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
     const toPx = e => { const rc = cv.getBoundingClientRect(); return [(e.clientX - rc.left) / rc.width * im.width, (e.clientY - rc.top) / rc.height * im.height]; };
-    const near = (p, ch) => { const R = 16; for (let dy = -R; dy <= R; dy += 2) for (let dx = -R; dx <= R; dx += 2) { if (dx * dx + dy * dy > R * R) continue; const X = (p[0] + dx) | 0, Y = (p[1] + dy) | 0; if (X < 0 || Y < 0 || X >= im.width || Y >= im.height) continue; if (M[(Y * im.width + X) * 4 + ch] > 128) return true; } return false; };
-    const dot = (p, col) => { x.beginPath(); x.arc(p[0], p[1], 7, 0, 7); x.fillStyle = col; x.fill(); x.lineWidth = 2; x.strokeStyle = '#fff'; x.stroke(); };
-    let fase = 0, okO = false;
-    cv.onclick = async e => {
-      const p = toPx(e);
-      if (fase === 0) { okO = near(p, 0); dot(p, okO ? '#1E9E4A' : '#D7322F'); fase = 1; box().querySelector('.rtq').innerHTML = `<b>${cap(r.m)}</b>: ahora toque su <b class="rti">inserción</b>.`; return; }
-      if (fase !== 1) return;
-      fase = 2; const okI = near(p, 2); dot(p, okI ? '#1E9E4A' : '#D7322F');
-      const pr = box().querySelector('.rtpair'), ims = pr.querySelectorAll('img'); ims[0].src = base + 'huellas.jpg'; ims[1].src = base + 'musculo.jpg'; pr.hidden = false;
-      box().querySelector('.rthint').textContent = 'Rojo: origen. Azul: inserción. A la derecha, el músculo pintado de origen a inserción.';
+    const nearPts = (pts, ch) => pts.some(p => { const R = 20; for (let dy = -R; dy <= R; dy += 2) for (let dx = -R; dx <= R; dx += 2) { if (dx * dx + dy * dy > R * R) continue; const X = (p[0] + dx) | 0, Y = (p[1] + dy) | 0; if (X < 0 || Y < 0 || X >= im.width || Y >= im.height) continue; if (M[(Y * im.width + X) * 4 + ch] > 128) return true; } return false; });
+    const drawStroke = (pts, col) => { if (!pts.length) return; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); pts.forEach(p => x.lineTo(p[0], p[1])); x.strokeStyle = col; x.lineWidth = 6; x.lineCap = 'round'; x.lineJoin = 'round'; x.globalAlpha = 0.7; x.stroke(); x.globalAlpha = 1; };
+    let fase = 0, okO = false, drawing = false, pts = [];
+    cv.addEventListener('pointerdown', e => { if (fase > 1) return; e.preventDefault(); drawing = true; pts = [toPx(e)]; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => { if (!drawing) return; e.preventDefault(); const p = toPx(e); pts.push(p); x.beginPath(); x.moveTo(pts[pts.length - 2][0], pts[pts.length - 2][1]); x.lineTo(p[0], p[1]); x.strokeStyle = fase === 0 ? '#C62828' : '#2F62D6'; x.lineWidth = 6; x.lineCap = 'round'; x.globalAlpha = 0.7; x.stroke(); x.globalAlpha = 1; });
+    cv.addEventListener('pointerup', e => {
+      if (!drawing || fase > 1) return; drawing = false;
+      if (pts.length < 2) return;
+      if (fase === 0) {
+        okO = nearPts(pts, 0);
+        if (!okO) drawStroke(pts, '#D7322F');
+        fase = 1; pts = [];
+        box().querySelector('.rtq').innerHTML = `<b>${cap(r.m)}</b>: ahora marque su <b class="rti">inserción</b>.`;
+        return;
+      }
+      fase = 2;
+      const okI = nearPts(pts, 2);
+      if (!okI) drawStroke(pts, '#D7322F');
+      box().querySelector('.rthint').textContent = `Origen: ${r.no}. Inserción: ${r.ni}.`;
       resultado(okO && okI, `Sale de ${r.no} y llega ${r.ni.replace(/^el /, 'al ').replace(/^la /, 'a la ')}.`);
-    };
+    });
   }
   /* estación 3, 4 y 6: opciones */
   function opciones(r) {
