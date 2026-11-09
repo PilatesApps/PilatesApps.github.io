@@ -1613,7 +1613,7 @@ const RETO = (() => {
   }
   function empezar(u) {
     const pil = esPil();
-    S = { u, i: 0, res: [], lista: U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil)) };
+    S = { u, i: 0, res: [], lista: U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil)).sort(() => Math.random() - .5) };
     html(`<div class="rtintro"><div class="rtbig">🦸</div><h3>${U[u].titulo}</h3><p>${S.lista.length} retos cortos. Se aprueba con el <b>80%</b>.</p><p class="rtsmall">Ubique cada músculo, toque su origen y su inserción en el esqueleto y demuestre lo que sabe de la liga.</p><button class="pill on rtgo">¡Empezar!</button><button class="pill rtperfil">Cambiar mi perfil</button></div>`);
     box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[u].unidad}</b>`;
     box().querySelector('.rtgo').onclick = () => paso();
