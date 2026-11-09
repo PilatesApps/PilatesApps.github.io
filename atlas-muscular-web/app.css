@@ -88,10 +88,11 @@ body[data-sheet="tool"] .sec[data-sec="tool"],body[data-sheet="color"] .sec[data
 .colors .wheel{background:conic-gradient(#f33,#fd3,#3d5,#3cf,#36f,#c3f,#f33)}
 .colors .plabel{grid-column:1/-1;font-size:12px;color:var(--muted);justify-self:start}
 .colors .glabel{grid-column:1/-1;justify-self:start;font-size:11px;font-weight:600;color:var(--muted);margin-top:4px}
-.sliders{display:flex;flex-direction:column;gap:8px;margin-top:14px}
-.sliders label{display:grid;grid-template-columns:78px 1fr 42px;align-items:center;gap:8px;font-size:12px;color:var(--chrome-2)}
+.sliders{display:flex;flex-direction:row;gap:10px;margin-bottom:14px}
+.sliders label{flex:1;display:flex;flex-direction:column;align-items:stretch;gap:4px}
+.sliders label span{font-size:11px;font-weight:600;color:var(--chrome-2);text-align:center}
 .sliders input{width:100%;accent-color:var(--chrome)}
-.sliders output{font-variant-numeric:tabular-nums;font-size:12px;text-align:right}
+.sliders output{font-variant-numeric:tabular-nums;font-size:12px;text-align:center}
 .opt{width:100%;display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);text-align:left;color:var(--chrome-2)}
 .opt .ot{flex:1;display:flex;flex-direction:column;gap:2px}
 .opt .ot b{font-size:14px;font-weight:600;color:var(--ink)}
@@ -413,7 +414,7 @@ body.hand #viewport{cursor:grab}
 #reto h3{margin:4px 0 8px;font-size:20px}
 #reto .rtst{margin:0;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9A7414}
 #reto .rtq{font-size:17px;line-height:1.4;margin:6px 0 12px}
-#reto .rtq .rto{color:#2F62D6}#reto .rtq .rti{color:#E8732A}
+#reto .rtq .rto{color:#C62828}#reto .rtq .rti{color:#2F62D6}
 #reto .rtsmall{font-size:12px;color:#7A8698;margin:8px 0}
 #reto .rtimg{border-radius:12px;overflow:auto;background:#fff;box-shadow:inset 0 0 0 1px #E3E1DB;touch-action:pinch-zoom}
 #reto .rtimg canvas{display:block;width:100%;height:auto;cursor:crosshair}

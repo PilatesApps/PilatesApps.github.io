@@ -66,7 +66,7 @@ const HL = [['Amarillo', '#FFF200'], ['Celeste', '#3FE6FF'], ['Rosado', '#FF58C8
 const PEN = [['Azul', '#1F3B9E'], ['Negro', '#1C1C1C'], ['Rojo', '#C62828']];
 const FREE = ['resaltador', 'boligrafo'];
 const TEXT_BRUSHES = ['resaltador', 'boligrafo', 'borrador'];
-const TEXT_OFF = ['balde', 'textura', 'degradado', 'teclado', 'pluma'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
+const TEXT_OFF = ['balde', 'textura', 'degradado', 'teclado', 'pluma', 'magia'];   // en cuentos y textos se pinta libre: todo menos el balde y lo de escribir en cuadritos
 const ERASERS = ['borrador', 'magia'];
 let hlColor = store.get('hl', HL[0][1]), penColor = store.get('pen', PEN[0][1]);
 const isText = () => page && !page.plate;
@@ -305,9 +305,8 @@ function buildBrushes() {
   const GROUPS = [['Dibujar', ['lapiz', 'marcador', 'creyon', 'carboncillo', 'tiza']],
                   ['Pintar', ['acuarela', 'oleo', 'aero', 'chispeado']],
                   ['Anatomía: fibras y volumen', ['fibras', 'sombreado', 'degradado']],
-                  ['Rellenar', ['balde', 'textura']],
-                  ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']],
-                  ['Borrar', ['borrador', 'magia']]];
+                  ['Rellenar y borrar', ['balde', 'textura', 'borrador', 'magia']],
+                  ['Escribir y marcar', ['pluma', 'teclado', 'boligrafo', 'resaltador']]];
   for (const [gname, ids] of GROUPS) {
     const list = ids.map(B).filter(b => !(isText() && TEXT_OFF.includes(b.id)) && !(page && page.nobucket && (b.id === 'balde' || b.id === 'textura' || b.id === 'degradado')));
     if (!list.length) continue;
@@ -342,7 +341,7 @@ function buildColors() {
   const extra = recent.filter(c => !COLORS.some(k => k[1].toLowerCase() === c.toLowerCase()));
   const gl = document.createElement('div'); gl.className = 'glabel'; gl.textContent = extra.length ? 'Otros colores y usados hace poco' : 'Otro color'; row.appendChild(gl);
   const wh = document.createElement('button'); wh.className = 'tool wheel'; wh.title = 'Otro color'; wh.setAttribute('aria-label', 'Elegir otro color');
-  wh.onclick = () => { const p = $('#colorPick'); p.value = color; p.click(); }; row.appendChild(wh);
+  wh.onclick = () => { const p = $('#colorPick'); p.value = color; setTimeout(closeSheet, 80); p.click(); }; row.appendChild(wh);
   const gt = document.createElement('button'); gt.className = 'tool drop'; gt.title = 'Cuentagotas: tomar un color de la lámina'; gt.setAttribute('aria-label', 'Cuentagotas');
   gt.setAttribute('aria-pressed', brush === 'gotero');
   gt.innerHTML = '<svg viewBox="0 0 24 24"><path d="m14 4 6 6M12 6l6 6-9 9H3v-6z"/></svg><span>Cuentagotas</span>';
@@ -393,6 +392,7 @@ for (const [id, key, out, suf] of [['#sSize', 'size', '#oSize', ''], ['#sOpa', '
   $(id).addEventListener('input', e => {
     settings[brush] = Object.assign({}, settings[brush], { [key]: +e.target.value }); store.set('settings', settings);
     $(out).textContent = e.target.value + suf;
+    if (key === 'size') updateDock();
   });
   if (key === 'size') $(id).addEventListener('change', () => { if (brush === 'textura') buildTex(); });
 }
@@ -936,7 +936,7 @@ function startStroke(e) {
     }, 45);
   }
   cLive.style.opacity = (stroke.brush === 'borrador' ? 0 : s.opa / 100);
-  cLive.style.mixBlendMode = stroke.brush === 'acuarela' ? 'multiply' : 'normal'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';   // se ve igual que como queda, también encima de texturas y fotos oscuras
+  cLive.style.mixBlendMode = 'normal'; cLive.style.zIndex = stroke.layer === 'ink' ? '4' : '';   // source-over: siempre encima, incluido sobre texturas oscuras
   cLive.style.filter = '';
   if (stroke.brush === 'acuarela') { WC.x.clearRect(0, 0, W, H); stroke.wc = true; }
   if (brush === 'borrador') stroke.snap = snapLayers(stroke.layer);
@@ -1032,7 +1032,17 @@ function endStroke() {
     const grp = []; for (const k in st.snap) grp.push({ layer: k, x: x0, y: y0, data: st.snap[k].getContext('2d').getImageData(x0, y0, w, h) });
     if (st.msnap) { grp.push({ layer: 'wipe', x: x0, y: y0, data: st.msnap.getContext('2d').getImageData(x0, y0, w, h) }); wipeUsed = true; }
     undo.push(grp.length === 1 ? grp[0] : { group: grp }); if (undo.length > 30) undo.shift();
-    redo.length = 0; xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = ''; queueSave(); return;
+    redo.length = 0; xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = '';
+    if (st.magic && Object.keys(texts).length) {
+      let changed = false;
+      for (const key of Object.keys(texts)) {
+        const r = zoneRect(key); if (!r) continue;
+        const rx0 = r[0] * PT, ry0 = r[1] * PT, rx1 = r[2] * PT, ry1 = r[3] * PT;
+        if (rx1 >= x0 && rx0 <= x1 && ry1 >= y0 && ry0 <= y1) { delete texts[key]; changed = true; }
+      }
+      if (changed) { renderTexts(); store.set('texts', texts); }
+    }
+    queueSave(); return;
   }
   if (w > 0 && h > 0) {
     if (st.layer === 'both') {
@@ -1043,7 +1053,6 @@ function endStroke() {
     pushUndo(st.layer, x0, y0, w, h);
     ctx.save();
     if (st.brush === 'borrador') ctx.globalCompositeOperation = 'destination-out';
-    else if (st.brush === 'acuarela') { ctx.globalCompositeOperation = 'multiply'; }
     ctx.globalAlpha = st.brush === 'borrador' ? st.s.opa / 100 : st.s.opa / 100;
     ctx.drawImage(cLive, x0, y0, w, h, x0, y0, w, h);
     ctx.restore();
@@ -1943,7 +1952,7 @@ async function shareLayers(s) {
   x.fillText('Atlas Muscular · Digital Coloring Book · © Balanced Body', W / 2, H - 14); x.restore();
   for (const [key, v] of Object.entries(texts)) {
     const r = zoneRect(key); if (!r) continue; const hpt = (r[3] - r[1]) * PT;
-    x.fillStyle = '#1F3B73'; x.font = `600 ${key[0] === 'c' ? hpt * .75 : Math.min(hpt * .62, 40)}px Caveat, cursive`;
+    x.fillStyle = '#1F3B73'; x.font = `500 ${key[0] === 'c' ? hpt * .75 : Math.min(hpt * .62, 40)}px Caveat, cursive`;
     x.textBaseline = 'middle'; x.textAlign = key[0] === 'c' ? 'center' : 'left';
     x.fillText(v, key[0] === 'c' ? (r[0] + r[2]) * PT / 2 : r[0] * PT + 8, (r[1] + r[3]) * PT / 2, (r[2] - r[0]) * PT - 12);
   }
@@ -2368,7 +2377,7 @@ $('#btnShare').onclick = async () => {
   if (!SH.passed) { const rv = reviewArt(); if (rv.block.length || rv.tips.length) { showReview(rv); return; } toast('¡Quedó preciosa! Elija cómo compartirla'); checkDone(true); }
   SH.passed = false;
   await saveNow(); SH.cache = {}; SH.ready = null; $('#sgYes').textContent = 'Compartir mi obra';
-  try { await Promise.all([document.fonts.load('700 40px Caveat'), document.fonts.load('700 30px Montserrat'), document.fonts.load('italic 900 40px Montserrat')]); } catch (e) {}
+  try { await Promise.all([document.fonts.load('500 40px Caveat'), document.fonts.load('700 40px Caveat'), document.fonts.load('700 30px Montserrat'), document.fonts.load('italic 900 40px Montserrat')]); } catch (e) {}
   const grid = $('#sgGrid'); grid.innerHTML = '';
   for (const [k, t, d] of SHARE_STYLES) {
     const b = document.createElement('button'); b.className = 'sgc' + (k === SH.style ? ' on' : ''); b.dataset.k = k;
