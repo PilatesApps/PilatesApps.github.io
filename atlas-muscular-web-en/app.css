@@ -441,6 +441,7 @@ body.hand #viewport{cursor:grab}
 .card.reto .rtth{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(160deg,#FFF4D1,#FDE4EC);aspect-ratio:153/198}
 .card.reto .rtth b{font-size:34px}.card.reto .rtth em{font-style:normal;font-weight:700;font-size:13px;color:#9A7414}.card.reto .rtth small{font-size:11px;color:#7A8698}
 .card.reto.won .rtth{background:linear-gradient(160deg,#ECF8EF,#FFF4D1)}
+.card.reto.coming-soon{opacity:.55;filter:grayscale(.6);cursor:default;pointer-events:none}
 .hsec.locked .cards{opacity:.45;filter:grayscale(.7)}
 .hsec.locked h2::after{content:"🔒";margin-left:6px}
 .hmodo{margin:4px 0 18px;padding:12px;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1px #E3E1DB}

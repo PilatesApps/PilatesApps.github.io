@@ -516,7 +516,7 @@ async function openPage(n) {
     let retoAbierto = false;
     for (let k = 1; k < si; k++) {
       const [, , a, b] = SECTIONS[k]; const [d, t] = plateCount(a, b);
-      if (!RETO.aprobado(k) && RETO.U[k]) { setTimeout(() => RETO.abrir(k), 100); retoAbierto = true; break; }
+      if (!RETO.aprobado(k) && RETO.U[k]) { retoAbierto = true; break; } // challenge disabled (coming soon)
     }
     if (!retoAbierto) toast('Progressive mode: complete the previous unit and pass its challenge to open this one');
     if (page) return; n = 1;
@@ -1325,9 +1325,9 @@ async function buildHome() {
     }
     const ui = SECTIONS.indexOf(SECTIONS.find(s => s[0] === t));
     if (RETO.U[ui]) {
-      const rr = (store.get('reto', {})[ui]) || {}, rb = document.createElement('button'); rb.className = 'card reto' + (rr.ok ? ' won' : '');
-      rb.innerHTML = `<span class="th rtth"><b>${rr.ok ? '⭐' : '🏆'}</b><em>${rr.ok ? 'Passed' : 'Challenge'}</em>${rr.mejor ? `<small>${rr.mejor}%</small>` : ''}</span><span class="t">Challenge · ${t}</span>`;
-      rb.onclick = () => RETO.abrir(ui); cards.appendChild(rb);
+      const rb = document.createElement('div'); rb.className = 'card reto coming-soon';
+      rb.innerHTML = `<span class="th rtth"><b>🏆</b><em>Challenge</em><small>Coming Soon</small></span><span class="t">Challenge · ${t}</span>`;
+      cards.appendChild(rb);
     }
     if (!RETO.unidadAbierta(a)) { sec.classList.add('locked'); cards.querySelectorAll('.card').forEach(c => { c.onclick = () => toast('Progressive mode: complete the previous unit and pass its challenge to open this one'); }); }
     sec.appendChild(cards); g.appendChild(sec);
@@ -1539,7 +1539,7 @@ $('#btnNext').onclick = () => {
     if (si > 0) {
       const [, , , lastPage] = SECTIONS[si];
       if (cur === lastPage && RETO.U[si] && !RETO.aprobado(si)) {
-        setTimeout(() => RETO.abrir(si), 100);
+        // challenge disabled (coming soon) — setTimeout(() => RETO.abrir(si), 100);
         return;
       }
     }
