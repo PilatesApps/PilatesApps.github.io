@@ -1138,7 +1138,7 @@ function choosePhoto() {
       const c = document.createElement('canvas'); c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
       const b = await new Promise(ok => c.toBlob(ok, 'image/jpeg', .86)); await idbSet('foto', b); texPhoto = c; texPhotoTry = true;
       texId = 'foto'; store.set('tex', texId); buildTex(); toast('Photo ready: tap the part you want to fill');
-    } catch (e) { toast('No se pudo abrir esa foto'); }
+    } catch (e) { toast('Could not open that photo'); }
   };
   inp.click();
 }
@@ -1193,9 +1193,9 @@ async function texFill(x, y) {
 
 function pickColor(x, y) {
   const d = xColor.getImageData(x | 0, y | 0, 1, 1).data;
-  if (d[3] < 10) { toast('Ahí no hay color todavía'); return; }
+  if (d[3] < 10) { toast('No color here yet'); return; }
   const hex = '#' + [d[0], d[1], d[2]].map(v => v.toString(16).padStart(2, '0')).join('');
-  brush = (prevBrush && prevBrush !== 'gotero' && prevBrush !== 'borrador') ? prevBrush : 'marcador'; prevBrush = null; store.set('brush', brush); setColor(hex); buildBrushes(); syncSliders(); updateDock(); toast('Color tomado');
+  brush = (prevBrush && prevBrush !== 'gotero' && prevBrush !== 'borrador') ? prevBrush : 'marcador'; prevBrush = null; store.set('brush', brush); setColor(hex); buildBrushes(); syncSliders(); updateDock(); toast('Color picked');
 }
 
 /* deshacer y rehacer por recuadro */
@@ -1222,7 +1222,7 @@ let wipeStep = 0;
 const WIPE = ['This will erase <b>the whole book</b>: everything painted and written on <b>all plates</b>. Do you want to continue?',
   'Are you sure? <b>This cannot be undone.</b> All your plates will be blank.',
   'Final confirmation: tap <b>Erase everything</b> to leave the whole book blank.'];
-function wipeRender() { $('#wipeText').innerHTML = WIPE[wipeStep]; $('#wipeSteps').innerHTML = WIPE.map((_, i) => `<i class="${i <= wipeStep ? 'on' : ''}"></i>`).join(''); $('#wipeYes').textContent = wipeStep < 2 ? `Confirmar (${wipeStep + 1} de 3)` : 'Borrar todo'; }
+function wipeRender() { $('#wipeText').innerHTML = WIPE[wipeStep]; $('#wipeSteps').innerHTML = WIPE.map((_, i) => `<i class="${i <= wipeStep ? 'on' : ''}"></i>`).join(''); $('#wipeYes').textContent = wipeStep < 2 ? `Confirm (${wipeStep + 1} of 3)` : 'Erase everything'; }
 $('#btnWipeAll').onclick = () => { wipeStep = 0; wipeRender(); $('#wipeBox').hidden = false; };
 $('#wipeNo').onclick = () => { $('#wipeBox').hidden = true; };
 $('#wipeYes').onclick = async () => {
@@ -1245,7 +1245,7 @@ $('#btnRedo').onclick = () => swap(redo, undo);
 /* ---------------- escribir con teclado ---------------- */
 let kbdZone = null;
 function openKeyboard(x, y) {
-  const wz = writeZoneAt(x, y); if (!wz) { toast('Toca un cuadrito o una bolita para escribir'); return; }
+  const wz = writeZoneAt(x, y); if (!wz) { toast('Tap a small box or circle to write'); return; }
   kbdZone = wz.kind + wz.i; $('#kbdText').value = texts[kbdZone] || ''; $('#kbd').hidden = false; $('#kbdText').focus();
 }
 function closeKeyboard() {
@@ -1444,7 +1444,7 @@ viewport.addEventListener('pointerdown', e => {
   if (document.body.classList.contains('sheet')) { closeSheet(); return; }
   if (e.target.closest('#toast')) return;
   const hs = e.target.closest('#hot a');
-  if (hs) { const n = +hs.dataset.n; if (n) openPage(n); else toast('Disponible en la próxima versión'); return; }
+  if (hs) { const n = +hs.dataset.n; if (n) openPage(n); else toast('Available in the next version'); return; }
   viewport.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
@@ -1458,7 +1458,7 @@ viewport.addEventListener('pointerdown', e => {
   const drawing = page && !onHot;
   if (e.pointerType === 'mouse' && (e.button === 1 || e.button === 2 || e.altKey || spaceDown)) { e.preventDefault(); swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now(), pan: true }; return; }
   if (location.hash === '#mapa' && labels && page.plate) { const [mx2, my2] = toPage(e), Lz = labelAt(mx2, my2); const nm = ((MAP[cur] || {}).zones || {})[Lz];
-    toast(Lz ? (nm ? `Zona ${Lz}: ${nm}` : `Zona ${Lz}: sin nombre todavía`) : 'Línea negra'); if (Lz && Lz !== page.bg) flashZones([Lz]); return; }
+    toast(Lz ? (nm ? `Zone ${Lz}: ${nm}` : `Zone ${Lz}: no name yet`) : 'Black line'); if (Lz && Lz !== page.bg) flashZones([Lz]); return; }
   if (hand) { swipe = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, t: Date.now(), pan: true }; return; }
   if (drawing) {
     if (e.pointerType === 'touch') { pend = { ev: snapEv(e), moves: [], far: false, multi: false }; pend.t = setTimeout(() => firePend(false), 120); }
@@ -1490,7 +1490,7 @@ viewport.addEventListener('pointermove', e => {
 function up(e) {
   pointers.delete(e.pointerId);
   if (pend && e.pointerId === pend.ev.pointerId) { firePend(true); if (stroke && e.pointerId === stroke.id) endStroke(); return; }
-  if (gesture) { if (pointers.size < 2) { if (!gesture.moved && Date.now() - gesture.t < 300) { swap(undo, redo); toast('Deshecho'); } gesture = null; } return; }
+  if (gesture) { if (pointers.size < 2) { if (!gesture.moved && Date.now() - gesture.t < 300) { swap(undo, redo); toast('Undone'); } gesture = null; } return; }
   if (stroke && e.pointerId === stroke.id) endStroke();
   if (swipe) {
     const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
@@ -1712,9 +1712,9 @@ const RETO = (() => {
   async function origenInsercion(r) {
     const base = `reto/u${S.u}_${r.img}_`;
     const n = U[S.u].lamina;
-    html(`<p class="rtst">Where it comes from and where it goes</p><p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Draw on the page to mark.</p>`);
+    html(`<p class="rtst">Where it comes from and where it goes</p><p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Draw on the bone to mark.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, mk] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(base + 'marcas.png')]);
+    const [im, mk] = await Promise.all([loadImg(base + 'hueso.jpg'), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
@@ -1781,11 +1781,11 @@ const RETO = (() => {
     const r = R(); const prev = r[S.u] || {}; r[S.u] = { ok: prev.ok || pasa, mejor: Math.max(prev.mejor || 0, pct), fecha: Date.now() }; store.set('reto', r);
     box().querySelector('.rthead').innerHTML = `<b>Challenge · ${U[S.u].unidad}</b>`;
     if (pasa) {
-      html(`<div class="rtfin ok"><div class="rtconf"></div><div class="rtstar">⭐</div><h3>Congratulations!</h3><p class="rtbigtxt">${ok} de ${tot}</p><p>You already know <b>${U[S.u].titulo}</b>: you know where each one lives, where it comes from and where it goes.</p><p class="rtsmall">You are ready to build them with your hands!</p><button class="pill on rtok">Keep going!</button></div>`);
+      html(`<div class="rtfin ok"><div class="rtconf"></div><div class="rtstar">⭐</div><h3>Congratulations!</h3><p class="rtbigtxt">${ok} out of ${tot}</p><p>You already know <b>${U[S.u].titulo}</b>: you know where each one lives, where it comes from and where it goes.</p><p class="rtsmall">You are ready to build them with your hands!</p><button class="pill on rtok">Keep going!</button></div>`);
       const cf = box().querySelector('.rtconf'); for (let i = 0; i < 60; i++) { const e = document.createElement('i'); e.style.left = Math.random() * 100 + '%'; e.style.background = ['#E0457B', '#F2C230', '#2EC4B6', '#3A86FF', '#8AC926'][i % 5]; e.style.animationDelay = Math.random() * .8 + 's'; cf.appendChild(e); }
       buzz(60);
     } else {
-      html(`<div class="rtfin"><div class="rtstar">💪</div><h3>Almost there!</h3><p class="rtbigtxt">${ok} de ${tot}</p><p>You need 80% (${Math.ceil(tot * .8)} of ${tot}). Review the card and the plates and try again: each attempt teaches you something new.</p><button class="pill on rtre">Try again</button><button class="pill rtok">Back to book</button></div>`);
+      html(`<div class="rtfin"><div class="rtstar">💪</div><h3>Almost there!</h3><p class="rtbigtxt">${ok} out of ${tot}</p><p>You need 80% (${Math.ceil(tot * .8)} of ${tot}). Review the card and the plates and try again: each attempt teaches you something new.</p><button class="pill on rtre">Try again</button><button class="pill rtok">Back to book</button></div>`);
       box().querySelector('.rtre').onclick = () => empezar(S.u);
     }
     box().querySelector('.rtok').onclick = cerrar;
