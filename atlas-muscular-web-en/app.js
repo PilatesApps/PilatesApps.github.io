@@ -1326,7 +1326,7 @@ async function buildHome() {
     const ui = SECTIONS.indexOf(SECTIONS.find(s => s[0] === t));
     if (RETO.U[ui]) {
       const rr = (store.get('reto', {})[ui]) || {}, rb = document.createElement('button'); rb.className = 'card reto' + (rr.ok ? ' won' : '');
-      rb.innerHTML = `<span class="th rtth"><b>${rr.ok ? '⭐' : '🏆'}</b><em>${rr.ok ? 'Aprobado' : 'Reto'}</em>${rr.mejor ? `<small>${rr.mejor}%</small>` : ''}</span><span class="t">Challenge · ${t}</span>`;
+      rb.innerHTML = `<span class="th rtth"><b>${rr.ok ? '⭐' : '🏆'}</b><em>${rr.ok ? 'Passed' : 'Challenge'}</em>${rr.mejor ? `<small>${rr.mejor}%</small>` : ''}</span><span class="t">Challenge · ${t}</span>`;
       rb.onclick = () => RETO.abrir(ui); cards.appendChild(rb);
     }
     if (!RETO.unidadAbierta(a)) { sec.classList.add('locked'); cards.querySelectorAll('.card').forEach(c => { c.onclick = () => toast('Progressive mode: complete the previous unit and pass its challenge to open this one'); }); }
