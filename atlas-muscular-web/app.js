@@ -2696,7 +2696,12 @@ async function start() {
   await openPage(store.get('page', 1));
   if (!store.get('guided', false)) showGuide();
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(reg => { reg.update(); }).catch(() => {});
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      reg.update();
+      const kick = w => { if (!w) return; if (w.state === 'installed') w.postMessage({type:'SKIP_WAITING'}); else w.addEventListener('statechange', () => { if (w.state === 'installed') w.postMessage({type:'SKIP_WAITING'}); }); };
+      if (reg.waiting) kick(reg.waiting);
+      reg.addEventListener('updatefound', () => kick(reg.installing));
+    }).catch(() => {});
     let swUpdated = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (swUpdated) return; swUpdated = true;
