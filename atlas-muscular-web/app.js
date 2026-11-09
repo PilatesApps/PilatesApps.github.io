@@ -1612,8 +1612,8 @@ const RETO = (() => {
     1: {
       titulo: 'La Liga del Calabozo Pélvico', unidad: 'Unidad 1', lamina: 9, ultima: 16,
       retos: [
-        { t: 'toca', m: 'el piriforme' }, { t: 'toca', m: 'el obturador interno' }, { t: 'toca', m: 'el gemelo superior' },
-        { t: 'toca', m: 'el gemelo inferior' }, { t: 'toca', m: 'el cuadrado femoral' }, { t: 'toca', m: 'el obturador externo' },
+        { t: 'toca', m: 'el piriforme', img: 6 }, { t: 'toca', m: 'el obturador interno', img: 2 }, { t: 'toca', m: 'el gemelo superior', img: 3 },
+        { t: 'toca', m: 'el gemelo inferior', img: 4 }, { t: 'toca', m: 'el cuadrado femoral', img: 5 }, { t: 'toca', m: 'el obturador externo', img: 1 },
         { t: 'oi', m: 'el piriforme', img: 6, no: 'la cara anterior del sacro', ni: 'el borde superior del trocánter mayor' },
         { t: 'oi', m: 'el obturador interno', img: 2, no: 'la cara interna del foramen obturador', ni: 'la cara medial del trocánter mayor' },
         { t: 'oi', m: 'el gemelo superior', img: 3, no: 'la espina isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
@@ -1688,7 +1688,7 @@ const RETO = (() => {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
     html(`<p class="rtst">Encuentre al músculo</p><p class="rtq">Toque <b>${r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, li] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
+    const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_hueso.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
     const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
     cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
     const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);

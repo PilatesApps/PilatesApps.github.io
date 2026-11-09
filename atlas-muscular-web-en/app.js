@@ -1713,7 +1713,7 @@ const RETO = (() => {
     const base = `reto/u${S.u}_${r.img}_`;
     html(`<p class="rtst">Where it comes from and where it goes</p><p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Posterolateral view, as in your book. Draw on the bone to mark.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, mk] = await Promise.all([loadImg(base + 'huellas.jpg'), loadImg(base + 'marcas.png')]);
+    const [im, mk] = await Promise.all([loadImg(base + 'hueso.jpg'), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
