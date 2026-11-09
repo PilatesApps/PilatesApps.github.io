@@ -343,7 +343,7 @@ function buildColors() {
   }
 }
 $('#colorPick').addEventListener('input', e => setColor(e.target.value));
-document.addEventListener('click', e => { if (e.target.closest('#colorRow .sw')) { updateDock(); if (window.innerWidth < 900) setTimeout(closeSheet, 150); } });
+document.addEventListener('click', e => { if (e.target.closest('#colorRow .sw')) { updateDock(); setTimeout(closeSheet, 150); } });
 $('#dkTool').onclick = () => openSheet('tool');
 $('#dkColor').onclick = () => openSheet('color');
 $('#dkMore').onclick = () => openSheet('more');
