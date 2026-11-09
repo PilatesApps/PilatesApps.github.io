@@ -354,6 +354,7 @@ function buildColors() {
   }
 }
 $('#colorPick').addEventListener('input', e => setColor(e.target.value));
+$('#colorPick').addEventListener('change', () => setTimeout(closeSheet, 150));
 document.addEventListener('click', e => { if (e.target.closest('#colorRow .sw')) { updateDock(); setTimeout(closeSheet, 150); } });
 $('#dkTool').onclick = () => openSheet('tool');
 $('#dkColor').onclick = () => openSheet('color');
@@ -1519,7 +1520,20 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; viewport.style.cursor = ''; } });
 $('#btnPrev').onclick = () => openPage(cur - 1);
-$('#btnNext').onclick = () => openPage(cur + 1);
+$('#btnNext').onclick = () => {
+  // En modo progresivo: si estamos en la última página de una unidad que tiene reto, mostrar el reto antes de avanzar
+  if (store.get('modo', 'libre') === 'progresivo' && typeof RETO !== 'undefined' && META.length) {
+    const si = SECTIONS.findIndex(([, , a, b]) => cur >= a && cur <= b);
+    if (si > 0) {
+      const [, , , lastPage] = SECTIONS[si];
+      if (cur === lastPage && RETO.U[si] && !RETO.aprobado(si)) {
+        setTimeout(() => RETO.abrir(si), 100);
+        return;
+      }
+    }
+  }
+  openPage(cur + 1);
+};
 
 
 /* ---------------- guardado (IndexedDB) ---------------- */
@@ -2122,8 +2136,8 @@ function tinted(img, color) { const c = mkC(img.width, img.height), t = c.getCon
 /* pie: logo y nombre del libro, centrados; engraved = tallado en madera */
 function caption(x, cx, cy, maxW, s, col, mode) {
   const L1 = 'ATLAS MUSCULAR', L2 = 'DIGITAL COLORING BOOK', L3 = 'Edición Digital 2026';
-  let f1 = 22 * s, f2 = 15 * s; const lh = 38 * s, logo = SH.logo, lw = logo ? lh * logo.width / logo.height : 0, gap = 26 * s;
-  const meas = () => { x.font = `700 ${f1}px Montserrat, sans-serif`; const a = Math.max(x.measureText(L1).width, x.measureText(L2).width); x.font = `500 ${f2}px Montserrat, sans-serif`; return Math.max(a, x.measureText(L3).width); };
+  let f1 = 26 * s, f2 = 11 * s; const lh = 40 * s, logo = SH.logo, lw = logo ? lh * logo.width / logo.height : 0, gap = 26 * s;
+  const meas = () => { x.font = `700 ${f1}px Montserrat, sans-serif`; const a = Math.max(x.measureText(L1).width, x.measureText(L2).width); x.font = `400 ${f2}px Montserrat, sans-serif`; return Math.max(a, x.measureText(L3).width); };
   let tw = meas(); while (lw + gap + tw > maxW && f1 > 6) { f1 *= 0.94; f2 *= 0.94; tw = meas(); }
   /* logo hacia la izquierda, texto hacia la derecha, ambos con margen interior */
   const x0 = cx - maxW / 2 + gap / 2, xr = cx + maxW / 2 - gap / 2;
@@ -2131,9 +2145,11 @@ function caption(x, cx, cy, maxW, s, col, mode) {
     x.save(); x.globalAlpha = a; x.translate(dx, dy);
     if (logo) x.drawImage(tinted(logo, c), x0, cy - lh / 2, lw, lh);
     x.fillStyle = c; x.textAlign = 'right'; x.textBaseline = 'alphabetic';
-    x.font = `700 ${f1}px Montserrat, sans-serif`; x.fillText(L1, xr, cy - f2 - 2 * s);
-    x.fillText(L2, xr, cy + 2 * s);
-    x.font = `500 ${f2}px Montserrat, sans-serif`; x.fillText(L3, xr, cy + f2 + f1 * 0.3 + 4 * s); x.restore();
+    x.font = `700 ${f1}px Montserrat, sans-serif`;
+    x.fillText(L1, xr, cy - f1 * 0.65);
+    x.fillText(L2, xr, cy + f1 * 0.55);
+    x.font = `400 ${f2}px Montserrat, sans-serif`;
+    x.globalAlpha = a * 0.60; x.fillText(L3, xr, cy + f1 * 0.55 + f2 * 1.9); x.restore();
   };
   if (mode === 'engraved') { draw(0, 1.6 * s, 'rgba(255,232,190,1)', 0.35); draw(0, 0, col, 0.82); }
   else draw(0, 0, col, 1);
@@ -2329,10 +2345,15 @@ function scenePhoto(art, s) {
 }
 /* lo que se comparte: solo la obra con un borde fino (la escena es para elegir el estilo) */
 function shareBorder(art) {
-  const w = art.width, h = art.height, b = Math.round(Math.max(w, h) * .025), k = w / 1224, foot = Math.round(120 * k), c = mkC(w + 2 * b, h + 2 * b + foot), x = c.getContext('2d');
+  const w = art.width, h = art.height, b = Math.round(Math.max(w, h) * .025), k = w / 1224, foot = Math.round(150 * k), c = mkC(w + 2 * b, h + 2 * b + foot), x = c.getContext('2d');
   x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, c.width, c.height); x.drawImage(art, b, b);
   x.strokeStyle = 'rgba(63,74,87,.25)'; x.lineWidth = 1.5; x.strokeRect(b - .75, b - .75, w + 1.5, h + 1.5);
-  caption(x, c.width / 2, b + h + foot * .55, w * .9, k * 1.1, '#3F4A57');   // pie: logo, Atlas Muscular, Anatomía + Movimiento, Edición Digital 2026
+  // marca de agua: fecha y hora compartida (esquina superior derecha, dentro del arte)
+  const now = new Date(), pad = n => String(n).padStart(2, '0');
+  const hh = now.getHours(), mm = now.getMinutes(), ampm = hh >= 12 ? 'p.m.' : 'a.m.';
+  const ts = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} · ${pad(hh > 12 ? hh - 12 : hh || 12)}:${pad(mm)} ${ampm}`;
+  const tf = Math.round(14 * k); x.save(); x.font = `400 ${tf}px Montserrat, sans-serif`; x.fillStyle = 'rgba(63,74,87,.28)'; x.textAlign = 'right'; x.textBaseline = 'top'; x.fillText(ts, b + w - 14 * k, b + 12 * k); x.restore();
+  caption(x, c.width / 2, b + h + foot * .52, w * .9, k * 1.1, '#3F4A57');
   return c;
 }
 async function shareRender(st, s, final) {
@@ -2653,7 +2674,18 @@ async function start() {
   buildBrushes(); buildColors(); syncSliders(); syncTape(); updateDock();
   await openPage(store.get('page', 1));
   if (!store.get('guided', false)) showGuide();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => { reg.update(); }).catch(() => {});
+    let swUpdated = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (swUpdated) return; swUpdated = true;
+      const bar = document.createElement('div');
+      bar.textContent = '✦ Nueva versión lista — toque para actualizar';
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1A6FFF;color:#fff;text-align:center;padding:14px 16px;font:600 15px/1.4 system-ui,sans-serif;cursor:pointer;letter-spacing:.02em';
+      bar.onclick = () => location.reload();
+      document.body.appendChild(bar);
+    });
+  }
   setupInstall();
 }
 new ResizeObserver(() => { const ph = stage.style.height; $('#texts').style.setProperty('--ph', ph); }).observe(stage);
