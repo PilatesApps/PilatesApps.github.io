@@ -280,6 +280,7 @@ function updateDock() {
   sw.classList.toggle('erase', er); sw.style.background = er ? '' : c;
   sw.innerHTML = er ? '<svg viewBox="0 0 24 24"><path d="M7 21h10M5.5 15.5l8-8a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L12 19H8z"/><path d="m9.5 11.5 5 5"/></svg>' : '';
   const lb = document.getElementById('dkColorName'); if (lb) lb.textContent = er ? 'Borrando' : 'Color';
+  const szBadge = document.getElementById('dkSz'); if (szBadge) { const sz = S().size; szBadge.textContent = sz > 0 ? sz : ''; szBadge.hidden = sz === 0; }
 }
 function openSheet(sec) {
   const b = document.body;
@@ -287,6 +288,16 @@ function openSheet(sec) {
   b.dataset.sheet = sec; b.classList.add('sheet');
   document.querySelectorAll('.dk').forEach(d => d.classList.toggle('on', d.id === 'dk' + sec[0].toUpperCase() + sec.slice(1)));
   $('#tools').scrollTop = 0;
+  // Primera vez que abre herramientas: flash rápido al sliderRow para que se note
+  if (sec === 'tool' && !store.get('shownSliders')) {
+    store.set('shownSliders', true);
+    setTimeout(() => {
+      const sr = $('#sliderRow'); if (!sr) return;
+      sr.classList.add('slider-pulse');
+      sr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setTimeout(() => { $('#tools').scrollTop = 0; sr.classList.remove('slider-pulse'); }, 1200);
+    }, 400);
+  }
 }
 function closeSheet() { document.body.classList.remove('sheet'); document.querySelectorAll('.dk').forEach(d => d.classList.remove('on')); }
 function buildBrushes() {
@@ -496,7 +507,17 @@ function pageFlip(fwd) {
 }
 async function openPage(n) {
   n = Math.max(1, Math.min(N, n));
-  if (typeof RETO !== 'undefined' && META.length && !RETO.unidadAbierta(n)) { toast('Modo progresivo: complete la unidad anterior y apruebe su reto para abrir esta'); if (page) return; n = 1; }
+  if (typeof RETO !== 'undefined' && META.length && !RETO.unidadAbierta(n)) {
+    // En modo progresivo: abrir el reto de la unidad que lo bloquea, en vez de solo mostrar toast
+    const si = SECTIONS.findIndex(([, , a, b]) => n >= a && n <= b);
+    let retoAbierto = false;
+    for (let k = 1; k < si; k++) {
+      const [, , a, b] = SECTIONS[k]; const [d, t] = plateCount(a, b);
+      if (!RETO.aprobado(k) && RETO.U[k]) { setTimeout(() => RETO.abrir(k), 100); retoAbierto = true; break; }
+    }
+    if (!retoAbierto) toast('Modo progresivo: complete la unidad anterior y apruebe su reto para abrir esta');
+    if (page) return; n = 1;
+  }
   if (page && n !== cur) { try { checkDone(true); } catch (e) {} }
   await saveNow();
   if (n !== cur && META.length) { SFX.blip('page'); buzz(8); if (page) pageFlip(n > cur); }
@@ -1027,6 +1048,7 @@ function endStroke() {
     ctx.restore();
   }
   xLive.clearRect(0, 0, W, H); cLive.style.opacity = 1; cLive.style.filter = '';
+  try { checkDone(true); } catch(e) {}
   queueSave();
 }
 function cancelStroke() { SFX.stop(); if (stroke) { if (stroke.hold) clearInterval(stroke.hold); stroke = null; xLive.clearRect(0, 0, W, H); } }
@@ -1313,6 +1335,7 @@ async function idbKeys() { try { const d = await db(); return await new Promise(
 /* ---------------- guía de primer uso ---------------- */
 const GUIDE = [
   ['<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>', 'Elija y pinte', 'Abajo toque <b>la herramienta</b> y <b>el color</b>. Con <b>No salirme</b> encendido, el color se queda dentro de la parte que empezó a pintar: un músculo, un tendón, un hueso o un segmento.'],
+  ['<circle cx="6" cy="12" r="2.5"/><line x1="9" y1="12" x2="22" y2="12"/><circle cx="18" cy="6" r="2.5"/><line x1="2" y1="6" x2="15" y2="6"/><circle cx="10" cy="18" r="2.5"/><line x1="2" y1="18" x2="7" y2="18"/><line x1="13" y1="18" x2="22" y2="18"/>', 'Grosor, opacidad y dureza', 'Dentro del panel de herramientas, <b>deslice hacia abajo</b> para ver tres controles: <b>Grosor</b> (línea fina o gruesa), <b>Opacidad</b> (transparente u opaco) y <b>Dureza</b> (borde suave o definido). Ajústelos antes de pintar para lograr exactamente el efecto que busca.'],
   ['<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>', 'Acerque y mueva la lámina', 'Abra dos dedos para ampliar y arrástrelos para mover la lámina: mientras usa dos dedos <b>no se pinta nada</b>. También tiene, arriba a la derecha, <b>la lupa</b> para ampliar o reducir y <b>la mano</b> para mover la lámina con un dedo, arriba, abajo y de lado. Toque la mano otra vez para volver a pintar.'],
   ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'Todas sus láminas', 'Deslice de lado o use <b>Anterior</b> y <b>Siguiente</b>, arriba de la lámina. Toque <b>el número de página</b> para ver todas las láminas y lo que ya pintó.'],
   ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Música para pintar', 'Toque <b>la nota musical</b> y elija la música que lo acompaña mientras colorea. Suena dentro de la app, también sin internet.'],
@@ -1769,11 +1792,20 @@ function reviewArt() {
     }
   }
   const miss = [], part = [], sp = [];
+  let totalArea = 0, totalPnt = 0;
   for (let L = 1; L < n; L++) {
-    if (skip[L]) continue; const cov = pnt[L] / area[L];
+    if (skip[L]) continue;
+    totalArea += area[L]; totalPnt += pnt[L];
+    const cov = pnt[L] / area[L];
     if (cov < 0.15) miss.push(L); else if (cov < 0.88) part.push(L);
     else if (spill[L] / area[L] > 0.05) sp.push(L);
   }
+  // Bloqueo único: menos del 50% de la lámina pintada en total
+  if (totalArea > 0 && totalPnt / totalArea < 0.50) {
+    const pct = Math.round(totalPnt / totalArea * 100);
+    rv.block.push(`Pinte al menos el <b>50%</b> de la lámina para compartirla. Lleva el <b>${pct}%</b>.`);
+  }
+  rv.zones = miss.concat(part, sp);
   const pl = (k, a, b) => k === 1 ? a : b.replace('#', k);
   const zn = (MAP[cur] || {}).zones || {}, mus = new Set((MAP[cur] || {}).muscles || []);
   // con el Mapa de músculos se nombra cada parte: primero los músculos, luego los huesos
@@ -1784,13 +1816,13 @@ function reviewArt() {
     const extra = nm.length > 4 ? nm.length - 3 : 0, lst = (extra ? nm.slice(0, 3) : nm).map(t => `<b>${t}</b>`).concat(extra ? [`${extra} partes más`] : []), txt = lst.length > 1 ? lst.slice(0, -1).join(', ') + ' y ' + lst.at(-1) : lst[0];
     return rest ? `${txt} (y ${pl(rest, '1 parte pequeña', '# partes pequeñas')})` : txt; };
   const nMiss = named(miss), nPart = named(part), nSp = named(sp);
-  if (nMiss) rv.block.push(`Le falta pintar ${nMiss}.`);
-  else if (miss.length) rv.block.push(pl(miss.length, 'Le falta pintar <b>1 parte</b> de la lámina.', 'Le faltan por pintar <b>#</b> partes de la lámina.'));
-  if (nPart) rv.block.push(`Quedó a medio pintar ${nPart}: lleve el color hasta las líneas negras.`);
-  else if (part.length) rv.block.push(pl(part.length, '<b>1 parte</b> quedó a medio pintar: lleve el color hasta las líneas negras.', '<b>#</b> partes quedaron a medio pintar: lleve el color hasta las líneas negras.'));
-  if (nSp) rv.block.push(`En ${nSp} el color se pasó a la parte vecina. Límpielo con el borrador o encienda <b>No salirme</b>.`);
-  else if (sp.length) rv.block.push(pl(sp.length, 'En <b>1 parte</b> el color se pasó a la parte vecina. Límpiela con el borrador o encienda <b>No salirme</b>.', 'En <b>#</b> partes el color se pasó a la parte vecina. Límpielas con el borrador o encienda <b>No salirme</b>.'));
-  rv.zones = miss.concat(part, sp);
+  // sugerencias (ya no bloquean):
+  if (nMiss) rv.tips.push(`Puede pintar también ${nMiss}.`);
+  else if (miss.length) rv.tips.push(pl(miss.length, 'Hay <b>1 parte</b> de la lámina sin pintar.', 'Hay <b>#</b> partes de la lámina sin pintar.'));
+  if (nPart) rv.tips.push(`${nPart} ${nPart.includes(' y ') ? 'quedaron a medio pintar' : 'quedó a medio pintar'}: lleve el color hasta las líneas negras.`);
+  else if (part.length) rv.tips.push(pl(part.length, '<b>1 parte</b> quedó a medio pintar: lleve el color hasta las líneas negras.', '<b>#</b> partes quedaron a medio pintar: lleve el color hasta las líneas negras.'));
+  if (nSp) rv.tips.push(`En ${nSp} el color se pasó a la parte vecina.`);
+  else if (sp.length) rv.tips.push(pl(sp.length, 'En <b>1 parte</b> el color se pasó a la parte vecina.', 'En <b>#</b> partes el color se pasó a la parte vecina.'));
   // lo escrito: cuadro y bolitas
   const ink = xInk.getImageData(0, 0, W, H).data;
   const hasInk = (r, key) => { if (texts[key] && String(texts[key]).trim()) return true; let c = 0;

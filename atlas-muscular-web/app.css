@@ -445,3 +445,7 @@ body.hand #viewport{cursor:grab}
 .hmodo button.on{background:#3F4A57;color:#fff}.hmodo button.on small{color:#D9DEE5}
 #reto .rtpair{display:flex;gap:8px;margin-top:8px}#reto .rtpair img{flex:1;min-width:0;border-radius:10px;box-shadow:inset 0 0 0 1px #E3E1DB}
 #reto .rtimg.sk{max-width:420px;margin:0 auto}
+/* indicador de tamaño de pincel en el dock */
+.sz-badge{display:inline-block;font-size:9px;font-weight:700;color:var(--chrome-2);opacity:.75;line-height:1;min-width:16px;text-align:center;background:var(--soft);border-radius:5px;padding:1px 3px;margin-top:-2px}
+@keyframes slider-pulse{0%{background:transparent}40%{background:rgba(0,120,255,.13)}100%{background:transparent}}
+.slider-pulse{border-radius:10px;animation:slider-pulse 1.1s ease}
