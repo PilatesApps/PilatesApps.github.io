@@ -1333,7 +1333,7 @@ async function buildHome() {
     sec.appendChild(cards); g.appendChild(sec);
   }
   const md = document.createElement('div'); md.className = 'hmodo'; const mo = store.get('modo', 'libre');
-  md.innerHTML = `<b>Cómo quiere avanzar</b><div><button data-m="progresivo" class="${mo === 'progresivo' ? 'on' : ''}">Progresivo<small>Cada unidad se abre al completar la anterior y aprobar su reto</small></button><button data-m="libre" class="${mo === 'libre' ? 'on' : ''}">Libre<small>Todas las unidades abiertas</small></button></div>`;
+  md.innerHTML = `<b>How do you want to progress</b><div><button data-m="progresivo" class="${mo === 'progresivo' ? 'on' : ''}">Progressive<small>Each unit opens when you complete the previous one and pass its challenge</small></button><button data-m="libre" class="${mo === 'libre' ? 'on' : ''}">Free<small>All units open</small></button></div>`;
   md.querySelectorAll('button').forEach(b => b.onclick = () => { store.set('modo', b.dataset.m); buildHome(); });
   g.insertBefore(md, g.children[1]);
 }
@@ -1353,8 +1353,8 @@ const GUIDE = [
   ['<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>', 'All your plates', 'Swipe sideways or use <b>Previous</b> and <b>Next</b>, above the plate. Tap <b>the page number</b> to see all plates and what you have already painted.'],
   ['<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>', 'Music to paint', 'Tap <b>the music note</b> and choose the music that accompanies you while coloring. It plays inside the app, even without internet.'],
   ['<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>', 'Your work is never lost', 'What you paint <b>stays on your plate</b>: you can close the app, change pages or come back another day and everything is still there, just as you left it.'],
-  ['<path d="M4 19.5V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>', 'Aprenda pintando', 'Antes de colorear, ubique <b>dónde nace</b> el músculo (su origen) y <b>dónde termina</b> (su inserción). Píntelo de punta a punta, siga la dirección de sus fibras y complete el cuadro: <b>músculo, origen, inserción y acción</b>. Así su mano y su ojo aprenden juntos.'],
-  ['<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.2 5.2 0 0 0 22 9.2C22 5.8 17.5 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>', 'Libere su artista', 'Cuando termine sus músculos, <b>la lámina entera es su lienzo</b>. Decore, agregue fondos, dibujos y detalles, mezcle acuarela con lápiz, invente su paleta. Siéntase libre y expanda su mente: lo que se pinta con creatividad <b>se recuerda mejor</b> y se enseña con más pasión.'],
+  ['<path d="M4 19.5V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>', 'Learn by painting', 'Before coloring, find <b>where the muscle begins</b> (its origin) and <b>where it ends</b> (its insertion). Paint it from end to end, follow the direction of its fibers and fill in the card: <b>muscle, origin, insertion and action</b>. That way your hand and your eye learn together.'],
+  ['<path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.2 5.2 0 0 0 22 9.2C22 5.8 17.5 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>', 'Free your artist', 'When you finish your muscles, <b>the entire plate is your canvas</b>. Decorate, add backgrounds, drawings and details, mix watercolor with pencil, invent your palette. Feel free and expand your mind: what is painted with creativity <b>is better remembered</b> and taught with more passion.'],
   ['<path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>', 'Sign and share your work', 'Like the artist you are, <b>sign your work and add the date</b> with the pen, wherever you like. Then tap <b>the upward arrow</b>, at the top right, and choose how it will look: on a painter\'s easel, in oil, watercolor, chalk, graphite, comic style and more. Share it on WhatsApp or your social media and inspire others to learn through painting.']
 ];
 let gi = 0;
@@ -1607,29 +1607,29 @@ $('#mdOk').onclick = () => { $('#medal').hidden = true; };
 
 /* ---------------- Reto de la unidad: ubicar, origen e inserción, quién soy, juntos, clave de colores, Pilates ---------------- */
 const RETO = (() => {
-  const PERFIL = [['educador', 'Soy educador o formador de Pilates'], ['instructor', 'Soy instructor de Pilates'], ['formacion', 'Me estoy formando como instructor'], ['practico', 'Practico Pilates'], ['nopilates', 'No conozco el método Pilates']];
+  const PERFIL = [['educador', 'I am a Pilates educator or trainer'], ['instructor', 'I am a Pilates instructor'], ['formacion', 'I am training to become an instructor'], ['practico', 'I practice Pilates'], ['nopilates', 'I am not familiar with the Pilates method']];
   const U = {
     1: {
-      titulo: 'La Liga del Calabozo Pélvico', unidad: 'Unit 1', lamina: 9, ultima: 16,
+      titulo: 'The Pelvic Dungeon League', unidad: 'Unit 1', lamina: 9, ultima: 16,
       retos: [
-        { t: 'toca', m: 'el piriforme' }, { t: 'toca', m: 'el obturador interno' }, { t: 'toca', m: 'el gemelo superior' },
-        { t: 'toca', m: 'el gemelo inferior' }, { t: 'toca', m: 'el cuadrado femoral' }, { t: 'toca', m: 'el obturador externo' },
-        { t: 'oi', m: 'el piriforme', img: 6, no: 'la cara anterior del sacro', ni: 'el borde superior del trocánter mayor' },
-        { t: 'oi', m: 'el obturador interno', img: 2, no: 'la cara interna del foramen obturador', ni: 'la cara medial del trocánter mayor' },
-        { t: 'oi', m: 'el gemelo superior', img: 3, no: 'la espina isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
-        { t: 'oi', m: 'el gemelo inferior', img: 4, no: 'la parte alta de la tuberosidad isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
-        { t: 'oi', m: 'el cuadrado femoral', img: 5, no: 'el borde lateral de la tuberosidad isquiática', ni: 'la cresta intertrocantérea' },
-        { t: 'oi', m: 'el obturador externo', img: 1, no: 'la cara externa del foramen obturador', ni: 'la fosa trocantérea' },
-        { t: 'op', s: 'Quién soy', q: 'Salgo de la pelvis por el agujero ciático mayor y el nervio ciático suele pasar debajo de mí.', op: ['Piriformis', 'Superior gemellus', 'Quadratus femoris'], ok: 0 },
-        { t: 'op', s: 'Quién soy', q: 'Mi tendón dobla casi 90 grados en la escotadura ciática menor.', op: ['Obturator externus', 'Obturator internus', 'Piriformis'], ok: 1 },
-        { t: 'op', s: 'Quién soy', q: 'Soy el ancla cuadrada del grupo y también ayudo a acercar el muslo a la línea media.', op: ['Inferior gemellus', 'Obturator internus', 'Quadratus femoris'], ok: 2 },
-        { t: 'op', s: 'Quién soy', q: 'Mi tendón cruza por detrás del cuello del fémur.', op: ['Obturator externus', 'Superior gemellus', 'Piriformis'], ok: 0 },
-        { t: 'op', s: 'Lo que hacen juntos', q: '¿Qué movimiento hacen los seis?', op: ['Flexión de la cadera', 'Rotación externa de la cadera', 'Extensión de la rodilla'], ok: 1 },
-        { t: 'op', s: 'Lo que hacen juntos', q: '¿Qué otra tarea comparten los seis?', op: ['Mantener la cabeza del fémur centrada en el acetábulo, como un manguito rotador de la cadera', 'Inclinar la pelvis hacia adelante', 'Doblar la rodilla'], ok: 0 },
+        { t: 'toca', m: 'el piriforme', img: 6, en: 'the piriformis' }, { t: 'toca', m: 'el obturador interno', img: 2, en: 'the obturator internus' }, { t: 'toca', m: 'el gemelo superior', img: 3, en: 'the superior gemellus' },
+        { t: 'toca', m: 'el gemelo inferior', img: 4, en: 'the inferior gemellus' }, { t: 'toca', m: 'el cuadrado femoral', img: 5, en: 'the quadratus femoris' }, { t: 'toca', m: 'el obturador externo', img: 1, en: 'the obturator externus' },
+        { t: 'oi', m: 'the piriformis', img: 6, no: 'the anterior surface of the sacrum', ni: 'the superior border of the greater trochanter' },
+        { t: 'oi', m: 'the obturator internus', img: 2, no: 'the internal surface of the obturator foramen', ni: 'the medial surface of the greater trochanter' },
+        { t: 'oi', m: 'the superior gemellus', img: 3, no: 'the ischial spine', ni: 'the tendon of the obturator internus, at the greater trochanter' },
+        { t: 'oi', m: 'the inferior gemellus', img: 4, no: 'the upper part of the ischial tuberosity', ni: 'the tendon of the obturator internus, at the greater trochanter' },
+        { t: 'oi', m: 'the quadratus femoris', img: 5, no: 'the lateral border of the ischial tuberosity', ni: 'the intertrochanteric crest' },
+        { t: 'oi', m: 'the obturator externus', img: 1, no: 'the external surface of the obturator foramen', ni: 'the trochanteric fossa' },
+        { t: 'op', s: 'Who am I', q: 'I leave the pelvis through the greater sciatic foramen and the sciatic nerve usually passes below me.', op: ['Piriformis', 'Superior gemellus', 'Quadratus femoris'], ok: 0 },
+        { t: 'op', s: 'Who am I', q: 'My tendon bends almost 90 degrees at the lesser sciatic notch.', op: ['Obturator externus', 'Obturator internus', 'Piriformis'], ok: 1 },
+        { t: 'op', s: 'Who am I', q: 'I am the square anchor of the group and I also help bring the thigh toward the midline.', op: ['Inferior gemellus', 'Obturator internus', 'Quadratus femoris'], ok: 2 },
+        { t: 'op', s: 'Who am I', q: 'My tendon crosses behind the neck of the femur.', op: ['Obturator externus', 'Superior gemellus', 'Piriformis'], ok: 0 },
+        { t: 'op', s: 'What they do together', q: 'What movement do all six perform?', op: ['Hip flexion', 'External rotation of the hip', 'Extension of the knee'], ok: 1 },
+        { t: 'op', s: 'What they do together', q: 'What other task do all six share?', op: ['Keeping the femoral head centered in the acetabulum, like a rotator cuff of the hip', 'Tilting the pelvis forward', 'Bending the knee'], ok: 0 },
         { t: 'clave' },
-        { t: 'op', s: 'Pilates', pil: true, q: 'Los seis rotadores profundos sostienen una posición clásica del método Pilates. ¿Cuál es?', op: ['Posición paralela, con pies y rodillas al ancho de la cadera', 'Posición de Pilates en V: talones juntos y puntas hacia afuera', 'Pies en flex, con los dedos hacia el techo', 'Rotación interna, con las puntas de los pies hacia adentro'], ok: 1, nota: 'La V del Pilates nace en la cadera, no en los pies: es una rotación externa del fémur, el trabajo de los seis profundos.' },
-        { t: 'op', s: 'Pilates', pil: true, q: 'En el Footwork del Reformer en posición de Pilates, ¿qué cuida usted para que la V la sostengan los rotadores profundos y no los pies?', op: ['Que la rotación salga de la cadera y las rodillas sigan la línea de los pies', 'Que los pies se abran lo más posible', 'Que las rodillas se junten', 'Que la pelvis se incline hacia adelante'], ok: 0 },
-        { t: 'op', s: 'Quién soy', nopil: true, q: 'Cuando estoy contraído o acortado, puedo apretar al nervio ciático. ¿Quién soy?', op: ['Obturator internus', 'Piriformis', 'Inferior gemellus'], ok: 1 }
+        { t: 'op', s: 'Pilates', pil: true, q: 'The six deep rotators support a classic Pilates position. Which one is it?', op: ['Parallel position, with feet and knees hip-width apart', 'Pilates V position: heels together and toes pointing out', 'Feet in flex, with toes pointing to the ceiling', 'Internal rotation, with toes pointing inward'], ok: 1, nota: 'The Pilates V originates at the hip, not the feet: it is an external rotation of the femur, the work of the six deep muscles.' },
+        { t: 'op', s: 'Pilates', pil: true, q: 'In the Reformer Footwork in the Pilates position, what do you focus on so that the V is held by the deep rotators and not the feet?', op: ['That the rotation comes from the hip and the knees follow the line of the feet', 'That the feet open as wide as possible', 'That the knees come together', 'That the pelvis tilts forward'], ok: 0 },
+        { t: 'op', s: 'Who am I', nopil: true, q: 'When I am contracted or shortened, I can compress the sciatic nerve. Who am I?', op: ['Obturator internus', 'Piriformis', 'Inferior gemellus'], ok: 1 }
       ]
     }
   };
@@ -1650,14 +1650,14 @@ const RETO = (() => {
     box().querySelector('.rthead').innerHTML = `<b>Challenge · ${U[S.u].unidad}</b><span>${Math.min(i + 1, tot)} / ${tot}</span><div class="rtdots">${S.lista.map((_, k) => `<i class="${k < i ? (S.res[k] ? 'ok' : 'no') : k === i ? 'cur' : ''}"></i>`).join('')}</div>`;
   }
   function abrir(u) {
-    if (!U[u]) { toast('El reto de esta unidad viene pronto'); return; }
+    if (!U[u]) { toast('The challenge for this unit is coming soon'); return; }
     closeHome(); box().hidden = false;
     if (!store.get('perfil', '')) { perfil(u); return; }
     empezar(u);
   }
   function perfil(u) {
     box().querySelector('.rthead').innerHTML = `<b>Challenge · ${U[u].unidad}</b>`;
-    html(`<h3>Antes de empezar</h3><p class="rtq">¿Qué relación tiene usted con el método Pilates?</p><div class="rtops">${PERFIL.map(([k, t]) => `<button data-k="${k}">${t}</button>`).join('')}</div><p class="rtsmall">Con esto el reto le hace preguntas de Pilates o de anatomía. Puede cambiarlo cuando quiera.</p>`);
+    html(`<h3>Before we start</h3><p class="rtq">What is your relationship with the Pilates method?</p><div class="rtops">${PERFIL.map(([k, t]) => `<button data-k="${k}">${t}</button>`).join('')}</div><p class="rtsmall">Based on this, the challenge will ask you Pilates or anatomy questions. You can change it at any time.</p>`);
     box().querySelectorAll('.rtops button').forEach(b => b.onclick = () => { store.set('perfil', b.dataset.k); empezar(u); });
   }
   function empezar(u) {
@@ -1686,9 +1686,9 @@ const RETO = (() => {
   /* estación 1: tocar el músculo en la lámina del grupo */
   async function tocaMusculo(r) {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
-    html(`<p class="rtst">Find the muscle</p><p class="rtq">Tap <b>${r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
+    html(`<p class="rtst">Find the muscle</p><p class="rtq">Tap <b>${r.en || r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, li] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
+    const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_musculo.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
     const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
     cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
     const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
@@ -1704,7 +1704,7 @@ const RETO = (() => {
         x.putImageData(o, 0, 0); };
       if (!ok && L && L !== pm.bg) hl(l => l === L, [220, 40, 40]);
       hl(l => z[l] === r.m, [40, 170, 80]);
-      resultado(ok, ok ? '' : (nm ? `Ese es ${nm}. ${cap(r.m)} está marcado en verde.` : `${cap(r.m)} está marcado en verde.`));
+      resultado(ok, ok ? '' : (nm ? `That is ${nm}. ${cap(r.en || r.m)} is marked in green.` : `${cap(r.en || r.m)} is marked in green.`));
     };
   }
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -1713,7 +1713,7 @@ const RETO = (() => {
     const base = `reto/u${S.u}_${r.img}_`;
     html(`<p class="rtst">Where it comes from and where it goes</p><p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Posterolateral view, as in your book. Draw on the bone to mark.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, mk] = await Promise.all([loadImg(base + 'hueso.jpg'), loadImg(base + 'marcas.png')]);
+    const [im, mk] = await Promise.all([loadImg(base + 'huellas.jpg'), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
@@ -1737,7 +1737,7 @@ const RETO = (() => {
       const okI = nearPts(pts, 2);
       if (!okI) drawStroke(pts, '#D7322F');
       box().querySelector('.rthint').textContent = `Origin: ${r.no}. Insertion: ${r.ni}.`;
-      resultado(okO && okI, `Sale de ${r.no} y llega ${r.ni.replace(/^el /, 'al ').replace(/^la /, 'a la ')}.`);
+      resultado(okO && okI, `Comes from ${r.no} and reaches ${r.ni}.`);
     });
   }
   /* estación 3, 4 y 6: opciones */
@@ -1748,7 +1748,7 @@ const RETO = (() => {
     bs.forEach(b => b.onclick = () => {
       bs.forEach(o => { o.disabled = true; if (+o.dataset.k === r.ok) o.classList.add('ok'); });
       const ok = +b.dataset.k === r.ok; if (!ok) b.classList.add('no');
-      resultado(ok, ok ? (r.nota || '') : `La respuesta es: ${r.op[r.ok]}.${r.nota ? ' ' + r.nota : ''}`);
+      resultado(ok, ok ? (r.nota || '') : `The answer is: ${r.op[r.ok]}.${r.nota ? ' ' + r.nota : ''}`);
     });
   }
   /* estación 5: su clave de colores (su color manda, nunca el del libro) */
@@ -1769,11 +1769,11 @@ const RETO = (() => {
       }
     } catch (e) {}
     if (!pista) {   // aún no pintó la lámina del grupo con colores distintos
-      return opciones({ s: 'Su clave de colores', q: 'En el orden de construcción, ¿qué número tiene el piriforme?', op: ['1', '4', '6'], ok: 2, nota: 'Pinte la lámina del grupo con un color para cada músculo y este reto usará su propia clave.' });
+      return opciones({ s: 'Your color key', q: 'In the construction order, what number is the piriformis?', op: ['1', '4', '6'], ok: 2, nota: 'Paint the group plate with a different color for each muscle and this challenge will use your own key.' });
     }
     const [nm, c1] = pista, rgb = `rgb(${c1.map(v => v | 0).join(',')})`;
     const ops = [nm, ...mus.filter(m => m !== nm).sort(() => Math.random() - .5).slice(0, 2)];
-    opciones({ s: 'Su clave de colores', q: `En su lámina del grupo usted pintó un músculo de este color <span class="rtsw" style="background:${rgb}"></span>. ¿Cuál es?`, op: ops.map(cap), ok: 0, nota: 'Lo que cuenta es su propia clave: su color, su número y su nombre siempre van juntos.' });
+    opciones({ s: 'Your color key', q: `In your group plate you painted a muscle this color <span class="rtsw" style="background:${rgb}"></span>. Which one is it?`, op: ops.map(cap), ok: 0, nota: 'What counts is your own key: your color, your number and your name always go together.' });
   }
   function fin() {
     const tot = S.lista.length, ok = S.res.filter(Boolean).length, pct = Math.round(ok / tot * 100), pasa = pct >= 80;
@@ -1838,7 +1838,7 @@ function reviewArt() {
   // Bloqueo único: menos del 50% de la lámina pintada en total
   if (totalArea > 0 && totalPnt / totalArea < 0.50) {
     const pct = Math.round(totalPnt / totalArea * 100);
-    rv.block.push(`Pinte al menos el <b>50%</b> de la lámina para compartirla. Lleva el <b>${pct}%</b>.`);
+    rv.block.push(`Paint at least <b>50%</b> of the plate to share it. You have painted <b>${pct}%</b>.`);
   }
   rv.zones = miss.concat(part, sp);
   const pl = (k, a, b) => k === 1 ? a : b.replace('#', k);
