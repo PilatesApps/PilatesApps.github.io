@@ -1697,13 +1697,13 @@ const RETO = (() => {
       if (done) return; const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W, py = (e.clientY - rc.top) / rc.height * cv.height + y0;
       const d = lx.getImageData(px | 0, py | 0, 1, 1).data, L = d[0] | (d[1] << 8), nm = z[L];
       done = true;
-      const ok = nm === r.m;
+      const ok = nm === (r.en || r.m);
       // marcar la zona correcta en verde (y la tocada en rojo si falló)
       const hl = (lab, col) => { const id = lx.getImageData(0, y0, W, cv.height), D = id.data, o = x.getImageData(0, 0, W, cv.height), O = o.data;
         for (let i = 0; i < D.length; i += 4) { const l = D[i] | (D[i + 1] << 8); if (lab(l)) { O[i] = O[i] * .4 + col[0] * .6; O[i + 1] = O[i + 1] * .4 + col[1] * .6; O[i + 2] = O[i + 2] * .4 + col[2] * .6; } }
         x.putImageData(o, 0, 0); };
       if (!ok && L && L !== pm.bg) hl(l => l === L, [220, 40, 40]);
-      hl(l => z[l] === r.m, [40, 170, 80]);
+      hl(l => z[l] === (r.en || r.m), [40, 170, 80]);
       resultado(ok, ok ? '' : (nm ? `That is ${nm}. ${cap(r.en || r.m)} is marked in green.` : `${cap(r.en || r.m)} is marked in green.`));
     };
   }
