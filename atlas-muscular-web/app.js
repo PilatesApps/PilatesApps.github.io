@@ -1904,7 +1904,7 @@ const RETO = (() => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance('¡BASTA!');
-      u.lang = 'es-ES'; u.rate = 0.55; u.pitch = 0.3; u.volume = 1;
+      u.lang = 'es-ES'; u.rate = 1.5; u.pitch = 1.1; u.volume = 1;
       window.speechSynthesis.speak(u);
     }
   }
@@ -1915,8 +1915,9 @@ const RETO = (() => {
       const f = document.createElement('div'); f.className = 'rtfb no';
       f.innerHTML = `<b>¡Casi!</b>${msg ? `<span>${msg}</span>` : ''}`;
       box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      SFX.blip('basta'); decirBasta();
       setTimeout(() => {
-        SFX.blip('basta'); decirBasta(); if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
+        if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
         const FRASES_B = [
           'Respira, repasa la unidad y vuelve a comenzar desde el principio.',
           'Tres errores: pausa, repasa y regresa con más fuerza. ¡Sí puedes!',
