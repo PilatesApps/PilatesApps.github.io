@@ -430,6 +430,7 @@ body.hand #viewport{cursor:grab}
 #reto .rtfb .pill{align-self:flex-end}
 #reto .rtintro,#reto .rtfin{text-align:center;padding:10px 4px;position:relative}
 #reto .rtbig,#reto .rtstar{font-size:56px;line-height:1.1;animation:mdsw 2.4s ease-in-out infinite}
+#reto .rtbig img{width:140px;height:auto;border-radius:4px;display:block;margin:0 auto}
 #reto .rtbigtxt{font-size:30px;font-weight:800;margin:4px 0}
 #reto .rtintro .pill,#reto .rtfin .pill{margin:6px 4px}
 #reto .rtsw{display:inline-block;width:26px;height:18px;border-radius:5px;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
