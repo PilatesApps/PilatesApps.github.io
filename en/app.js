@@ -1677,16 +1677,37 @@ const RETO = (() => {
     return opciones(r);
   }
   function sayEnough() {
+    // Scream: Web Audio with high gain + distortion (bypasses Speech API volume cap)
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctx.resume().then(() => {
+        const gain = ctx.createGain(); gain.gain.value = 7;
+        const dist = ctx.createWaveShaper();
+        const curve = new Float32Array(512);
+        for (let i = 0; i < 512; i++) { const x = (i * 2) / 512 - 1; curve[i] = (Math.PI + 300) * x / (Math.PI + 300 * Math.abs(x)); }
+        dist.curve = curve; dist.oversample = '4x';
+        gain.connect(dist); dist.connect(ctx.destination);
+        const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+        const now = ctx.currentTime;
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.linearRampToValueAtTime(1800, now + 0.35);
+        osc.frequency.linearRampToValueAtTime(900, now + 1.0);
+        osc.connect(gain); osc.start(now); osc.stop(now + 1.1);
+      });
+    } catch(e) {}
+    // Slow commanding voice — starts 350ms after the alarm
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance('ENOUGH!');
-      u.lang = 'en-US'; u.rate = 1.1; u.pitch = 1.9; u.volume = 1;
-      const voices = window.speechSynthesis.getVoices();
-      const fem = voices.find(v => v.lang.startsWith('en') && /Samantha|Zira|Karen|Moira|Tessa|Victoria|Susan|female/i.test(v.name))
-               || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('google'))
-               || voices.find(v => v.lang.startsWith('en'));
-      if (fem) u.voice = fem;
-      window.speechSynthesis.speak(u);
+      setTimeout(() => {
+        const u = new SpeechSynthesisUtterance('ENOUGH!');
+        u.lang = 'en-US'; u.rate = 0.65; u.pitch = 2.0; u.volume = 1;
+        const voices = window.speechSynthesis.getVoices();
+        const fem = voices.find(v => v.lang.startsWith('en') && /Samantha|Zira|Karen|Moira|Tessa|Victoria|Susan|female/i.test(v.name))
+                 || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('google'))
+                 || voices.find(v => v.lang.startsWith('en'));
+        if (fem) u.voice = fem;
+        window.speechSynthesis.speak(u);
+      }, 350);
     }
   }
   function resultado(ok, msg) {
