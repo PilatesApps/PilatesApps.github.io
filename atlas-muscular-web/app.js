@@ -1663,6 +1663,79 @@ const RETO = (() => {
         { t: 'op', s: 'Pilates', pil: true, q: 'En el Footwork del Reformer en posición de Pilates, ¿qué cuida usted para que la V la sostengan los rotadores profundos y no los pies?', op: ['Que la rotación salga de la cadera y las rodillas sigan la línea de los pies', 'Que los pies se abran lo más posible', 'Que las rodillas se junten', 'Que la pelvis se incline hacia adelante'], ok: 0 },
         { t: 'op', s: 'Quién soy', nopil: true, q: 'Cuando estoy contraído o acortado, puedo apretar al nervio ciático. ¿Quién soy?', op: ['Obturador interno', 'Piriforme', 'Gemelo inferior'], ok: 1 }
       ]
+    },
+    2: {
+      titulo: 'El Puente Vital', unidad: 'Unidad 2', lamina: 19, ultima: 23,
+      claveQ: { q: '¿Cuántos músculos componen la Unidad 2 "El Puente Vital"?', op: ['2', '3', '4'], ok: 1 },
+      retos: [
+        { t: 'toca', m: 'el ilíaco', img: 1, visImg: 'u2_toca_clean.png' },
+        { t: 'toca', m: 'el psoas mayor', img: 2, visImg: 'u2_toca_clean.png' },
+        { t: 'toca', m: 'el psoas menor', img: 3, visImg: 'u2_toca_clean.png' },
+        { t: 'oi', m: 'el ilíaco', img: 1, visImg: 'u2_oi_base.png',
+          intro: 'El ilíaco es el más casero del grupo: vive pegado al interior del coxal y nunca sale de la pelvis por su cuenta.',
+          no: 'la fosa ilíaca (el interior cóncavo del coxal)',
+          ni: 'el trocánter menor (donde se reúne con el psoas, como dos compañeros que llegan juntos al trabajo)' },
+        { t: 'oi', m: 'el psoas mayor', img: 2, visImg: 'u2_oi_base.png',
+          intro: 'El psoas mayor hace el viaje más largo de los tres: sale de la columna lumbar, cruza la pelvis y llega al fémur. Es el puente.',
+          no: 'los cuerpos de T12 a L5 (¡cinco vértebras lumbares más T12!)',
+          ni: 'el trocánter menor (donde le da la mano al ilíaco)' },
+        { t: 'oi', m: 'el psoas menor', img: 3, visImg: 'u2_oi_base.png',
+          intro: 'Atención: el psoas menor solo existe en el 60% de las personas. Corto, plano y muy discreto. ¿El tuyo está ahí?',
+          no: 'los cuerpos de T12 a L1 (apenas uno o dos)',
+          ni: 'la eminencia iliopúbica (llega al borde de la pelvis, no al fémur como sus vecinos)' },
+        { t: 'op', s: 'Quién soy', q: 'Lleno la fosa ilíaca como una mano en su guante. Comparto inserción con el psoas. ¿Quién soy?', op: ['El psoas mayor', 'El ilíaco', 'El psoas menor'], ok: 1 },
+        { t: 'op', s: 'Quién soy', q: 'Viajo desde las vértebras lumbares hasta el trocánter menor. Soy el puente entre la columna y el fémur. ¿Quién soy?', op: ['El ilíaco', 'El psoas menor', 'El psoas mayor'], ok: 2 },
+        { t: 'op', s: 'Quién soy', q: 'Solo existo en el 60% de las personas. Soy corto, plano y no llego al fémur. ¿Quién soy?', op: ['El psoas menor', 'El ilíaco', 'El psoas mayor'], ok: 0 },
+        { t: 'op', s: 'Lo que hacen', q: '¿Cuál es la acción principal del iliopsoas (ilíaco + psoas mayor actuando juntos)?', op: ['Extensión de la cadera', 'Flexión de la cadera', 'Rotación interna de la cadera'], ok: 1 },
+        { t: 'op', s: 'Lo que hacen', q: 'Cuando el fémur está fijo y el iliopsoas se contrae, ¿qué hace con la pelvis?', op: ['Retroversión (pelvis hacia atrás)', 'Anteversión (pelvis hacia adelante)', 'Inclinación lateral de la pelvis'], ok: 1 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'En el Teaser del Reformer, ¿qué sostiene el iliopsoas para mantener las piernas elevadas?', op: ['La extensión de rodilla', 'La flexión de cadera con tronco elevado', 'La rotación externa de la cadera'], ok: 1 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'En el Hundred, con piernas elevadas en ángulo, ¿qué hace el iliopsoas?', op: ['Extiende la cadera para bajar las piernas', 'Sostiene la flexión de cadera contra la gravedad', 'Rota externamente el fémur'], ok: 1 },
+        { t: 'op', s: 'Clínica', nopil: true, q: 'Un psoas tenso puede inclinar la pelvis hacia adelante. ¿Qué postura típica produce?', op: ['Hiperlordosis lumbar', 'Cifosis dorsal', 'Columna plana'], ok: 0 },
+        { t: 'op', s: 'Clínica', nopil: true, q: 'El psoas menor es vestigial: falta en el 40% de las personas. ¿Qué significa que un músculo sea vestigial?', op: ['Que es el más grande del grupo', 'Que es un resto evolutivo con función reducida', 'Que solo aparece en atletas'], ok: 1 },
+        { t: 'clave' }
+      ]
+    },
+    3: {
+      titulo: 'El Taller de Ingeniería', unidad: 'Unidad 3', lamina: 26, ultima: 32,
+      claveQ: { q: '¿Cuántas articulaciones cruza el recto femoral?', op: ['1', '2', '3'], ok: 1 },
+      retos: [
+        { t: 'toca', m: 'el vasto intermedio', img: 1, visImg: 'u3_toca_clean.png' },
+        { t: 'toca', m: 'el vasto medial', img: 2, visImg: 'u3_toca_clean.png' },
+        { t: 'toca', m: 'el vasto lateral', img: 3, visImg: 'u3_toca_clean.png' },
+        { t: 'toca', m: 'el recto femoral', img: 4, visImg: 'u3_toca_clean.png' },
+        { t: 'toca', m: 'el sartorio', img: 5, visImg: 'u3_toca_clean.png' },
+        { t: 'oi', m: 'el vasto intermedio', img: 1, visImg: 'u3_oi_base.png',
+          intro: 'Es el cuádriceps invisible: vive completamente tapado por el recto femoral. Nunca se toca desde afuera. Solo el bisturí lo ve.',
+          no: 'la cara anterior del fémur (el cuerpo del hueso, directo)',
+          ni: 'la tuberosidad de la tibia (vía tendón rotuliano, igual que sus hermanos)' },
+        { t: 'oi', m: 'el vasto medial', img: 2, visImg: 'u3_oi_base.png',
+          intro: 'El vasto medial tiene una misión especial en su parte baja: el VMO evita que la rótula se escape hacia afuera. Es el guardia de la rodilla.',
+          no: 'la línea áspera del fémur (lado medial)',
+          ni: 'la tuberosidad de la tibia (vía tendón rotuliano)' },
+        { t: 'oi', m: 'el vasto lateral', img: 3, visImg: 'u3_oi_base.png',
+          intro: 'El más voluminoso del grupo. Se siente como una pared en la cara externa del muslo. Es el que da el bulto lateral.',
+          no: 'la línea áspera del fémur (lado lateral)',
+          ni: 'la tuberosidad de la tibia (vía tendón rotuliano)' },
+        { t: 'oi', m: 'el recto femoral', img: 4, visImg: 'u3_oi_base.png',
+          intro: 'El único del cuádriceps que cruza DOS articulaciones: la cadera y la rodilla. Por eso se acorta sentado y tira de la pelvis al correr.',
+          no: 'la espina ilíaca anteroinferior (EIAI, en la pelvis)',
+          ni: 'la tuberosidad de la tibia (vía tendón rotuliano, como los otros tres)' },
+        { t: 'oi', m: 'el sartorio', img: 5, visImg: 'u3_oi_base.png',
+          intro: 'El músculo más largo del cuerpo. Va en diagonal desde la cadera hasta la tibia. Su nombre viene de "sastre": la posición de cruzar las piernas al coser.',
+          no: 'la espina ilíaca anterosuperior (EIAS)',
+          ni: 'la cara interna de la tibia (pata de ganso, junto al grácil y el semitendinoso)' },
+        { t: 'op', s: 'Quién soy', q: 'Soy el único del cuádriceps que cruza dos articulaciones: la cadera y la rodilla. ¿Quién soy?', op: ['El vasto lateral', 'El recto femoral', 'El vasto medial'], ok: 1 },
+        { t: 'op', s: 'Quién soy', q: 'Vivo enterrado debajo del recto femoral. Ninguna mano me toca desde afuera. ¿Quién soy?', op: ['El vasto intermedio', 'El vasto medial', 'El sartorio'], ok: 0 },
+        { t: 'op', s: 'Quién soy', q: 'El músculo más largo del cuerpo. Cruzo el muslo en diagonal como una banda. ¿Quién soy?', op: ['El recto femoral', 'El vasto lateral', 'El sartorio'], ok: 2 },
+        { t: 'op', s: 'Lo que hacen', q: '¿Qué movimiento hacen los cuatro músculos del cuádriceps?', op: ['Flexión de rodilla', 'Extensión de rodilla', 'Rotación externa de cadera'], ok: 1 },
+        { t: 'op', s: 'Lo que hacen', q: '¿Qué movimiento extra puede hacer el recto femoral que sus tres compañeros vastos no pueden?', op: ['Extensión de cadera', 'Flexión de cadera', 'Rotación interna de rodilla'], ok: 1 },
+        { t: 'op', s: 'Lo que hacen', q: 'El sartorio cruza la cadera y la rodilla. ¿Qué combinación de acciones realiza?', op: ['Flexión + rotación externa de cadera; flexión + rotación interna de rodilla', 'Extensión de cadera + extensión de rodilla', 'Solo flexión de rodilla'], ok: 0 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'En el Running del Reformer, ¿qué papel tiene el cuádriceps al empujar el carromato?', op: ['Contracción excéntrica para frenar la extensión', 'Contracción concéntrica extendiendo la rodilla contra el resorte', 'Sin actividad: solo trabaja el glúteo'], ok: 1 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'Un cuádriceps dominante sobre los isquiotibiales es un patrón común en sedentarios. ¿Qué suele ocurrir con la pelvis?', op: ['Se inclina en anteversión', 'Se inclina en retroversión', 'No hay efecto sobre la pelvis'], ok: 0 },
+        { t: 'op', s: 'Clínica', nopil: true, q: 'Un VMO inhibido hace que la rótula se desvíe. ¿En qué dirección?', op: ['Hacia adentro', 'Hacia afuera (lateral)', 'Hacia arriba'], ok: 1 },
+        { t: 'op', s: 'Clínica', nopil: true, q: 'El recto femoral se acorta si pasamos muchas horas sentados. Al ponerse de pie, ¿qué efecto tiene sobre la pelvis?', op: ['La pelvis se inclina en retroversión', 'La pelvis se inclina en anteversión', 'La pelvis no se modifica'], ok: 1 },
+        { t: 'clave' }
+      ]
     }
   };
   let S = null;   // estado del reto en curso
@@ -1751,7 +1824,7 @@ const RETO = (() => {
   async function origenInsercion(r) {
     const base = `reto/u${S.u}_${r.img}_`;
     const n = U[S.u].lamina;
-    html(`<p class="rtst">De dónde sale y a dónde llega</p><p class="rtq"><b>${cap(r.m)}</b>: marque su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Dibuje sobre la lámina para marcar.</p>`);
+    html(`<p class="rtst">De dónde sale y a dónde llega</p>${r.intro ? `<p class="rtcard">${r.intro}</p>` : ''}<p class="rtq"><b>${cap(r.m)}</b>: marque su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Dibuje sobre la lámina para marcar.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
     const imgSrc = r.visImg ? 'reto/' + r.visImg : pageFile(n, '.jpg');
     const [im, mk] = await Promise.all([loadImg(imgSrc), loadImg(base + 'marcas.png')]);
@@ -1810,7 +1883,8 @@ const RETO = (() => {
       }
     } catch (e) {}
     if (!pista) {   // aún no pintó la lámina del grupo con colores distintos
-      return opciones({ s: 'Su clave de colores', q: 'En el orden de construcción, ¿qué número tiene el piriforme?', op: ['1', '4', '6'], ok: 2, nota: 'Pinte la lámina del grupo con un color para cada músculo y este reto usará su propia clave.' });
+      const cq = U[S.u].claveQ || { q: 'En el orden de construcción, ¿qué número tiene el piriforme?', op: ['1', '4', '6'], ok: 2 };
+      return opciones({ s: 'Su clave de colores', ...cq, nota: 'Pinte la lámina del grupo con un color para cada músculo y este reto usará su propia clave.' });
     }
     const [nm, c1] = pista, rgb = `rgb(${c1.map(v => v | 0).join(',')})`;
     const ops = [nm, ...mus.filter(m => m !== nm).sort(() => Math.random() - .5).slice(0, 2)];
