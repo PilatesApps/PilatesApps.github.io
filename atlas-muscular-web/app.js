@@ -1837,13 +1837,13 @@ const RETO = (() => {
     // Which horizontal half does the stroke fall mostly on?
     const strokeSide = pts => { const mid = im.width / 2; const L = pts.filter(p => p[0] < mid).length; return L >= pts.length - L ? 'L' : 'R'; };
     const halfBounds = side => side === 'L' ? [0, im.width / 2] : [im.width / 2, im.width];
-    const drawStroke = (pts, col) => { if (!pts.length) return; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); pts.forEach(p => x.lineTo(p[0], p[1])); x.strokeStyle = col; x.lineWidth = 9; x.lineCap = 'round'; x.lineJoin = 'round'; x.globalAlpha = 0.9; x.stroke(); x.globalAlpha = 1; };
+    const drawStroke = (pts, col) => { if (!pts.length) return; x.beginPath(); if (pts.length === 1) { x.arc(pts[0][0], pts[0][1], 10, 0, Math.PI * 2); x.fillStyle = col; x.globalAlpha = 0.9; x.fill(); x.globalAlpha = 1; return; } x.moveTo(pts[0][0], pts[0][1]); pts.forEach(p => x.lineTo(p[0], p[1])); x.strokeStyle = col; x.lineWidth = 9; x.lineCap = 'round'; x.lineJoin = 'round'; x.globalAlpha = 0.9; x.stroke(); x.globalAlpha = 1; };
     let fase = 0, okO = false, sideO = 'L', ptsO = [], drawing = false, pts = [];
     cv.addEventListener('pointerdown', e => { if (fase > 1) return; e.preventDefault(); drawing = true; pts = [toPx(e)]; cv.setPointerCapture(e.pointerId); });
     cv.addEventListener('pointermove', e => { if (!drawing) return; e.preventDefault(); const p = toPx(e); pts.push(p); if (pts.length < 2) return; x.beginPath(); x.moveTo(pts[pts.length - 2][0], pts[pts.length - 2][1]); x.lineTo(p[0], p[1]); x.strokeStyle = fase === 0 ? '#C62828' : '#1565C0'; x.lineWidth = 9; x.lineCap = 'round'; x.globalAlpha = 0.8; x.stroke(); x.globalAlpha = 1; });
     cv.addEventListener('pointerup', e => {
       if (!drawing || fase > 1) return; drawing = false;
-      if (pts.length < 2) return;
+      if (!pts.length) return;
       if (fase === 0) {
         sideO = strokeSide(pts); ptsO = pts.slice();
         const [x0, x1] = halfBounds(sideO);
