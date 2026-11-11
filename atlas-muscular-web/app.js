@@ -1614,12 +1614,12 @@ const RETO = (() => {
       retos: [
         { t: 'toca', m: 'el piriforme', img: 6, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' }, { t: 'toca', m: 'el obturador interno', img: 2, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' }, { t: 'toca', m: 'el gemelo superior', img: 3, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
         { t: 'toca', m: 'el gemelo inferior', img: 4, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' }, { t: 'toca', m: 'el cuadrado femoral', img: 5, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' }, { t: 'toca', m: 'el obturador externo', img: 1, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
-        { t: 'oi', m: 'el piriforme', img: 6, no: 'la cara anterior del sacro', ni: 'el borde superior del trocánter mayor' },
-        { t: 'oi', m: 'el obturador interno', img: 2, no: 'la cara interna del foramen obturador', ni: 'la cara medial del trocánter mayor' },
-        { t: 'oi', m: 'el gemelo superior', img: 3, no: 'la espina isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
-        { t: 'oi', m: 'el gemelo inferior', img: 4, no: 'la parte alta de la tuberosidad isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
-        { t: 'oi', m: 'el cuadrado femoral', img: 5, no: 'el borde lateral de la tuberosidad isquiática', ni: 'la cresta intertrocantérea' },
-        { t: 'oi', m: 'el obturador externo', img: 1, no: 'la cara externa del foramen obturador', ni: 'la fosa trocantérea' },
+        { t: 'oi', m: 'el piriforme', img: 6, visImg: 'u1_oi_base.png', no: 'la cara anterior del sacro', ni: 'el borde superior del trocánter mayor' },
+        { t: 'oi', m: 'el obturador interno', img: 2, visImg: 'u1_oi_base.png', no: 'la cara interna del foramen obturador', ni: 'la cara medial del trocánter mayor' },
+        { t: 'oi', m: 'el gemelo superior', img: 3, visImg: 'u1_oi_base.png', no: 'la espina isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
+        { t: 'oi', m: 'el gemelo inferior', img: 4, visImg: 'u1_oi_base.png', no: 'la parte alta de la tuberosidad isquiática', ni: 'el tendón del obturador interno, en el trocánter mayor' },
+        { t: 'oi', m: 'el cuadrado femoral', img: 5, visImg: 'u1_oi_base.png', no: 'el borde lateral de la tuberosidad isquiática', ni: 'la cresta intertrocantérea' },
+        { t: 'oi', m: 'el obturador externo', img: 1, visImg: 'u1_oi_base.png', no: 'la cara externa del foramen obturador', ni: 'la fosa trocantérea' },
         { t: 'op', s: 'Quién soy', q: 'Salgo de la pelvis por el agujero ciático mayor y el nervio ciático suele pasar debajo de mí.', op: ['Piriforme', 'Gemelo superior', 'Cuadrado femoral'], ok: 0 },
         { t: 'op', s: 'Quién soy', q: 'Mi tendón dobla casi 90 grados en la escotadura ciática menor.', op: ['Obturador externo', 'Obturador interno', 'Piriforme'], ok: 1 },
         { t: 'op', s: 'Quién soy', q: 'Soy el ancla cuadrada del grupo y también ayudo a acercar el muslo a la línea media.', op: ['Gemelo inferior', 'Obturador interno', 'Cuadrado femoral'], ok: 2 },
@@ -1708,8 +1708,8 @@ const RETO = (() => {
       for (let i = 0; i < li.width * li.height; i++) {
         const pr = labPx[i*4], pg = labPx[i*4+1], pb = labPx[i*4+2];
         const mx = Math.max(pr, pg, pb), mn = Math.min(pr, pg, pb);
-        if (mx < 30 || mx > 230 || (mx - mn) / mx < 0.25) continue; // fondo
-        let best = 0, bestD = 10000;
+        if (mx < 30 || mx > 240 || (mx - mn) / mx < 0.20) continue; // fondo
+        let best = 0, bestD = 18000; // umbral máx: sólo asigna si está cerca del color del músculo
         for (let c = 0; c < CM.length; c++) {
           const d = (pr-CM[c].R)**2 + (pg-CM[c].G)**2 + (pb-CM[c].B)**2;
           if (d < bestD) { bestD = d; best = c + 1; }
@@ -1774,7 +1774,8 @@ const RETO = (() => {
     const n = U[S.u].lamina;
     html(`<p class="rtst">De dónde sale y a dónde llega</p><p class="rtq"><b>${cap(r.m)}</b>: marque su <b class="rto">origen</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Dibuje sobre la lámina para marcar.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, mk] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(base + 'marcas.png')]);
+    const imgSrc = r.visImg ? 'reto/' + r.visImg : pageFile(n, '.jpg');
+    const [im, mk] = await Promise.all([loadImg(imgSrc), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
