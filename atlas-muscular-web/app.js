@@ -1692,7 +1692,7 @@ const RETO = (() => {
     },
     2: {
       titulo: 'El Puente Vital', unidad: 'Unidad 2', lamina: 19, ultima: 23,
-      maxOp: 8,
+      maxOp: 10,
       claveQ: { q: '¿Cuántos músculos componen la Unidad 2 "El Puente Vital"?', op: ['2', '3', '4'], ok: 1 },
       retos: [
         { t: 'toca', m: 'el ilíaco', img: 1, visImg: 'u2_toca_clean.png', qs: [
@@ -1752,16 +1752,57 @@ const RETO = (() => {
           intro: 'Atención: el psoas menor solo existe en el 60% de las personas. Corto, plano y muy discreto. ¿El tuyo está ahí?',
           no: 'los cuerpos de T12 a L1 (apenas uno o dos)',
           ni: 'la eminencia iliopúbica (llega al borde de la pelvis, no al fémur como sus vecinos)' },
-        { t: 'op', s: 'Quién soy', q: 'Lleno la fosa ilíaca como una mano en su guante. Comparto inserción con el psoas. ¿Quién soy?', op: ['El psoas mayor', 'El ilíaco', 'El psoas menor'], ok: 1 },
-        { t: 'op', s: 'Quién soy', q: 'Viajo desde las vértebras lumbares hasta el trocánter menor. Soy el puente entre la columna y el fémur. ¿Quién soy?', op: ['El ilíaco', 'El psoas menor', 'El psoas mayor'], ok: 2 },
-        { t: 'op', s: 'Quién soy', q: 'Solo existo en el 60% de las personas. Soy corto, plano y no llego al fémur. ¿Quién soy?', op: ['El psoas menor', 'El ilíaco', 'El psoas mayor'], ok: 0 },
-        { t: 'op', s: 'Lo que hacen', q: '¿Cuál es la acción principal del iliopsoas (ilíaco + psoas mayor actuando juntos)?', op: ['Extensión de la cadera', 'Flexión de la cadera', 'Rotación interna de la cadera'], ok: 1 },
-        { t: 'op', s: 'Lo que hacen', q: 'Cuando el fémur está fijo y el iliopsoas se contrae, ¿qué hace con la pelvis?', op: ['Retroversión (pelvis hacia atrás)', 'Anteversión (pelvis hacia adelante)', 'Inclinación lateral de la pelvis'], ok: 1 },
+        // ——— BANCO OP U2 (~40 preguntas; maxOp:10 → siempre distintas al reiniciar) ———
+        // ¿Quién soy? (8)
+        { t: 'op', s: '¿Quién soy?', q: 'Lleno la fosa ilíaca como una mano en su guante. Comparto inserción con el psoas. ¿Quién soy?', op: ['El psoas mayor', 'El ilíaco', 'El psoas menor'], ok: 1 },
+        { t: 'op', s: '¿Quién soy?', q: 'Viajo desde las vértebras lumbares hasta el trocánter menor. Soy el puente entre la columna y el fémur. ¿Quién soy?', op: ['El ilíaco', 'El psoas menor', 'El psoas mayor'], ok: 2 },
+        { t: 'op', s: '¿Quién soy?', q: 'Solo existo en el 60% de las personas. Soy corto, plano y no llego al fémur. ¿Quién soy?', op: ['El psoas menor', 'El ilíaco', 'El psoas mayor'], ok: 0 },
+        { t: 'op', s: '¿Quién soy?', q: 'Mi origen es la cara interna del hueso de la cadera. Me uno al psoas para actuar juntos. ¿Quién soy?', op: ['El psoas mayor', 'El psoas menor', 'El ilíaco'], ok: 2 },
+        { t: 'op', s: '¿Quién soy?', q: 'Cruzo la pelvis de arriba a abajo, paso bajo el ligamento inguinal y llego al trocánter menor. ¿Quién soy?', op: ['El ilíaco', 'El psoas mayor', 'El psoas menor'], ok: 1 },
+        { t: 'op', s: '¿Quién soy?', q: 'Cuatro de cada diez personas no me tienen. Cuando existo, termino en el borde anterior de la pelvis. ¿Quién soy?', op: ['El ilíaco', 'El psoas mayor', 'El psoas menor'], ok: 2 },
+        { t: 'op', s: '¿Quién soy?', q: 'Soy el único músculo del cuerpo que une directamente la columna lumbar con el miembro inferior. ¿Quién soy?', op: ['El ilíaco', 'El glúteo mayor', 'El psoas mayor'], ok: 2 },
+        { t: 'op', s: '¿Quién soy?', q: 'Somos dos y juntos formamos el iliopsoas. ¿Quiénes somos?', op: ['Psoas mayor + psoas menor', 'Ilíaco + psoas menor', 'Ilíaco + psoas mayor'], ok: 2 },
+        // Dónde nace (7)
         { t: 'op', s: 'Dónde nace', q: '¿En qué estructura nace el ilíaco?', op: ['En los cuerpos vertebrales lumbares', 'En la fosa ilíaca (cara interna del coxal)', 'En el trocánter mayor'], ok: 1 },
         { t: 'op', s: 'Dónde nace', q: '¿Desde cuántas vértebras nace el psoas mayor?', op: ['3 vértebras (L1–L3)', '6 vértebras (T12–L5)', '2 vértebras (L4–L5)'], ok: 1 },
+        { t: 'op', s: 'Dónde nace', q: '¿Desde qué vértebras nace el psoas menor?', op: ['L1–L3', 'L3–L5', 'T12–L1'], ok: 2 },
+        { t: 'op', s: 'Dónde nace', q: 'El psoas mayor nace de T12 hasta L5. ¿Cuántas vértebras abarca ese recorrido?', op: ['4 vértebras', '6 vértebras', '8 vértebras'], ok: 1 },
+        { t: 'op', s: 'Dónde nace', q: '¿En qué cara del hueso ilion nace el ilíaco?', op: ['Cara externa (glútea)', 'Cara interna (fosa ilíaca)', 'Cresta ilíaca superior'], ok: 1 },
+        { t: 'op', s: 'Dónde nace', q: 'El psoas menor es más corto que el mayor porque nace de menos vértebras. ¿De cuántas nace?', op: ['2 vértebras (T12–L1)', '4 vértebras (L1–L4)', '5 vértebras (T12–L4)'], ok: 0 },
+        { t: 'op', s: 'Dónde nace', q: '¿Con cuál vértebra comienza el origen del psoas mayor?', op: ['L1', 'T12', 'T10'], ok: 1 },
+        // Dónde llega (7)
+        { t: 'op', s: 'Dónde llega', q: '¿Dónde termina el ilíaco?', op: ['En la eminencia iliopúbica', 'En el trocánter menor del fémur', 'En el trocánter mayor del fémur'], ok: 1 },
+        { t: 'op', s: 'Dónde llega', q: '¿Dónde termina el psoas mayor?', op: ['En el trocánter mayor del fémur', 'En la eminencia iliopúbica', 'En el trocánter menor del fémur'], ok: 2 },
         { t: 'op', s: 'Dónde llega', q: '¿Dónde termina el psoas menor?', op: ['En el trocánter menor del fémur', 'En la eminencia iliopúbica (borde de la pelvis)', 'En el trocánter mayor del fémur'], ok: 1 },
-        { t: 'op', s: 'Comparando', q: '¿Cuál de los tres músculos NO llega al fémur?', op: ['El ilíaco', 'El psoas mayor', 'El psoas menor'], ok: 2 },
+        { t: 'op', s: 'Dónde llega', q: '¿Cuál de los tres músculos NO termina en el fémur?', op: ['El ilíaco', 'El psoas mayor', 'El psoas menor'], ok: 2 },
+        { t: 'op', s: 'Dónde llega', q: 'El ilíaco y el psoas mayor comparten inserción. ¿Dónde llegan juntos?', op: ['Cresta ilíaca', 'Trocánter mayor', 'Trocánter menor'], ok: 2 },
+        { t: 'op', s: 'Dónde llega', q: 'El psoas menor no llega al fémur. ¿A qué punto del borde anterior de la pelvis va?', op: ['Espina ilíaca anterior superior', 'Eminencia iliopúbica', 'Tubérculo del pubis'], ok: 1 },
+        { t: 'op', s: 'Dónde llega', q: 'El trocánter menor del fémur recibe la inserción de dos de los tres músculos. ¿Cuáles?', op: ['Psoas mayor + psoas menor', 'Ilíaco + psoas menor', 'Ilíaco + psoas mayor'], ok: 2 },
+        // Lo que hacen (6)
+        { t: 'op', s: 'Lo que hacen', q: '¿Cuál es la acción principal del iliopsoas (ilíaco + psoas mayor actuando juntos)?', op: ['Extensión de la cadera', 'Flexión de la cadera', 'Rotación interna de la cadera'], ok: 1 },
+        { t: 'op', s: 'Lo que hacen', q: 'Cuando el fémur está fijo y el iliopsoas se contrae, ¿qué hace con la pelvis?', op: ['Retroversión (pelvis hacia atrás)', 'Anteversión (pelvis hacia adelante)', 'Inclinación lateral de la pelvis'], ok: 1 },
+        { t: 'op', s: 'Lo que hacen', q: '¿Qué acción tiene el psoas mayor sobre el tronco cuando el fémur está fijo?', op: ['Extensión del tronco', 'Rotación del tronco', 'Flexión del tronco'], ok: 2 },
+        { t: 'op', s: 'Lo que hacen', q: 'El psoas mayor tiene una acción sobre la rotación del fémur. ¿Cuál es?', op: ['Rotación interna', 'Rotación lateral (externa)', 'No tiene acción rotatoria'], ok: 1 },
+        { t: 'op', s: 'Lo que hacen', q: '¿Qué movimiento lleva al iliopsoas a su mayor elongación?', op: ['Flexión de cadera con retroversión pélvica', 'Extensión de cadera con retroversión pélvica', 'Flexión de cadera con anteversión pélvica'], ok: 1 },
+        { t: 'op', s: 'Lo que hacen', q: '¿Qué hace el psoas menor?', op: ['Flexión potente de la cadera', 'Flexión leve del tronco con poca relevancia clínica', 'Rotación del fémur'], ok: 1 },
+        // Pilates y clínica (6)
+        { t: 'op', s: 'Pilates', q: 'Un psoas mayor acortado y contracturado produce principalmente:', op: ['Retroversión pélvica y espalda plana', 'Anteversión pélvica e hiperlordosis lumbar', 'Escoliosis cervical'], ok: 1 },
+        { t: 'op', s: 'Pilates', q: '¿Por qué el psoas mayor es tan trabajado en Pilates?', op: ['Porque controla la respiración diafragmática', 'Porque su estado afecta directamente la postura lumbar y pélvica', 'Porque es el músculo más grande del cuerpo'], ok: 1 },
+        { t: 'op', s: 'Pilates', q: 'En el "Pelvic Curl", el iliopsoas se alarga. ¿Qué combinación de posición lo elonga más?', op: ['Flexión de cadera + anteversión', 'Extensión de cadera + retroversión', 'Flexión de rodilla + retroversión'], ok: 1 },
+        { t: 'op', s: 'Pilates', q: 'Un psoas mayor débil y alargado (como en algunas bailarinas) se asocia con:', op: ['Hiperlordosis y anteversión', 'Espalda plana (reducción de la lordosis)', 'Escoliosis lumbar'], ok: 1 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'En el Hundred de Pilates con piernas en tabla, ¿qué músculo sostiene las piernas en el aire desde la columna?', op: ['El glúteo mayor', 'El iliopsoas', 'El cuádriceps'], ok: 1 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'En el Leg Stretch, ¿cuándo trabaja el psoas mayor excéntricamente?', op: ['Al llevar la rodilla al pecho', 'Al alejar la pierna del centro, resistiendo su propio alargamiento', 'Al rotar la cadera hacia afuera'], ok: 1 },
+        // El cuento (3)
         { t: 'op', s: 'El cuento', q: '¿Qué apodo le da el cuento al psoas mayor?', op: ['El casero', 'El puente vital', 'El fantasma del 40%'], ok: 1 },
+        { t: 'op', s: 'El cuento', q: 'En el cuento, el ilíaco es "el casero". ¿Por qué?', op: ['Porque es el más antiguo del grupo', 'Porque nace en su propia casa: la fosa ilíaca', 'Porque lleva la carga de los tres'], ok: 1 },
+        { t: 'op', s: 'El cuento', q: '¿Cómo llama el cuento al psoas menor por su rareza?', op: ['El puente vital', 'El casero', 'El fantasma del 40%'], ok: 2 },
+        // Comparando (5)
+        { t: 'op', s: 'Comparando', q: '¿Cuál de los tres es el único que nace en solo DOS vértebras?', op: ['El psoas mayor', 'El ilíaco', 'El psoas menor'], ok: 2 },
+        { t: 'op', s: 'Comparando', q: '¿Cuál de los tres nace en más vértebras?', op: ['El psoas menor', 'El ilíaco', 'El psoas mayor'], ok: 2 },
+        { t: 'op', s: 'Comparando', q: '¿Cuáles dos comparten inserción en el trocánter menor?', op: ['Psoas mayor + psoas menor', 'Ilíaco + psoas menor', 'Ilíaco + psoas mayor'], ok: 2 },
+        { t: 'op', s: 'Comparando', q: '¿Cuál de los tres nace en un hueso de la pelvis (no en la columna)?', op: ['El psoas mayor', 'El psoas menor', 'El ilíaco'], ok: 2 },
+        { t: 'op', s: 'Comparando', q: '¿Cuántos de los tres músculos de la unidad llegan al fémur?', op: ['Los tres', 'Solo uno (el psoas mayor)', 'Dos (el ilíaco y el psoas mayor)'], ok: 2 },
+        // ——— FIN BANCO OP U2 ———
         { t: 'clave' }
       ]
     },
@@ -1859,6 +1900,25 @@ const RETO = (() => {
   }
   function resultado(ok, msg) {
     S.res[S.i] = ok; head(); SFX.blip(ok ? 'ok' : 'fail'); buzz(ok ? 25 : 70);
+    const errores = S.res.filter(v => v === false).length;
+    if (!ok && errores >= 3) {
+      const f = document.createElement('div'); f.className = 'rtfb no';
+      f.innerHTML = `<b>¡Casi!</b>${msg ? `<span>${msg}</span>` : ''}`;
+      box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      setTimeout(() => {
+        SFX.blip('basta'); if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
+        const FRASES_B = [
+          'Respira, repasa la unidad y vuelve a comenzar desde el principio.',
+          'Tres errores: pausa, repasa y regresa con más fuerza. ¡Sí puedes!',
+          'Vuelve a ver la unidad. La segunda vez te saldrán preguntas distintas.'
+        ];
+        const b = document.createElement('div'); b.className = 'rtbasta';
+        b.innerHTML = `<b>¡BASTA!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Volver a intentar</button>`;
+        box().querySelector('.rtbody').appendChild(b); b.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        b.querySelector('button').onclick = () => empezar(S.u);
+      }, 900);
+      return;
+    }
     const f = document.createElement('div'); f.className = 'rtfb ' + (ok ? 'ok' : 'no');
     f.innerHTML = `<b>${ok ? ['¡Muy bien!', '¡Exacto!', '¡Así es!', '¡Perfecto!'][S.i % 4] : '¡Casi!'}</b>${msg ? `<span>${msg}</span>` : ''}<button class="pill on">${S.i + 1 < S.lista.length ? 'Siguiente' : 'Ver resultado'}</button>`;
     box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
