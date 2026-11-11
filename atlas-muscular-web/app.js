@@ -1702,19 +1702,35 @@ const RETO = (() => {
       cv.width = W; cv.height = H; x.drawImage(im, 0, 0, W, H);
       const lc = document.createElement('canvas'); lc.width = li.width; lc.height = li.height;
       const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
-      // Construir mapa de músculo por píxel (0=fondo, 1-6=índice en CM)
+      // Construir mapa de músculo por zona contigua (flood-fill, como el balde de colorear)
       const labPx = lx.getImageData(0, 0, li.width, li.height).data;
-      const mmap = new Uint8Array(li.width * li.height);
-      for (let i = 0; i < li.width * li.height; i++) {
-        const pr = labPx[i*4], pg = labPx[i*4+1], pb = labPx[i*4+2];
-        const mx = Math.max(pr, pg, pb), mn = Math.min(pr, pg, pb);
-        if (mx < 30 || mx > 240 || (mx - mn) / mx < 0.20) continue; // fondo
-        let best = 0, bestD = 18000; // umbral máx: sólo asigna si está cerca del color del músculo
-        for (let c = 0; c < CM.length; c++) {
-          const d = (pr-CM[c].R)**2 + (pg-CM[c].G)**2 + (pb-CM[c].B)**2;
-          if (d < bestD) { bestD = d; best = c + 1; }
+      const LW = li.width, LH = li.height;
+      const mmap = new Uint8Array(LW * LH);
+      for (let c = 0; c < CM.length; c++) {
+        const { R: tR, G: tG, B: tB } = CM[c];
+        // Buscar el píxel semilla más cercano al color de este músculo
+        let bestD = Infinity, seed = -1;
+        for (let i = 0; i < LW * LH; i++) {
+          if (labPx[i*4+3] < 128) continue;
+          const d = (labPx[i*4]-tR)**2 + (labPx[i*4+1]-tG)**2 + (labPx[i*4+2]-tB)**2;
+          if (d < bestD) { bestD = d; seed = i; }
         }
-        mmap[i] = best;
+        if (seed < 0 || bestD > 20000) continue; // sin semilla válida
+        // Flood-fill desde la semilla (igual al balde de colorear)
+        const sR = labPx[seed*4], sG = labPx[seed*4+1], sB = labPx[seed*4+2];
+        const TOL = 2500; // ~50 unidades euclidianas — rellena la región pintada sin filtrarse a otro músculo
+        const visited = new Uint8Array(LW * LH);
+        const stack = [seed]; visited[seed] = 1;
+        while (stack.length > 0) {
+          const qi = stack.pop(), qx = qi % LW, qy = (qi / LW) | 0;
+          const pr = labPx[qi*4], pg = labPx[qi*4+1], pb = labPx[qi*4+2];
+          if ((pr-sR)**2 + (pg-sG)**2 + (pb-sB)**2 > TOL) continue;
+          mmap[qi] = c + 1;
+          if (qx > 0    && !visited[qi-1])  { visited[qi-1]  = 1; stack.push(qi-1);  }
+          if (qx < LW-1 && !visited[qi+1])  { visited[qi+1]  = 1; stack.push(qi+1);  }
+          if (qy > 0    && !visited[qi-LW]) { visited[qi-LW] = 1; stack.push(qi-LW); }
+          if (qy < LH-1 && !visited[qi+LW]) { visited[qi+LW] = 1; stack.push(qi+LW); }
+        }
       }
       // Tablas de mapeo de coordenadas canvas→lab
       const xMap = new Int32Array(W), yMap = new Int32Array(H);
