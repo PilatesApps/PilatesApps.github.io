@@ -1532,15 +1532,25 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; viewport.style.cursor = ''; } });
 $('#btnPrev').onclick = () => openPage(cur - 1);
+const _retoMostrado = new Set();
 $('#btnNext').onclick = () => {
-  // En modo progresivo: si estamos en la última página de una unidad que tiene reto, mostrar el reto antes de avanzar
-  if (store.get('modo', 'libre') === 'progresivo' && typeof RETO !== 'undefined' && META.length) {
+  if (typeof RETO !== 'undefined' && META.length) {
     const si = SECTIONS.findIndex(([, , a, b]) => cur >= a && cur <= b);
     if (si > 0) {
       const [, , , lastPage] = SECTIONS[si];
-      if (cur === lastPage && RETO.U[si] && !RETO.aprobado(si)) {
-        setTimeout(() => RETO.abrir(si), 100);
-        return;
+      const modo = store.get('modo', 'libre');
+      if (cur === lastPage && RETO.U[si]) {
+        // Modo progresivo: bloquea hasta aprobar
+        if (modo === 'progresivo' && !RETO.aprobado(si)) {
+          setTimeout(() => RETO.abrir(si), 100);
+          return;
+        }
+        // Modo libre: muestra el reto una vez antes de avanzar (sin bloquear)
+        if (modo !== 'progresivo' && !_retoMostrado.has(si)) {
+          _retoMostrado.add(si);
+          setTimeout(() => RETO.abrir(si), 100);
+          return; // la próxima vez que presionen Siguiente avanza sin obstáculo
+        }
       }
     }
   }
@@ -1583,9 +1593,31 @@ function isComplete() {
   if (page.nobucket) {   // lienzo libre: basta con un dibujo de verdad
     const c = xColor.getImageData(0, 0, W, H).data, k = xInk.getImageData(0, 0, W, H).data; let p = 0;
     for (let i = 3; i < c.length; i += 16) if (c[i] > 24 || k[i] > 24) p++;
-    return p / (c.length / 16) > 0.06;
+    return p / (c.length / 16) > 0.60;
   }
-  const rv = reviewArt(); return !rv.block.length && !rv.tips.length;
+  const rv = reviewArt(); return !rv.block.length && !rv.tips.length && coloredShare() >= 0.5;
+}
+let _motivLast = 0;
+function motivarPintura() {
+  const now = Date.now();
+  if (now - _motivLast < 25000 || Math.random() > 0.09) return;
+  _motivLast = now;
+  const si = SECTIONS.findIndex(([,,a,b]) => cur >= a && cur <= b);
+  const titulo = (RETO.U && RETO.U[si] && RETO.U[si].titulo) || '';
+  const unit = titulo ? [
+    `¡Los personajes de ${titulo} necesitan sus colores!`,
+    `¡Sigue dándole vida a ${titulo}!`,
+  ] : [];
+  const gen = [
+    'Saca tu artista interior, Da Vinci tampoco pintó de un solo trazo.',
+    '¡Eres un Da Vinci de la anatomía!',
+    '¡Cada músculo que pintas es un secreto del cuerpo revelado!',
+    '¡Con paciencia y color se domina la anatomía!',
+    '¡Los grandes maestros pintaban así, con dedicación!',
+    '¡Tú puedes! El cuerpo humano merece cada trazo tuyo.',
+  ];
+  const pool = [...unit, ...gen];
+  toast(pool[Math.floor(Math.random() * pool.length)]);
 }
 function checkDone(celebrate) {
   if (!page || !page.plate || !labels && !page.nobucket) return;
@@ -2395,7 +2427,7 @@ async function shareRender(st, s, final) {
 $('#btnShare').onclick = async () => {
   if (!page) return;
   if (!page.plate) { toast('Solo se comparten las láminas que usted colorea'); return; }
-  if (!SH.passed) { const rv = reviewArt(); if (rv.block.length || rv.tips.length) { showReview(rv); return; } toast('¡Quedó preciosa! Elija cómo compartirla'); checkDone(true); }
+  if (!SH.passed) { const rv = reviewArt(); if (rv.block.length || rv.tips.length) { motivarPintura(); showReview(rv); return; } toast('¡Quedó preciosa! Elija cómo compartirla'); checkDone(true); }
   SH.passed = false;
   await saveNow(); SH.cache = {}; SH.ready = null; $('#sgYes').textContent = 'Compartir mi obra';
   try { await Promise.all([document.fonts.load('500 40px Caveat'), document.fonts.load('700 40px Caveat'), document.fonts.load('700 30px Montserrat'), document.fonts.load('italic 900 40px Montserrat')]); } catch (e) {}
