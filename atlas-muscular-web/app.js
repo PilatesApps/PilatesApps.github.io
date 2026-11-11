@@ -189,6 +189,12 @@ const SFX = (() => {
         const g = a.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
         s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + 0.4); return;
       }
+      if (kind === 'basta') {                              /* ¡BASTA! — buzzer dramático descendente */
+        const o = a.createOscillator(), g = a.createGain(); o.type = 'sawtooth';
+        o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.45);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.45, t + 0.025); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+        o.connect(g).connect(master); o.start(t); o.stop(t + 0.65); return;
+      }
       if (kind === 'fill') {                               /* gota de pintura que cae */
         const o = a.createOscillator(), g = a.createGain(); o.type = 'sine';
         o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(760, t + 0.09);
@@ -407,7 +413,7 @@ function syncTape() { tapeBtn.classList.toggle('on', tape); tapeBtn.setAttribute
 tapeBtn.onclick = () => { tape = !tape; store.set('tape', tape); syncTape(); toast(tape ? 'No salirme: el color se queda dentro de la parte que empezó a pintar' : 'Libre: el color puede salirse de la línea'); };
 
 let toastT = null;
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
+function toast(msg, ms) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms || 2200); }
 
 /* ---------------- vista: zoom y desplazamiento ---------------- */
 let view = { s: 1, x: 0, y: 0, base: 1 };
@@ -1598,6 +1604,14 @@ function isComplete() {
   const rv = reviewArt(); return !rv.block.length && !rv.tips.length && coloredShare() >= 0.5;
 }
 let _motivLast = 0;
+let _shareBlockCount = 0;  // veces que intentaron compartir sin terminar
+const FRASES_BASTA_SHARE = [
+  '¡Tú eres artista! Termina de pintar tu obra y compártela con todo su esplendor.',
+  '¡Corazoncito, saca tu potencial! Esta obra merece estar completa antes de compartirla.',
+  '¡Da Vinci tampoco publicaba bocetos sin terminar! Finaliza tu lámina y entonces compártela.',
+  '¡Saca el artista que llevas dentro! Pinta hasta el último músculo y comparte tu obra maestra.',
+  '¡Tú puedes! Solo un poco más de pintura y tu obra estará lista para brillar.'
+];
 function motivarPintura() {
   const now = Date.now();
   if (now - _motivLast < 25000 || Math.random() > 0.09) return;
@@ -1666,11 +1680,54 @@ const RETO = (() => {
     },
     2: {
       titulo: 'El Puente Vital', unidad: 'Unidad 2', lamina: 19, ultima: 23,
+      maxOp: 13,
       claveQ: { q: '¿Cuántos músculos componen la Unidad 2 "El Puente Vital"?', op: ['2', '3', '4'], ok: 1 },
       retos: [
-        { t: 'toca', m: 'el ilíaco', img: 1, visImg: 'u2_toca_clean.png' },
-        { t: 'toca', m: 'el psoas mayor', img: 2, visImg: 'u2_toca_clean.png' },
-        { t: 'toca', m: 'el psoas menor', img: 3, visImg: 'u2_toca_clean.png' },
+        { t: 'toca', m: 'el ilíaco', img: 1, visImg: 'u2_toca_clean.png', qs: [
+            'Toque <b>el ilíaco</b>',
+            '¿Cuál nace en <b>la fosa ilíaca</b>?',
+            '¿Cuál llena el interior del coxal como una mano en su guante?',
+            '¿Cuál NO toca ninguna vértebra, pero sí llega al trocánter menor?',
+            '¿Cuál es el compañero casero que espera al psoas dentro de la pelvis?',
+            '¿Cuál tapiza por dentro el hueso de la pelvis por completo?',
+            '¿Cuál nace en el <b>lado izquierdo</b> de la fosa ilíaca?',
+            '¿Cuál nace en el <b>lado derecho</b> de la fosa ilíaca?',
+            '¿Cuál se une con el psoas mayor para bajar al fémur como si fueran una sola cosa?',
+            '¿Cuál tiene origen en la cara interna del hueso de la cadera, no en la columna?',
+            '¿Cuál es más ancho arriba que abajo, como un abanico pegado al coxal?',
+            '¿Cuál, si se tensa de un lado, puede inclinar la pelvis lateralmente?',
+            '¿Cuál es el que nunca sale de la pelvis por su cuenta?'
+          ] },
+        { t: 'toca', m: 'el psoas mayor', img: 2, visImg: 'u2_toca_clean.png', qs: [
+            'Toque <b>el psoas mayor</b>',
+            '¿Cuál tiene origen en <b>T12 a L5</b>?',
+            '¿Cuál es el puente que va de la columna lumbar al trocánter menor?',
+            '¿Cuál nace en <b>seis vértebras diferentes</b> para bajar al fémur?',
+            '¿Cuál cruza la pelvis de arriba a abajo como un cable de alta tensión?',
+            '¿Cuál es el único de los tres que toca tanto la columna como el fémur?',
+            '¿Cuál nace en el <b>lado izquierdo</b> de las vértebras lumbares?',
+            '¿Cuál nace en el <b>lado derecho</b> de las vértebras lumbares?',
+            '¿Cuál, cuando se acorta, puede causar hiperlordosis lumbar?',
+            '¿Cuál le da la mano al ilíaco justo antes de llegar al trocánter menor?',
+            '¿Cuál recibe la compañía del ilíaco para que los dos lleguen juntos al trabajo?',
+            '¿Cuál nace de T12 y de las cinco vértebras lumbares, una por una?',
+            '¿Cuál, en el Hundred de Pilates, sostiene las piernas en el aire desde la columna?'
+          ] },
+        { t: 'toca', m: 'el psoas menor', img: 3, visImg: 'u2_toca_clean.png', qs: [
+            'Toque <b>el psoas menor</b>',
+            '¿Cuál solo existe en el <b>60% de las personas</b>?',
+            '¿Cuál llega a la eminencia iliopúbica pero no al fémur?',
+            '¿Cuál es el vestigio evolutivo del grupo: corto, plano y casi sin función?',
+            '¿Cuál, si usted lo tiene, está por delante del psoas mayor?',
+            '¿Cuál nace de T12–L1 nada más, mientras su vecino llega hasta L5?',
+            '¿Cuál <b>NO llega al fémur</b>: se queda en el borde de la pelvis?',
+            '¿Cuál, en el <b>lado izquierdo</b>, es el músculo que puede que ni esté?',
+            '¿Cuál, en el <b>lado derecho</b>, podría no existir en este cuerpo?',
+            '¿Cuál es tan discreto que en el 40% de personas nadie lo echa de menos?',
+            '¿Cuál nace de las mismas vértebras que el psoas mayor, pero solo de las dos primeras?',
+            '¿Cuál se inserta en la eminencia iliopúbica en vez de seguir hasta el trocánter?',
+            '¿Cuál, si existe, es el más pequeño y superficial del trío del puente vital?'
+          ] },
         { t: 'oi', m: 'el ilíaco', img: 1, visImg: 'u2_oi_base.png',
           intro: 'El ilíaco es el más casero del grupo: vive pegado al interior del coxal y nunca sale de la pelvis por su cuenta.',
           no: 'la fosa ilíaca (el interior cóncavo del coxal)',
@@ -1692,6 +1749,16 @@ const RETO = (() => {
         { t: 'op', s: 'Pilates', pil: true, q: 'En el Hundred, con piernas elevadas en ángulo, ¿qué hace el iliopsoas?', op: ['Extiende la cadera para bajar las piernas', 'Sostiene la flexión de cadera contra la gravedad', 'Rota externamente el fémur'], ok: 1 },
         { t: 'op', s: 'Clínica', nopil: true, q: 'Un psoas tenso puede inclinar la pelvis hacia adelante. ¿Qué postura típica produce?', op: ['Hiperlordosis lumbar', 'Cifosis dorsal', 'Columna plana'], ok: 0 },
         { t: 'op', s: 'Clínica', nopil: true, q: 'El psoas menor es vestigial: falta en el 40% de las personas. ¿Qué significa que un músculo sea vestigial?', op: ['Que es el más grande del grupo', 'Que es un resto evolutivo con función reducida', 'Que solo aparece en atletas'], ok: 1 },
+        { t: 'op', s: 'Dónde nace', q: '¿En qué estructura nace el ilíaco?', op: ['En los cuerpos vertebrales lumbares', 'En la fosa ilíaca (cara interna del coxal)', 'En el trocánter mayor'], ok: 1 },
+        { t: 'op', s: 'Dónde llega', q: '¿Dónde se inserta el ilíaco?', op: ['En la eminencia iliopúbica', 'En la cabeza del fémur', 'En el trocánter menor (junto al psoas mayor)'], ok: 2 },
+        { t: 'op', s: 'Dónde nace', q: '¿Desde cuántas vértebras nace el psoas mayor?', op: ['3 vértebras (L1–L3)', '6 vértebras (T12–L5)', '2 vértebras (L4–L5)'], ok: 1 },
+        { t: 'op', s: 'Dónde llega', q: '¿Dónde termina el psoas menor?', op: ['En el trocánter menor del fémur', 'En la eminencia iliopúbica (borde de la pelvis)', 'En el trocánter mayor del fémur'], ok: 1 },
+        { t: 'op', s: 'El cuento', q: '¿Qué apodo le da el cuento al psoas mayor?', op: ['El casero', 'El puente vital', 'El fantasma del 40%'], ok: 1 },
+        { t: 'op', s: 'El cuento', q: 'En el cuento, el ilíaco es "el casero". ¿Por qué?', op: ['Porque es el más largo del grupo', 'Porque nunca sale de la pelvis por su cuenta', 'Porque nace en la columna'], ok: 1 },
+        { t: 'op', s: 'Izquierda y derecha', q: 'El ilíaco del lado derecho nace en…', op: ['La fosa ilíaca del coxal derecho', 'La fosa ilíaca del coxal izquierdo', 'Los cuerpos de L1–L3 del lado derecho'], ok: 0 },
+        { t: 'op', s: 'Izquierda y derecha', q: 'Si el psoas mayor izquierdo se acorta crónicamente, ¿qué puede pasar en la pelvis?', op: ['La pelvis sube del lado derecho', 'La pelvis se inclina hacia adelante en el lado izquierdo', 'La columna torácica se cifosa'], ok: 1 },
+        { t: 'op', s: 'Comparando', q: '¿Cuál de los tres músculos NO llega al fémur?', op: ['El ilíaco', 'El psoas mayor', 'El psoas menor'], ok: 2 },
+        { t: 'op', s: 'Comparando', q: '¿Cuál de los tres nace exclusivamente en el interior del hueso de la cadera (coxal)?', op: ['El psoas mayor', 'El ilíaco', 'El psoas menor'], ok: 1 },
         { t: 'clave' }
       ]
     },
@@ -1767,7 +1834,13 @@ const RETO = (() => {
   }
   function empezar(u) {
     const pil = esPil();
-    S = { u, i: 0, res: [], lista: U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil)).sort(() => Math.random() - .5) };
+    const todo = U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil));
+    // Los toca, oi y clave siempre van; los op se sortean al azar (hasta maxOp)
+    const fijos = todo.filter(r => r.t !== 'op');
+    const opciones = todo.filter(r => r.t === 'op').sort(() => Math.random() - .5);
+    const maxOp = U[u].maxOp !== undefined ? U[u].maxOp : opciones.length;
+    const lista = [...fijos, ...opciones.slice(0, maxOp)].sort(() => Math.random() - .5);
+    S = { u, i: 0, res: [], lista };
     html(`<div class="rtintro"><div class="rtbig"><img src="reto/u${u+1}_cover.png" onerror="this.parentElement.textContent='🦸'"></div><h3>${U[u].titulo}</h3><p>${S.lista.length} retos cortos. Se aprueba con el <b>80%</b>.</p><p class="rtsmall">Ubique cada músculo, toque su origen y su inserción en el esqueleto y demuestre lo que sabe de la liga.</p><button class="pill on rtgo">¡Empezar!</button><button class="pill rtperfil">Cambiar mi perfil</button></div>`);
     box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[u].unidad}</b>`;
     box().querySelector('.rtgo').onclick = () => paso();
@@ -1791,7 +1864,8 @@ const RETO = (() => {
   /* estación 1: tocar el músculo en la lámina del grupo */
   async function tocaMusculo(r) {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
-    html(`<p class="rtst">Encuentre al músculo</p><p class="rtq">Toque <b>${r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
+    const qText = r.qs ? r.qs[Math.floor(Math.random() * r.qs.length)] : `Toque <b>${r.m}</b>`;
+    html(`<p class="rtst">Encuentre al músculo</p><p class="rtq">${qText}</p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
     // imagen de display: r.visImg si existe (u1_toca_clean.png), si no la lámina estándar
     // detección siempre por etiqueta uint16 (pages/pNN_lab.png + MAP.zones) — mismo sistema que el balde
@@ -1800,23 +1874,56 @@ const RETO = (() => {
     cv.width = W; cv.height = H; x.drawImage(im, 0, 0, W, H);
     const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
     const labPx = lx.getImageData(0, 0, W, H).data;
-    let done = false;
+    const hl = (testFn, col) => {
+      const o = x.getImageData(0, 0, W, H), O = o.data;
+      for (let i = 0; i < W * H; i++) { const l = labPx[i*4] | (labPx[i*4+1] << 8); if (testFn(l)) { O[i*4]=O[i*4]*.4+col[0]*.6; O[i*4+1]=O[i*4+1]*.4+col[1]*.6; O[i*4+2]=O[i*4+2]*.4+col[2]*.6; } }
+      x.putImageData(o, 0, 0);
+    };
+    const FRASES_BASTA = [
+      '¡Corazoncito, respira y concéntrate. ¡Sí puedes!',
+      'Cierra los ojos un momento, visualiza el músculo y vuelve a intentarlo.',
+      '¡Tú puedes! Busca con cuidado. ¡La próxima vez lo encontrarás!'
+    ];
+    const tocaMuscles = new Set((U[S.u].retos || []).filter(e => e.t === 'toca').map(e => e.m));
+    let done = false, fallos = 0;
     cv.onclick = e => {
       if (done) return;
       const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W | 0, py = (e.clientY - rc.top) / rc.height * H | 0;
       const idx = (py * W + px) * 4, L = labPx[idx] | (labPx[idx + 1] << 8), nm = z[L];
-      done = true;
       const ok = nm === r.m;
-      // rojo solo si tocaron otro músculo del reto (no huesos ni zonas externas)
-      const tocaMuscles = new Set((U[S.u].retos || []).filter(e => e.t === 'toca').map(e => e.m));
-      const hl = (testFn, col) => {
-        const o = x.getImageData(0, 0, W, H), O = o.data;
-        for (let i = 0; i < W * H; i++) { const l = labPx[i * 4] | (labPx[i * 4 + 1] << 8); if (testFn(l)) { O[i*4] = O[i*4] * .4 + col[0] * .6; O[i*4+1] = O[i*4+1] * .4 + col[1] * .6; O[i*4+2] = O[i*4+2] * .4 + col[2] * .6; } }
-        x.putImageData(o, 0, 0);
-      };
-      if (!ok && nm && tocaMuscles.has(nm)) hl(l => l === L, [220, 40, 40]);
-      hl(l => z[l] === r.m, [40, 170, 80]);
-      resultado(ok, ok ? '' : (nm ? `Ese es ${nm}. ${cap(r.m)} está marcado en verde.` : `${cap(r.m)} está marcado en verde.`));
+      if (ok) {
+        done = true;
+        hl(l => z[l] === r.m, [40, 170, 80]);
+        resultado(true, '');
+        return;
+      }
+      // Error
+      fallos++;
+      if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
+      x.drawImage(im, 0, 0, W, H); // limpiar error anterior
+      if (nm && tocaMuscles.has(nm)) hl(l => l === L, [220, 40, 40]);
+      if (fallos >= 5) {
+        // ¡BASTA! — a la quinta, revelar y terminar
+        done = true;
+        SFX.blip('basta');
+        if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500, 60, 400]);
+        hl(l => z[l] === r.m, [40, 170, 80]);
+        const mot = FRASES_BASTA[Math.floor(Math.random() * FRASES_BASTA.length)];
+        const banner = document.createElement('div');
+        banner.className = 'rtbasta';
+        banner.innerHTML = `<b>¡BASTA!</b><span>${mot}</span>`;
+        box().querySelector('.rtbody').appendChild(banner);
+        banner.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        setTimeout(() => resultado(false, `${cap(r.m)} está marcado en verde.`), 1800);
+      } else {
+        // Error suave — 4 intentos antes del BASTA
+        const qEl = box().querySelector('.rtq');
+        if (qEl) {
+          const restantes = 5 - fallos;
+          qEl.innerHTML = (nm ? `Ese es ${nm}.` : 'No es ese músculo.') +
+            ` ¡Inténtalo de nuevo! <small>(${restantes} ${restantes === 1 ? 'oportunidad' : 'oportunidades'} más)</small>`;
+        }
+      }
     };
   }
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -2516,7 +2623,7 @@ async function shareRender(st, s, final) {
 $('#btnShare').onclick = async () => {
   if (!page) return;
   if (!page.plate) { toast('Solo se comparten las láminas que usted colorea'); return; }
-  if (!SH.passed) { const rv = reviewArt(); if (rv.block.length || rv.tips.length) { motivarPintura(); showReview(rv); return; } toast('¡Quedó preciosa! Elija cómo compartirla'); checkDone(true); }
+  if (!SH.passed) { const rv = reviewArt(); if (rv.block.length || rv.tips.length) { _shareBlockCount++; if (_shareBlockCount >= 5) { _shareBlockCount = 0; SFX.blip('basta'); if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500, 60, 400]); const mot = FRASES_BASTA_SHARE[Math.floor(Math.random() * FRASES_BASTA_SHARE.length)]; toast(`¡BASTA! ${mot}`, 5000); return; } motivarPintura(); showReview(rv); return; } _shareBlockCount = 0; toast('¡Quedó preciosa! Elija cómo compartirla'); checkDone(true); }
   SH.passed = false;
   await saveNow(); SH.cache = {}; SH.ready = null; $('#sgYes').textContent = 'Compartir mi obra';
   try { await Promise.all([document.fonts.load('500 40px Caveat'), document.fonts.load('700 40px Caveat'), document.fonts.load('700 30px Montserrat'), document.fonts.load('italic 900 40px Montserrat')]); } catch (e) {}

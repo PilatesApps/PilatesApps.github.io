@@ -427,6 +427,9 @@ body.hand #viewport{cursor:grab}
 #reto .rtfb{margin-top:12px;padding:12px 14px;border-radius:14px;display:flex;flex-direction:column;gap:6px;animation:mdin .35s}
 #reto .rtfb.ok{background:#ECF8EF}#reto .rtfb.no{background:#FFF4D1}
 #reto .rtfb b{font-size:17px}#reto .rtfb span{font-size:14px;line-height:1.4}
+#reto .rtbasta{margin-top:10px;padding:14px 16px;border-radius:14px;background:#FFF0E6;border:2px solid #E07B39;display:flex;flex-direction:column;gap:6px;animation:mdin .3s}
+#reto .rtbasta b{font-size:22px;font-weight:900;color:#C0392B;letter-spacing:.5px}
+#reto .rtbasta span{font-size:14px;line-height:1.45;color:#555}
 #reto .rtfb .pill{align-self:flex-end}
 #reto .rtintro,#reto .rtfin{text-align:center;padding:10px 4px;position:relative}
 #reto .rtbig,#reto .rtstar{font-size:56px;line-height:1.1;animation:mdsw 2.4s ease-in-out infinite}
