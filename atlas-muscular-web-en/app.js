@@ -1676,8 +1676,41 @@ const RETO = (() => {
     if (r.t === 'clave') return clave();
     return opciones(r);
   }
+  function sayEnough() {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance('ENOUGH!');
+      u.lang = 'en-US'; u.rate = 1.1; u.pitch = 1.9; u.volume = 1;
+      const voices = window.speechSynthesis.getVoices();
+      const fem = voices.find(v => v.lang.startsWith('en') && /Samantha|Zira|Karen|Moira|Tessa|Victoria|Susan|female/i.test(v.name))
+               || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('google'))
+               || voices.find(v => v.lang.startsWith('en'));
+      if (fem) u.voice = fem;
+      window.speechSynthesis.speak(u);
+    }
+  }
   function resultado(ok, msg) {
     S.res[S.i] = ok; head(); SFX.blip(ok ? 'fill' : 'undo'); buzz(ok ? 18 : 40);
+    const errores = S.res.filter(v => v === false).length;
+    if (!ok && errores >= 3) {
+      const f = document.createElement('div'); f.className = 'rtfb no';
+      f.innerHTML = `<b>ENOUGH!</b>${msg ? `<span>${msg}</span>` : ''}`;
+      box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      SFX.blip('basta'); sayEnough();
+      if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
+      const FRASES_B = [
+        'Take a breath, review the unit and start again.',
+        'Three mistakes: pause, review and come back stronger!',
+        'Go back and watch the unit again. You\'ve got this!'
+      ];
+      setTimeout(() => {
+        const b = document.createElement('div'); b.className = 'rtbasta';
+        b.innerHTML = `<b>ENOUGH!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Try again</button>`;
+        box().querySelector('.rtbody').appendChild(b); b.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        b.querySelector('button').onclick = () => iniciarReto(S.u);
+      }, 400);
+      return;
+    }
     const f = document.createElement('div'); f.className = 'rtfb ' + (ok ? 'ok' : 'no');
     f.innerHTML = `<b>${ok ? ['Well done!', 'Exactly!', 'That\'s right!', 'Perfect!'][S.i % 4] : 'Almost!'}</b>${msg ? `<span>${msg}</span>` : ''}<button class="pill on">${S.i + 1 < S.lista.length ? 'Next' : 'See results'}</button>`;
     box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });

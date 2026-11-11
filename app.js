@@ -1911,7 +1911,12 @@ const RETO = (() => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance('¡BASTA!');
-      u.lang = 'es-ES'; u.rate = 1.1; u.pitch = 1.6; u.volume = 1;
+      u.lang = 'es-ES'; u.rate = 1.1; u.pitch = 1.9; u.volume = 1;
+      const voices = window.speechSynthesis.getVoices();
+      const fem = voices.find(v => v.lang.startsWith('es') && /Paulina|Mónica|Monica|Laura|Lucia|María|Maria|Francisca|female/i.test(v.name))
+               || voices.find(v => v.lang.startsWith('es') && v.name.toLowerCase().includes('google'))
+               || voices.find(v => v.lang.startsWith('es'));
+      if (fem) u.voice = fem;
       window.speechSynthesis.speak(u);
     }
   }
