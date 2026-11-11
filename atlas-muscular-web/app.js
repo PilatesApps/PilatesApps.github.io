@@ -1688,100 +1688,26 @@ const RETO = (() => {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
     html(`<p class="rtst">Encuentre al músculo</p><p class="rtq">Toque <b>${r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    if (r.visImg) {
-      // Detección por color RGB — imágenes de Gus (u1_toca_clean.png + u1_toca_lab.png)
-      const CM = [
-        { name: 'el piriforme',         R: 220, G: 108, B: 108 },
-        { name: 'el gemelo superior',   R: 220, G: 150, B:  65 },
-        { name: 'el gemelo inferior',   R: 160, G: 125, B:  90 },
-        { name: 'el obturador interno', R:  80, G: 190, B:  80 },
-        { name: 'el cuadrado femoral',  R:  75, G: 120, B: 205 },
-        { name: 'el obturador externo', R: 225, G: 205, B:  85 },
-      ];
-      const [im, li] = await Promise.all([loadImg('reto/' + r.visImg), loadImg('reto/' + r.labImg)]);
-      cv.width = W; cv.height = H; x.drawImage(im, 0, 0, W, H);
-      const lc = document.createElement('canvas'); lc.width = li.width; lc.height = li.height;
-      const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
-      // Construir mapa de músculo por zona contigua (flood-fill, como el balde de colorear)
-      const labPx = lx.getImageData(0, 0, li.width, li.height).data;
-      const LW = li.width, LH = li.height;
-      const mmap = new Uint8Array(LW * LH);
-      for (let c = 0; c < CM.length; c++) {
-        const { R: tR, G: tG, B: tB } = CM[c];
-        // Buscar el píxel semilla más cercano al color de este músculo
-        let bestD = Infinity, seed = -1;
-        for (let i = 0; i < LW * LH; i++) {
-          if (labPx[i*4+3] < 128) continue;
-          const d = (labPx[i*4]-tR)**2 + (labPx[i*4+1]-tG)**2 + (labPx[i*4+2]-tB)**2;
-          if (d < bestD) { bestD = d; seed = i; }
-        }
-        if (seed < 0 || bestD > 20000) continue; // sin semilla válida
-        // Flood-fill desde la semilla (igual al balde de colorear)
-        const sR = labPx[seed*4], sG = labPx[seed*4+1], sB = labPx[seed*4+2];
-        const TOL = 2500; // ~50 unidades euclidianas — rellena la región pintada sin filtrarse a otro músculo
-        const visited = new Uint8Array(LW * LH);
-        const stack = [seed]; visited[seed] = 1;
-        while (stack.length > 0) {
-          const qi = stack.pop(), qx = qi % LW, qy = (qi / LW) | 0;
-          const pr = labPx[qi*4], pg = labPx[qi*4+1], pb = labPx[qi*4+2];
-          if ((pr-sR)**2 + (pg-sG)**2 + (pb-sB)**2 > TOL) continue;
-          mmap[qi] = c + 1;
-          if (qx > 0    && !visited[qi-1])  { visited[qi-1]  = 1; stack.push(qi-1);  }
-          if (qx < LW-1 && !visited[qi+1])  { visited[qi+1]  = 1; stack.push(qi+1);  }
-          if (qy > 0    && !visited[qi-LW]) { visited[qi-LW] = 1; stack.push(qi-LW); }
-          if (qy < LH-1 && !visited[qi+LW]) { visited[qi+LW] = 1; stack.push(qi+LW); }
-        }
-      }
-      // Tablas de mapeo de coordenadas canvas→lab
-      const xMap = new Int32Array(W), yMap = new Int32Array(H);
-      for (let dx = 0; dx < W; dx++) xMap[dx] = Math.min(li.width - 1, Math.round(dx * li.width / W));
-      for (let dy = 0; dy < H; dy++) yMap[dy] = Math.min(li.height - 1, Math.round(dy * li.height / H));
-      const getMuscle = (px, py) => { const idx = mmap[yMap[py|0] * li.width + xMap[px|0]]; return idx ? CM[idx-1].name : null; };
-      // Superponer color semitransparente sobre todos los píxeles del músculo indicado
-      const hl = (targetName, col) => {
-        const disp = x.getImageData(0, 0, W, H), D = disp.data;
-        for (let dy = 0; dy < H; dy++) for (let dx = 0; dx < W; dx++) {
-          if (CM[mmap[yMap[dy] * li.width + xMap[dx]] - 1]?.name !== targetName) continue;
-          const di = (dy * W + dx) * 4;
-          D[di]   = D[di]   * 0.4 + col[0] * 0.6;
-          D[di+1] = D[di+1] * 0.4 + col[1] * 0.6;
-          D[di+2] = D[di+2] * 0.4 + col[2] * 0.6;
-        }
-        x.putImageData(disp, 0, 0);
-      };
-      let done = false;
-      cv.onclick = e => {
-        if (done) return;
-        const rc = cv.getBoundingClientRect();
-        const px = (e.clientX - rc.left) / rc.width * W, py = (e.clientY - rc.top) / rc.height * H;
-        const nm = getMuscle(px, py);
-        done = true;
-        const ok = nm === r.m;
-        if (!ok && nm) hl(nm, [220, 40, 40]);
-        hl(r.m, [40, 170, 80]);
-        resultado(ok, ok ? '' : (nm ? `Ese es ${nm}. ${cap(r.m)} está marcado en verde.` : `${cap(r.m)} está marcado en verde.`));
-      };
-    } else {
-      // Detección original por etiqueta uint16 (pages/p09_lab.png + MAP.zones)
-      const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_hueso.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
-      const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
-      cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
-      const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
-      let done = false;
-      cv.onclick = e => {
-        if (done) return; const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W, py = (e.clientY - rc.top) / rc.height * cv.height + y0;
-        const d = lx.getImageData(px | 0, py | 0, 1, 1).data, L = d[0] | (d[1] << 8), nm = z[L];
-        done = true;
-        const ok = nm === r.m;
-        // marcar la zona correcta en verde (y la tocada en rojo si falló)
-        const hl = (lab, col) => { const id = lx.getImageData(0, y0, W, cv.height), D = id.data, o = x.getImageData(0, 0, W, cv.height), O = o.data;
-          for (let i = 0; i < D.length; i += 4) { const l = D[i] | (D[i + 1] << 8); if (lab(l)) { O[i] = O[i] * .4 + col[0] * .6; O[i + 1] = O[i + 1] * .4 + col[1] * .6; O[i + 2] = O[i + 2] * .4 + col[2] * .6; } }
-          x.putImageData(o, 0, 0); };
-        if (!ok && L && L !== pm.bg) hl(l => l === L, [220, 40, 40]);
-        hl(l => z[l] === r.m, [40, 170, 80]);
-        resultado(ok, ok ? '' : (nm ? `Ese es ${nm}. ${cap(r.m)} está marcado en verde.` : `${cap(r.m)} está marcado en verde.`));
-      };
-    }
+    // Detección por etiqueta uint16 (pages/pNN_lab.png + MAP.zones) — mismo sistema que el balde
+    const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_hueso.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
+    const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
+    cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
+    const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
+    let done = false;
+    cv.onclick = e => {
+      if (done) return; const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W, py = (e.clientY - rc.top) / rc.height * cv.height + y0;
+      const d = lx.getImageData(px | 0, py | 0, 1, 1).data, L = d[0] | (d[1] << 8), nm = z[L];
+      done = true;
+      const ok = nm === r.m;
+      // rojo solo si tocaron otro músculo del reto (no huesos ni zonas externas)
+      const tocaMuscles = new Set((U[S.u].retos || []).filter(e => e.t === 'toca').map(e => e.m));
+      const hl = (lab, col) => { const id = lx.getImageData(0, y0, W, cv.height), D = id.data, o = x.getImageData(0, 0, W, cv.height), O = o.data;
+        for (let i = 0; i < D.length; i += 4) { const l = D[i] | (D[i + 1] << 8); if (lab(l)) { O[i] = O[i] * .4 + col[0] * .6; O[i + 1] = O[i + 1] * .4 + col[1] * .6; O[i + 2] = O[i + 2] * .4 + col[2] * .6; } }
+        x.putImageData(o, 0, 0); };
+      if (!ok && nm && tocaMuscles.has(nm)) hl(l => l === L, [220, 40, 40]);
+      hl(l => z[l] === r.m, [40, 170, 80]);
+      resultado(ok, ok ? '' : (nm ? `Ese es ${nm}. ${cap(r.m)} está marcado en verde.` : `${cap(r.m)} está marcado en verde.`));
+    };
   }
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
   /* estación 2: origen e inserción sobre el esqueleto */
