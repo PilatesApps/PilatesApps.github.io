@@ -454,5 +454,5 @@ body.hand #viewport{cursor:grab}
 #reto .rtimg.sk{max-width:420px;margin:0 auto}
 
 /* dev badge — right side, single line, above toolbar */
-#devBadge{position:fixed;right:8px;bottom:calc(var(--barH, 62px) + var(--sab, 0px) + 1px);pointer-events:none;z-index:11;text-align:right;opacity:.38;line-height:1}
+#devBadge{position:fixed;right:8px;bottom:calc(var(--barH, 62px) + var(--sab, 0px) + 8px);pointer-events:none;z-index:11;text-align:right;opacity:.38;line-height:1}
 #devBadge span{font-family:var(--f);font-size:6px;font-weight:700;color:var(--chrome);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
