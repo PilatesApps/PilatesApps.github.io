@@ -1832,26 +1832,41 @@ const RETO = (() => {
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
     const toPx = e => { const rc = cv.getBoundingClientRect(); return [(e.clientX - rc.left) / rc.width * im.width, (e.clientY - rc.top) / rc.height * im.height]; };
-    const nearPts = (pts, ch) => pts.some(p => { const R = 20; for (let dy = -R; dy <= R; dy += 2) for (let dx = -R; dx <= R; dx += 2) { if (dx * dx + dy * dy > R * R) continue; const X = (p[0] + dx) | 0, Y = (p[1] + dy) | 0; if (X < 0 || Y < 0 || X >= im.width || Y >= im.height) continue; if (M[(Y * im.width + X) * 4 + ch] > 128) return true; } return false; });
-    const drawStroke = (pts, col) => { if (!pts.length) return; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); pts.forEach(p => x.lineTo(p[0], p[1])); x.strokeStyle = col; x.lineWidth = 6; x.lineCap = 'round'; x.lineJoin = 'round'; x.globalAlpha = 0.7; x.stroke(); x.globalAlpha = 1; };
-    let fase = 0, okO = false, drawing = false, pts = [];
+    // nearPts: check only within horizontal band [x0,x1) so bilateral muscles require same-side marking
+    const nearPts = (pts, ch, x0 = 0, x1 = im.width) => pts.some(p => { const R = 24; for (let dy = -R; dy <= R; dy += 2) for (let dx = -R; dx <= R; dx += 2) { if (dx * dx + dy * dy > R * R) continue; const X = (p[0] + dx) | 0, Y = (p[1] + dy) | 0; if (X < x0 || X >= x1 || Y < 0 || Y >= im.height) continue; if (M[(Y * im.width + X) * 4 + ch] > 128) return true; } return false; });
+    // Which horizontal half does the stroke fall mostly on?
+    const strokeSide = pts => { const mid = im.width / 2; const L = pts.filter(p => p[0] < mid).length; return L >= pts.length - L ? 'L' : 'R'; };
+    const halfBounds = side => side === 'L' ? [0, im.width / 2] : [im.width / 2, im.width];
+    const drawStroke = (pts, col) => { if (!pts.length) return; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); pts.forEach(p => x.lineTo(p[0], p[1])); x.strokeStyle = col; x.lineWidth = 9; x.lineCap = 'round'; x.lineJoin = 'round'; x.globalAlpha = 0.9; x.stroke(); x.globalAlpha = 1; };
+    let fase = 0, okO = false, sideO = 'L', ptsO = [], drawing = false, pts = [];
     cv.addEventListener('pointerdown', e => { if (fase > 1) return; e.preventDefault(); drawing = true; pts = [toPx(e)]; cv.setPointerCapture(e.pointerId); });
-    cv.addEventListener('pointermove', e => { if (!drawing) return; e.preventDefault(); const p = toPx(e); pts.push(p); x.beginPath(); x.moveTo(pts[pts.length - 2][0], pts[pts.length - 2][1]); x.lineTo(p[0], p[1]); x.strokeStyle = fase === 0 ? '#C62828' : '#2F62D6'; x.lineWidth = 6; x.lineCap = 'round'; x.globalAlpha = 0.7; x.stroke(); x.globalAlpha = 1; });
+    cv.addEventListener('pointermove', e => { if (!drawing) return; e.preventDefault(); const p = toPx(e); pts.push(p); if (pts.length < 2) return; x.beginPath(); x.moveTo(pts[pts.length - 2][0], pts[pts.length - 2][1]); x.lineTo(p[0], p[1]); x.strokeStyle = fase === 0 ? '#C62828' : '#1565C0'; x.lineWidth = 9; x.lineCap = 'round'; x.globalAlpha = 0.8; x.stroke(); x.globalAlpha = 1; });
     cv.addEventListener('pointerup', e => {
       if (!drawing || fase > 1) return; drawing = false;
       if (pts.length < 2) return;
       if (fase === 0) {
-        okO = nearPts(pts, 0);
-        if (!okO) drawStroke(pts, '#D7322F');
+        sideO = strokeSide(pts); ptsO = pts.slice();
+        const [x0, x1] = halfBounds(sideO);
+        okO = nearPts(pts, 0, x0, x1);
+        if (!okO) drawStroke(pts, '#1a1a1a'); // wrong origin → black
         fase = 1; pts = [];
         box().querySelector('.rtq').innerHTML = `<b>${cap(r.m)}</b>: ahora marque su <b class="rti">inserción</b>.`;
         return;
       }
       fase = 2;
-      const okI = nearPts(pts, 2);
-      if (!okI) drawStroke(pts, '#D7322F');
+      const sideI = strokeSide(pts);
+      const sameSide = sideI === sideO;
+      const [x0, x1] = halfBounds(sideI);
+      const okI = nearPts(pts, 2, x0, x1);
+      const ok = okO && okI && sameSide;
+      if (!ok) {
+        // Wrong marks turn black
+        if (!okI || !sameSide) drawStroke(pts, '#1a1a1a');
+        if (!okO) drawStroke(ptsO, '#1a1a1a'); // reinforce origin as black too
+      }
+      const nota = !sameSide ? `Origen e inserción deben ser del mismo lado. Sale de ${r.no} y llega ${r.ni.replace(/^el /, 'al ').replace(/^la /, 'a la ')}.` : `Sale de ${r.no} y llega ${r.ni.replace(/^el /, 'al ').replace(/^la /, 'a la ')}.`;
       box().querySelector('.rthint').textContent = `Origen: ${r.no}. Inserción: ${r.ni}.`;
-      resultado(okO && okI, `Sale de ${r.no} y llega ${r.ni.replace(/^el /, 'al ').replace(/^la /, 'a la ')}.`);
+      resultado(ok, nota);
     });
   }
   /* estación 3, 4 y 6: opciones */
