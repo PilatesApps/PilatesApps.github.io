@@ -1881,11 +1881,11 @@ const RETO = (() => {
   function empezar(u) {
     const pil = esPil();
     const todo = U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil));
-    // Los toca, oi y clave siempre van; los op se sortean al azar (hasta maxOp)
-    const fijos = todo.filter(r => r.t !== 'op');
-    const opciones = todo.filter(r => r.t === 'op').sort(() => Math.random() - .5);
-    const maxOp = U[u].maxOp !== undefined ? U[u].maxOp : opciones.length;
-    const lista = [...fijos, ...opciones.slice(0, maxOp)].sort(() => Math.random() - .5);
+    // maxOp = total de retos (no solo las op). La clave siempre va; el resto se mezcla y recorta.
+    const clave = todo.filter(r => r.t === 'clave');
+    const pool = todo.filter(r => r.t !== 'clave').sort(() => Math.random() - .5);
+    const max = U[u].maxOp !== undefined ? U[u].maxOp : 10;
+    const lista = [...clave, ...pool.slice(0, max - clave.length)].sort(() => Math.random() - .5);
     S = { u, i: 0, res: [], lista };
     html(`<div class="rtintro"><div class="rtbig"><img src="reto/u${u}_cover.png" onerror="this.parentElement.textContent='🦸'"></div><h3>${U[u].titulo}</h3><p>${S.lista.length} retos cortos. Se aprueba con el <b>80%</b>.</p><p class="rtsmall">Ubique cada músculo, toque su origen y su inserción en el esqueleto y demuestre lo que sabe de la liga.</p><button class="pill on rtgo">¡Empezar!</button><button class="pill rtperfil">Cambiar mi perfil</button></div>`);
     box().querySelector('.rthead').innerHTML = `<b>Reto · ${U[u].unidad}</b>`;
@@ -1900,6 +1900,14 @@ const RETO = (() => {
     if (r.t === 'clave') return clave();
     return opciones(r);
   }
+  function decirBasta() {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance('¡BASTA!');
+      u.lang = 'es-ES'; u.rate = 0.55; u.pitch = 0.3; u.volume = 1;
+      window.speechSynthesis.speak(u);
+    }
+  }
   function resultado(ok, msg) {
     S.res[S.i] = ok; head(); SFX.blip(ok ? 'ok' : 'fail'); buzz(ok ? 25 : 70);
     const errores = S.res.filter(v => v === false).length;
@@ -1908,7 +1916,7 @@ const RETO = (() => {
       f.innerHTML = `<b>¡Casi!</b>${msg ? `<span>${msg}</span>` : ''}`;
       box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
       setTimeout(() => {
-        SFX.blip('basta'); if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
+        SFX.blip('basta'); decirBasta(); if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
         const FRASES_B = [
           'Respira, repasa la unidad y vuelve a comenzar desde el principio.',
           'Tres errores: pausa, repasa y regresa con más fuerza. ¡Sí puedes!',
@@ -1944,11 +1952,6 @@ const RETO = (() => {
       for (let i = 0; i < W * H; i++) { const l = labPx[i*4] | (labPx[i*4+1] << 8); if (testFn(l)) { O[i*4]=O[i*4]*.4+col[0]*.6; O[i*4+1]=O[i*4+1]*.4+col[1]*.6; O[i*4+2]=O[i*4+2]*.4+col[2]*.6; } }
       x.putImageData(o, 0, 0);
     };
-    const FRASES_BASTA = [
-      '¡Corazoncito, respira y concéntrate. ¡Sí puedes!',
-      'Cierra los ojos un momento, visualiza el músculo y vuelve a intentarlo.',
-      '¡Tú puedes! Busca con cuidado. ¡La próxima vez lo encontrarás!'
-    ];
     const tocaMuscles = new Set((U[S.u].retos || []).filter(e => e.t === 'toca').map(e => e.m));
     let done = false, fallos = 0;
     cv.onclick = e => {
@@ -1968,27 +1971,20 @@ const RETO = (() => {
       SFX.blip('fail'); buzz(80);
       x.drawImage(im, 0, 0, W, H); // limpiar error anterior
       if (nm && tocaMuscles.has(nm)) hl(l => l === L, [220, 40, 40]);
-      if (fallos >= 5) {
-        // ¡BASTA! — a la quinta, revelar y terminar
-        done = true;
-        SFX.blip('basta');
-        if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500, 60, 400]);
-        hl(l => z[l] === r.m, [40, 170, 80]);
-        const mot = FRASES_BASTA[Math.floor(Math.random() * FRASES_BASTA.length)];
-        const banner = document.createElement('div');
-        banner.className = 'rtbasta';
-        banner.innerHTML = `<b>¡BASTA!</b><span>${mot}</span>`;
-        box().querySelector('.rtbody').appendChild(banner);
-        banner.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        setTimeout(() => resultado(false, `${cap(r.m)} está marcado en verde.`), 1800);
-      } else {
-        // Error suave — 4 intentos antes del BASTA
+      const segundaOportunidad = fallos === 1 && Math.random() < 0.25;
+      if (segundaOportunidad) {
+        // Suerte: una sola segunda oportunidad
         const qEl = box().querySelector('.rtq');
-        if (qEl) {
-          const restantes = 5 - fallos;
-          qEl.innerHTML = (nm ? `Ese es ${nm}.` : 'No es ese músculo.') +
-            ` ¡Inténtalo de nuevo! <small>(${restantes} ${restantes === 1 ? 'oportunidad' : 'oportunidades'} más)</small>`;
-        }
+        if (qEl) qEl.innerHTML = (nm ? `Ese es <em>${nm}</em>. ` : 'No es ese músculo. ') +
+          '<b>¡Estás de suerte!</b> Tienes una segunda oportunidad.';
+      } else {
+        // Sin más oportunidades — revelar y pasar
+        done = true;
+        hl(l => z[l] === r.m, [40, 170, 80]);
+        const qEl = box().querySelector('.rtq');
+        if (qEl) qEl.innerHTML = (nm ? `Ese es <em>${nm}</em>. ` : '') +
+          `La respuesta era <b>${cap(r.m)}</b>, marcado en verde.`;
+        setTimeout(() => resultado(false, `${cap(r.m)} está marcado en verde.`), 1200);
       }
     };
   }
