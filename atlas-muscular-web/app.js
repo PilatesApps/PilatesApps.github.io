@@ -549,7 +549,14 @@ async function openPage(n) {
   document.body.classList.toggle('freemode', !!page.nobucket);
   $('#btnShare').hidden = !page.plate;
   if (typeof storyUI === 'function') setTimeout(storyUI, 0);
-  if (page.nobucket) setTimeout(() => toast('Lienzo libre: dibuje el grupo muscular completo, de origen a inserción, como usted quiera'), 600);
+  if (page.nobucket) {
+    const si = SECTIONS.findIndex(([, , a, b]) => n >= a && n <= b);
+    if (si > 0 && SECTIONS[si][2] === n && typeof RETO !== 'undefined' && RETO.U && RETO.U[si]) {
+      setTimeout(() => RETO.abrir(si), 600);
+    } else {
+      setTimeout(() => toast('Lienzo libre: dibuje el grupo muscular completo, de origen a inserción, como usted quiera'), 600);
+    }
+  }
   pageImg.src = pageFile(n, '.jpg');
   const topI = document.getElementById('topImg'); if (page.top) { topI.src = pageFile(n, '_top.png'); topI.hidden = false; } else { topI.hidden = true; topI.removeAttribute('src'); }
   xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xLive.clearRect(0, 0, W, H);
@@ -1249,7 +1256,7 @@ $('#wipeYes').onclick = async () => {
   locks = {}; store.set('locks', locks); clearTimeout(saveT); dirty = false;
   store.set('reto', {}); DONE = {}; store.set('done', {});
   xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xMask.clearRect(0, 0, W, H); xWipe.clearRect(0, 0, W, H); wipeUsed = false; texts = {}; renderTexts(); undo.length = 0; redo.length = 0;
-  if (typeof renderWipe === 'function') renderWipe(); syncLock(); $('#wipeBox').hidden = true; closeHome(); toast('Libro borrado: todas las láminas quedaron en blanco');
+  if (typeof renderWipe === 'function') renderWipe(); syncLock(); $('#wipeBox').hidden = true; closeHome(); openPage(1); toast('Libro borrado: todas las láminas quedaron en blanco');
 };
 $('#clearNo').onclick = () => { $('#confirmClear').hidden = true; };
 $('#clearYes').onclick = () => {
@@ -1904,7 +1911,7 @@ const RETO = (() => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance('¡BASTA!');
-      u.lang = 'es-ES'; u.rate = 1.5; u.pitch = 1.1; u.volume = 1;
+      u.lang = 'es-ES'; u.rate = 1.1; u.pitch = 1.6; u.volume = 1;
       window.speechSynthesis.speak(u);
     }
   }
@@ -1925,7 +1932,7 @@ const RETO = (() => {
         ];
         const b = document.createElement('div'); b.className = 'rtbasta';
         b.innerHTML = `<b>¡BASTA!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Volver a intentar</button>`;
-        box().querySelector('.rtbody').appendChild(b); b.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        const rtbody = box().querySelector('.rtbody'); rtbody.appendChild(b); setTimeout(() => { rtbody.scrollTop = rtbody.scrollHeight; }, 80);
         b.querySelector('button').onclick = () => empezar(S.u);
       }, 900);
       return;
