@@ -1688,22 +1688,27 @@ const RETO = (() => {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
     html(`<p class="rtst">Encuentre al músculo</p><p class="rtq">Toque <b>${r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    // Detección por etiqueta uint16 (pages/pNN_lab.png + MAP.zones) — mismo sistema que el balde
-    const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_hueso.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
-    const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
-    cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
+    // imagen de display: r.visImg si existe (u1_toca_clean.png), si no la lámina estándar
+    // detección siempre por etiqueta uint16 (pages/pNN_lab.png + MAP.zones) — mismo sistema que el balde
+    const dispSrc = r.visImg ? 'reto/' + r.visImg : (r.img ? 'reto/u' + S.u + '_' + r.img + '_hueso.jpg' : pageFile(n, '.jpg'));
+    const [im, li] = await Promise.all([loadImg(dispSrc), loadImg(pageFile(n, '_lab.png'))]);
+    cv.width = W; cv.height = H; x.drawImage(im, 0, 0, W, H);
     const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
+    const labPx = lx.getImageData(0, 0, W, H).data;
     let done = false;
     cv.onclick = e => {
-      if (done) return; const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W, py = (e.clientY - rc.top) / rc.height * cv.height + y0;
-      const d = lx.getImageData(px | 0, py | 0, 1, 1).data, L = d[0] | (d[1] << 8), nm = z[L];
+      if (done) return;
+      const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W | 0, py = (e.clientY - rc.top) / rc.height * H | 0;
+      const idx = (py * W + px) * 4, L = labPx[idx] | (labPx[idx + 1] << 8), nm = z[L];
       done = true;
       const ok = nm === r.m;
       // rojo solo si tocaron otro músculo del reto (no huesos ni zonas externas)
       const tocaMuscles = new Set((U[S.u].retos || []).filter(e => e.t === 'toca').map(e => e.m));
-      const hl = (lab, col) => { const id = lx.getImageData(0, y0, W, cv.height), D = id.data, o = x.getImageData(0, 0, W, cv.height), O = o.data;
-        for (let i = 0; i < D.length; i += 4) { const l = D[i] | (D[i + 1] << 8); if (lab(l)) { O[i] = O[i] * .4 + col[0] * .6; O[i + 1] = O[i + 1] * .4 + col[1] * .6; O[i + 2] = O[i + 2] * .4 + col[2] * .6; } }
-        x.putImageData(o, 0, 0); };
+      const hl = (testFn, col) => {
+        const o = x.getImageData(0, 0, W, H), O = o.data;
+        for (let i = 0; i < W * H; i++) { const l = labPx[i * 4] | (labPx[i * 4 + 1] << 8); if (testFn(l)) { O[i*4] = O[i*4] * .4 + col[0] * .6; O[i*4+1] = O[i*4+1] * .4 + col[1] * .6; O[i*4+2] = O[i*4+2] * .4 + col[2] * .6; } }
+        x.putImageData(o, 0, 0);
+      };
       if (!ok && nm && tocaMuscles.has(nm)) hl(l => l === L, [220, 40, 40]);
       hl(l => z[l] === r.m, [40, 170, 80]);
       resultado(ok, ok ? '' : (nm ? `Ese es ${nm}. ${cap(r.m)} está marcado en verde.` : `${cap(r.m)} está marcado en verde.`));
