@@ -459,4 +459,4 @@ body.hand #viewport{cursor:grab}
 .slider-pulse{border-radius:10px;animation:slider-pulse 1.1s ease}
 /* sello "proyecto en desarrollo" — derecho, entre página y barra */
 #devBadge{position:fixed;right:4px;bottom:calc(var(--barH, 64px) + var(--sab, 0px) + 6px);pointer-events:none;z-index:11;text-align:right;opacity:.38;line-height:1.3}
-#devBadge span{display:block;font-family:var(--f);font-size:6px;font-weight:700;color:var(--chrome);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+#devBadge span{font-family:var(--f);font-size:6px;font-weight:700;color:var(--chrome);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
