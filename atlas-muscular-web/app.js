@@ -1669,6 +1669,7 @@ const RETO = (() => {
   const U = {
     1: {
       titulo: 'La Liga del Calabozo Pélvico', unidad: 'Unidad 1', lamina: 9, ultima: 16,
+      maxOp: 10,
       retos: [
         { t: 'toca', m: 'el piriforme', img: 6, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' }, { t: 'toca', m: 'el obturador interno', img: 2, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' }, { t: 'toca', m: 'el gemelo superior', img: 3, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
         { t: 'toca', m: 'el gemelo inferior', img: 4, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' }, { t: 'toca', m: 'el cuadrado femoral', img: 5, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' }, { t: 'toca', m: 'el obturador externo', img: 1, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
@@ -1808,6 +1809,7 @@ const RETO = (() => {
     },
     3: {
       titulo: 'El Taller de Ingeniería', unidad: 'Unidad 3', lamina: 26, ultima: 32,
+      maxOp: 10,
       claveQ: { q: '¿Cuántas articulaciones cruza el recto femoral?', op: ['1', '2', '3'], ok: 1 },
       retos: [
         { t: 'toca', m: 'el vasto intermedio', img: 1, visImg: 'u3_toca_clean.png' },
