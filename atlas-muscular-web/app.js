@@ -189,6 +189,18 @@ const SFX = (() => {
         const g = a.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
         s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + 0.4); return;
       }
+      if (kind === 'ok') {                                  /* respuesta correcta — ting brillante */
+        const o = a.createOscillator(), g = a.createGain(); o.type = 'sine';
+        o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(1320, t + 0.06);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.28, t + 0.012); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        o.connect(g).connect(master); o.start(t); o.stop(t + 0.32); return;
+      }
+      if (kind === 'fail') {                                /* respuesta incorrecta — ta seco */
+        const o = a.createOscillator(), g = a.createGain(); o.type = 'square';
+        o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.13);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.28, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        o.connect(g).connect(master); o.start(t); o.stop(t + 0.2); return;
+      }
       if (kind === 'basta') {                              /* ¡BASTA! — buzzer dramático descendente */
         const o = a.createOscillator(), g = a.createGain(); o.type = 'sawtooth';
         o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.45);
@@ -1680,7 +1692,7 @@ const RETO = (() => {
     },
     2: {
       titulo: 'El Puente Vital', unidad: 'Unidad 2', lamina: 19, ultima: 23,
-      maxOp: 13,
+      maxOp: 8,
       claveQ: { q: '¿Cuántos músculos componen la Unidad 2 "El Puente Vital"?', op: ['2', '3', '4'], ok: 1 },
       retos: [
         { t: 'toca', m: 'el ilíaco', img: 1, visImg: 'u2_toca_clean.png', qs: [
@@ -1745,20 +1757,11 @@ const RETO = (() => {
         { t: 'op', s: 'Quién soy', q: 'Solo existo en el 60% de las personas. Soy corto, plano y no llego al fémur. ¿Quién soy?', op: ['El psoas menor', 'El ilíaco', 'El psoas mayor'], ok: 0 },
         { t: 'op', s: 'Lo que hacen', q: '¿Cuál es la acción principal del iliopsoas (ilíaco + psoas mayor actuando juntos)?', op: ['Extensión de la cadera', 'Flexión de la cadera', 'Rotación interna de la cadera'], ok: 1 },
         { t: 'op', s: 'Lo que hacen', q: 'Cuando el fémur está fijo y el iliopsoas se contrae, ¿qué hace con la pelvis?', op: ['Retroversión (pelvis hacia atrás)', 'Anteversión (pelvis hacia adelante)', 'Inclinación lateral de la pelvis'], ok: 1 },
-        { t: 'op', s: 'Pilates', pil: true, q: 'En el Teaser del Reformer, ¿qué sostiene el iliopsoas para mantener las piernas elevadas?', op: ['La extensión de rodilla', 'La flexión de cadera con tronco elevado', 'La rotación externa de la cadera'], ok: 1 },
-        { t: 'op', s: 'Pilates', pil: true, q: 'En el Hundred, con piernas elevadas en ángulo, ¿qué hace el iliopsoas?', op: ['Extiende la cadera para bajar las piernas', 'Sostiene la flexión de cadera contra la gravedad', 'Rota externamente el fémur'], ok: 1 },
-        { t: 'op', s: 'Clínica', nopil: true, q: 'Un psoas tenso puede inclinar la pelvis hacia adelante. ¿Qué postura típica produce?', op: ['Hiperlordosis lumbar', 'Cifosis dorsal', 'Columna plana'], ok: 0 },
-        { t: 'op', s: 'Clínica', nopil: true, q: 'El psoas menor es vestigial: falta en el 40% de las personas. ¿Qué significa que un músculo sea vestigial?', op: ['Que es el más grande del grupo', 'Que es un resto evolutivo con función reducida', 'Que solo aparece en atletas'], ok: 1 },
         { t: 'op', s: 'Dónde nace', q: '¿En qué estructura nace el ilíaco?', op: ['En los cuerpos vertebrales lumbares', 'En la fosa ilíaca (cara interna del coxal)', 'En el trocánter mayor'], ok: 1 },
-        { t: 'op', s: 'Dónde llega', q: '¿Dónde se inserta el ilíaco?', op: ['En la eminencia iliopúbica', 'En la cabeza del fémur', 'En el trocánter menor (junto al psoas mayor)'], ok: 2 },
         { t: 'op', s: 'Dónde nace', q: '¿Desde cuántas vértebras nace el psoas mayor?', op: ['3 vértebras (L1–L3)', '6 vértebras (T12–L5)', '2 vértebras (L4–L5)'], ok: 1 },
         { t: 'op', s: 'Dónde llega', q: '¿Dónde termina el psoas menor?', op: ['En el trocánter menor del fémur', 'En la eminencia iliopúbica (borde de la pelvis)', 'En el trocánter mayor del fémur'], ok: 1 },
-        { t: 'op', s: 'El cuento', q: '¿Qué apodo le da el cuento al psoas mayor?', op: ['El casero', 'El puente vital', 'El fantasma del 40%'], ok: 1 },
-        { t: 'op', s: 'El cuento', q: 'En el cuento, el ilíaco es "el casero". ¿Por qué?', op: ['Porque es el más largo del grupo', 'Porque nunca sale de la pelvis por su cuenta', 'Porque nace en la columna'], ok: 1 },
-        { t: 'op', s: 'Izquierda y derecha', q: 'El ilíaco del lado derecho nace en…', op: ['La fosa ilíaca del coxal derecho', 'La fosa ilíaca del coxal izquierdo', 'Los cuerpos de L1–L3 del lado derecho'], ok: 0 },
-        { t: 'op', s: 'Izquierda y derecha', q: 'Si el psoas mayor izquierdo se acorta crónicamente, ¿qué puede pasar en la pelvis?', op: ['La pelvis sube del lado derecho', 'La pelvis se inclina hacia adelante en el lado izquierdo', 'La columna torácica se cifosa'], ok: 1 },
         { t: 'op', s: 'Comparando', q: '¿Cuál de los tres músculos NO llega al fémur?', op: ['El ilíaco', 'El psoas mayor', 'El psoas menor'], ok: 2 },
-        { t: 'op', s: 'Comparando', q: '¿Cuál de los tres nace exclusivamente en el interior del hueso de la cadera (coxal)?', op: ['El psoas mayor', 'El ilíaco', 'El psoas menor'], ok: 1 },
+        { t: 'op', s: 'El cuento', q: '¿Qué apodo le da el cuento al psoas mayor?', op: ['El casero', 'El puente vital', 'El fantasma del 40%'], ok: 1 },
         { t: 'clave' }
       ]
     },
@@ -1855,7 +1858,7 @@ const RETO = (() => {
     return opciones(r);
   }
   function resultado(ok, msg) {
-    S.res[S.i] = ok; head(); SFX.blip(ok ? 'fill' : 'undo'); buzz(ok ? 18 : 40);
+    S.res[S.i] = ok; head(); SFX.blip(ok ? 'ok' : 'fail'); buzz(ok ? 25 : 70);
     const f = document.createElement('div'); f.className = 'rtfb ' + (ok ? 'ok' : 'no');
     f.innerHTML = `<b>${ok ? ['¡Muy bien!', '¡Exacto!', '¡Así es!', '¡Perfecto!'][S.i % 4] : '¡Casi!'}</b>${msg ? `<span>${msg}</span>` : ''}<button class="pill on">${S.i + 1 < S.lista.length ? 'Siguiente' : 'Ver resultado'}</button>`;
     box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -1893,13 +1896,14 @@ const RETO = (() => {
       const ok = nm === r.m;
       if (ok) {
         done = true;
+        SFX.blip('ok'); buzz(30);
         hl(l => z[l] === r.m, [40, 170, 80]);
         resultado(true, '');
         return;
       }
       // Error
       fallos++;
-      if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
+      SFX.blip('fail'); buzz(80);
       x.drawImage(im, 0, 0, W, H); // limpiar error anterior
       if (nm && tocaMuscles.has(nm)) hl(l => l === L, [220, 40, 40]);
       if (fallos >= 5) {
