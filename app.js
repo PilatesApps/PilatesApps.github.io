@@ -1912,7 +1912,7 @@ const RETO = (() => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       ctx.resume().then(() => {
-        const gain = ctx.createGain(); gain.gain.value = 7;
+        const gain = ctx.createGain(); gain.gain.value = 2;
         const dist = ctx.createWaveShaper();
         const curve = new Float32Array(512);
         for (let i = 0; i < 512; i++) { const x = (i * 2) / 512 - 1; curve[i] = (Math.PI + 300) * x / (Math.PI + 300 * Math.abs(x)); }
@@ -1949,18 +1949,16 @@ const RETO = (() => {
       f.innerHTML = `<b>¡Casi!</b>${msg ? `<span>${msg}</span>` : ''}`;
       box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
       SFX.blip('basta'); decirBasta();
-      setTimeout(() => {
-        if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
-        const FRASES_B = [
-          'Respira, repasa la unidad y vuelve a comenzar desde el principio.',
-          'Tres errores: pausa, repasa y regresa con más fuerza. ¡Sí puedes!',
-          'Vuelve a ver la unidad. La segunda vez te saldrán preguntas distintas.'
-        ];
-        const b = document.createElement('div'); b.className = 'rtbasta';
-        b.innerHTML = `<b>¡BASTA!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Volver a intentar</button>`;
-        const rtbody = box().querySelector('.rtbody'); rtbody.appendChild(b); setTimeout(() => { rtbody.scrollTop = rtbody.scrollHeight; }, 80);
-        b.querySelector('button').onclick = () => empezar(S.u);
-      }, 900);
+      if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
+      const FRASES_B = [
+        'Respira, repasa la unidad y vuelve a comenzar desde el principio.',
+        'Tres errores: pausa, repasa y regresa con más fuerza. ¡Sí puedes!',
+        'Vuelve a ver la unidad. La segunda vez te saldrán preguntas distintas.'
+      ];
+      const b = document.createElement('div'); b.className = 'rtbasta';
+      b.innerHTML = `<b>¡BASTA!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Volver a intentar</button>`;
+      const rtbody = box().querySelector('.rtbody'); rtbody.appendChild(b); setTimeout(() => { rtbody.scrollTop = rtbody.scrollHeight; }, 80);
+      b.querySelector('button').onclick = () => empezar(S.u);
       return;
     }
     const f = document.createElement('div'); f.className = 'rtfb ' + (ok ? 'ok' : 'no');
