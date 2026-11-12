@@ -1620,14 +1620,18 @@ const RETO = (() => {
     1: {
       titulo: 'The Pelvic Dungeon League', unidad: 'Unit 1', lamina: 9, ultima: 16,
       retos: [
-        { t: 'toca', m: 'el piriforme', img: 6, en: 'the piriformis' }, { t: 'toca', m: 'el obturador interno', img: 2, en: 'the obturator internus' }, { t: 'toca', m: 'el gemelo superior', img: 3, en: 'the superior gemellus' },
-        { t: 'toca', m: 'el gemelo inferior', img: 4, en: 'the inferior gemellus' }, { t: 'toca', m: 'el cuadrado femoral', img: 5, en: 'the quadratus femoris' }, { t: 'toca', m: 'el obturador externo', img: 1, en: 'the obturator externus' },
-        { t: 'oi', m: 'the piriformis', img: 6, no: 'the anterior surface of the sacrum', ni: 'the superior border of the greater trochanter' },
-        { t: 'oi', m: 'the obturator internus', img: 2, no: 'the internal surface of the obturator foramen', ni: 'the medial surface of the greater trochanter' },
-        { t: 'oi', m: 'the superior gemellus', img: 3, no: 'the ischial spine', ni: 'the tendon of the obturator internus, at the greater trochanter' },
-        { t: 'oi', m: 'the inferior gemellus', img: 4, no: 'the upper part of the ischial tuberosity', ni: 'the tendon of the obturator internus, at the greater trochanter' },
-        { t: 'oi', m: 'the quadratus femoris', img: 5, no: 'the lateral border of the ischial tuberosity', ni: 'the intertrochanteric crest' },
-        { t: 'oi', m: 'the obturator externus', img: 1, no: 'the external surface of the obturator foramen', ni: 'the trochanteric fossa' },
+        { t: 'toca', m: 'the piriformis', img: 6, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
+        { t: 'toca', m: 'the obturator internus', img: 2, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
+        { t: 'toca', m: 'the superior gemellus', img: 3, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
+        { t: 'toca', m: 'the inferior gemellus', img: 4, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
+        { t: 'toca', m: 'the quadratus femoris', img: 5, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
+        { t: 'toca', m: 'the obturator externus', img: 1, visImg: 'u1_toca_clean.png', labImg: 'u1_toca_lab.png' },
+        { t: 'oi', m: 'the piriformis', img: 6, visImg: 'u1_oi_base.png', no: 'the anterior surface of the sacrum', ni: 'the superior border of the greater trochanter' },
+        { t: 'oi', m: 'the obturator internus', img: 2, visImg: 'u1_oi_base.png', no: 'the internal surface of the obturator foramen', ni: 'the medial surface of the greater trochanter' },
+        { t: 'oi', m: 'the superior gemellus', img: 3, visImg: 'u1_oi_base.png', no: 'the ischial spine', ni: 'the tendon of the obturator internus, at the greater trochanter' },
+        { t: 'oi', m: 'the inferior gemellus', img: 4, visImg: 'u1_oi_base.png', no: 'the upper part of the ischial tuberosity', ni: 'the tendon of the obturator internus, at the greater trochanter' },
+        { t: 'oi', m: 'the quadratus femoris', img: 5, visImg: 'u1_oi_base.png', no: 'the lateral border of the ischial tuberosity', ni: 'the intertrochanteric crest' },
+        { t: 'oi', m: 'the obturator externus', img: 1, visImg: 'u1_oi_base.png', no: 'the external surface of the obturator foramen', ni: 'the trochanteric fossa' },
         { t: 'op', s: 'Who am I', q: 'I leave the pelvis through the greater sciatic foramen and the sciatic nerve usually passes below me.', op: ['Piriformis', 'Superior gemellus', 'Quadratus femoris'], ok: 0 },
         { t: 'op', s: 'Who am I', q: 'My tendon bends almost 90 degrees at the lesser sciatic notch.', op: ['Obturator externus', 'Obturator internus', 'Piriformis'], ok: 1 },
         { t: 'op', s: 'Who am I', q: 'I am the square anchor of the group and I also help bring the thigh toward the midline.', op: ['Inferior gemellus', 'Obturator internus', 'Quadratus femoris'], ok: 2 },
@@ -1645,9 +1649,51 @@ const RETO = (() => {
       maxOp: 10,
       claveQ: { q: 'How many muscles make up Unit 2 "The Vital Bridge"?', op: ['2', '3', '4'], ok: 1 },
       retos: [
-        { t: 'toca', m: 'the iliacus', img: 1, visImg: 'u2_toca_clean.png' },
-        { t: 'toca', m: 'the psoas major', img: 2, visImg: 'u2_toca_clean.png' },
-        { t: 'toca', m: 'the psoas minor', img: 3, visImg: 'u2_toca_clean.png' },
+        { t: 'toca', m: 'the iliacus', img: 1, visImg: 'u2_toca_clean.png', qs: [
+            'Touch <b>the iliacus</b>',
+            'Which one originates in <b>the iliac fossa</b>?',
+            'Which one fills the inside of the hip bone like a hand in a glove?',
+            'Which one does NOT touch any vertebra, but still reaches the lesser trochanter?',
+            'Which one is the homebody companion that waits for the psoas inside the pelvis?',
+            'Which one lines the entire inner surface of the hip bone?',
+            'Which one originates on the <b>left side</b> of the iliac fossa?',
+            'Which one originates on the <b>right side</b> of the iliac fossa?',
+            'Which one joins the psoas major to descend to the femur as if they were one unit?',
+            'Which one originates on the inner surface of the hip bone, not on the spine?',
+            'Which one is wider at the top than at the bottom, like a fan pressed against the hip bone?',
+            'Which one, if tight on one side, can tilt the pelvis laterally?',
+            'Which one never leaves the pelvis on its own?'
+          ] },
+        { t: 'toca', m: 'the psoas major', img: 2, visImg: 'u2_toca_clean.png', qs: [
+            'Touch <b>the psoas major</b>',
+            'Which one originates from <b>T12 to L5</b>?',
+            'Which one is the bridge that runs from the lumbar spine to the lesser trochanter?',
+            'Which one originates from <b>six different vertebrae</b> to reach the femur?',
+            'Which one crosses the pelvis from top to bottom like a high-tension cable?',
+            'Which one is the only one of the three that touches both the spine and the femur?',
+            'Which one originates on the <b>left side</b> of the lumbar vertebrae?',
+            'Which one originates on the <b>right side</b> of the lumbar vertebrae?',
+            'Which one, when shortened, can cause lumbar hyperlordosis?',
+            'Which one joins hands with the iliacus just before reaching the lesser trochanter?',
+            'Which one receives the company of the iliacus so they both arrive at the femur together?',
+            'Which one originates from T12 and from each of the five lumbar vertebrae, one by one?',
+            'Which one, in the Hundred of Pilates, holds the legs in the air from the spine?'
+          ] },
+        { t: 'toca', m: 'the psoas minor', img: 3, visImg: 'u2_toca_clean.png', qs: [
+            'Touch <b>the psoas minor</b>',
+            'Which one only exists in <b>60% of people</b>?',
+            'Which one reaches the iliopubic eminence but not the femur?',
+            'Which one is the evolutionary remnant of the group: short, flat, and nearly functionless?',
+            'Which one, if you have it, lies in front of the psoas major?',
+            'Which one originates only from T12–L1, while its neighbor reaches down to L5?',
+            'Which one does <b>NOT reach the femur</b>: it stops at the pelvic rim?',
+            'Which one, on the <b>left side</b>, is the muscle that may not even be there?',
+            'Which one, on the <b>right side</b>, might not exist in this body?',
+            'Which one is so discreet that 40% of people never miss it?',
+            'Which one originates from the same vertebrae as the psoas major, but only the first two?',
+            'Which one inserts at the iliopubic eminence instead of continuing to the trochanter?',
+            'Which one, if it exists, is the smallest and most superficial of the vital bridge trio?'
+          ] },
         { t: 'oi', m: 'the iliacus', img: 1, visImg: 'u2_oi_base.png',
           intro: 'The iliacus is the most domestic of the group: it lives pressed against the inside of the hip bone and never leaves the pelvis on its own.',
           no: 'the iliac fossa (the concave inner surface of the hip bone)',
@@ -1836,7 +1882,7 @@ const RETO = (() => {
     const errores = S.res.filter(v => v === false).length;
     if (!ok && errores >= 3) {
       const f = document.createElement('div'); f.className = 'rtfb no';
-      f.innerHTML = `<b>ENOUGH!</b>${msg ? `<span>${msg}</span>` : ''}`;
+      f.innerHTML = `<b>¡BASTA!</b>${msg ? `<span>${msg}</span>` : ''}`;
       box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
       SFX.blip('basta'); sayEnough();
       if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
@@ -1847,7 +1893,7 @@ const RETO = (() => {
       ];
       setTimeout(() => {
         const b = document.createElement('div'); b.className = 'rtbasta';
-        b.innerHTML = `<b>ENOUGH!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Try again</button>`;
+        b.innerHTML = `<b>¡BASTA!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Try again</button>`;
         box().querySelector('.rtbody').appendChild(b); b.scrollIntoView({ behavior: 'smooth', block: 'end' });
         b.querySelector('button').onclick = () => iniciarReto(S.u);
       }, 400);
@@ -1861,7 +1907,8 @@ const RETO = (() => {
   /* estación 1: tocar el músculo en la lámina del grupo */
   async function tocaMusculo(r) {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
-    html(`<p class="rtst">Find the muscle</p><p class="rtq">Tap <b>${r.en || r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
+    const qText = r.qs ? r.qs[Math.floor(Math.random() * r.qs.length)] : `Tap <b>${r.m}</b>`;
+    html(`<p class="rtst">Find the muscle</p><p class="rtq">${qText}</p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
     const dispSrc = r.visImg ? 'reto/' + r.visImg : (r.img ? 'reto/u' + S.u + '_' + r.img + '_hueso.jpg' : pageFile(n, '.jpg'));
     const [im, li] = await Promise.all([loadImg(dispSrc), loadImg(pageFile(n, '_lab.png'))]);
@@ -1874,14 +1921,14 @@ const RETO = (() => {
       if (done) return; const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W, py = (e.clientY - rc.top) / rc.height * cv.height + y0;
       const d = lx.getImageData(px | 0, py | 0, 1, 1).data, L = d[0] | (d[1] << 8), nm = z[L];
       done = true;
-      const ok = nm === (r.en || r.m);
+      const ok = nm === r.m;
       // marcar la zona correcta en verde (y la tocada en rojo si falló)
       const hl = (lab, col) => { const id = lx.getImageData(0, y0, W, cv.height), D = id.data, o = x.getImageData(0, 0, W, cv.height), O = o.data;
         for (let i = 0; i < D.length; i += 4) { const l = D[i] | (D[i + 1] << 8); if (lab(l)) { O[i] = O[i] * .4 + col[0] * .6; O[i + 1] = O[i + 1] * .4 + col[1] * .6; O[i + 2] = O[i + 2] * .4 + col[2] * .6; } }
         x.putImageData(o, 0, 0); };
       if (!ok && L && L !== pm.bg) hl(l => l === L, [220, 40, 40]);
-      hl(l => z[l] === (r.en || r.m), [40, 170, 80]);
-      resultado(ok, ok ? '' : (nm ? `That is ${nm}. ${cap(r.en || r.m)} is marked in green.` : `${cap(r.en || r.m)} is marked in green.`));
+      hl(l => z[l] === r.m, [40, 170, 80]);
+      resultado(ok, ok ? '' : (nm ? `That is ${nm}. ${cap(r.m)} is marked in green.` : `${cap(r.m)} is marked in green.`));
     };
   }
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
