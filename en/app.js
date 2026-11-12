@@ -1325,9 +1325,9 @@ async function buildHome() {
     }
     const ui = SECTIONS.indexOf(SECTIONS.find(s => s[0] === t));
     if (RETO.U[ui]) {
-      const rb = document.createElement('div'); rb.className = 'card reto coming-soon';
-      rb.innerHTML = `<span class="th rtth"><b>🏆</b><em>Challenge</em><small>Coming Soon</small></span><span class="t">Challenge · ${t}</span>`;
-      cards.appendChild(rb);
+      const rr = (store.get('reto', {})[ui]) || {}, rb = document.createElement('button'); rb.className = 'card reto' + (rr.ok ? ' won' : '');
+      rb.innerHTML = `<span class="th rtth"><b>${rr.ok ? '⭐' : '🏆'}</b><em>${rr.ok ? 'Passed' : 'Challenge'}</em>${rr.mejor ? `<small>${rr.mejor}%</small>` : ''}</span><span class="t">Challenge · ${t}</span>`;
+      rb.onclick = () => RETO.abrir(ui); cards.appendChild(rb);
     }
     if (!RETO.unidadAbierta(a)) { sec.classList.add('locked'); cards.querySelectorAll('.card').forEach(c => { c.onclick = () => toast('Progressive mode: complete the previous unit and pass its challenge to open this one'); }); }
     sec.appendChild(cards); g.appendChild(sec);
@@ -1532,15 +1532,23 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; viewport.style.cursor = ''; } });
 $('#btnPrev').onclick = () => openPage(cur - 1);
+const _retoMostrado = new Set();
 $('#btnNext').onclick = () => {
-  // En modo progresivo: si estamos en la última página de una unidad que tiene reto, mostrar el reto antes de avanzar
-  if (store.get('modo', 'libre') === 'progresivo' && typeof RETO !== 'undefined' && META.length) {
+  if (typeof RETO !== 'undefined' && META.length) {
     const si = SECTIONS.findIndex(([, , a, b]) => cur >= a && cur <= b);
     if (si > 0) {
       const [, , , lastPage] = SECTIONS[si];
-      if (cur === lastPage && RETO.U[si] && !RETO.aprobado(si)) {
-        // challenge disabled (coming soon) — setTimeout(() => RETO.abrir(si), 100);
-        return;
+      const modo = store.get('modo', 'libre');
+      if (cur === lastPage && RETO.U[si]) {
+        if (modo === 'progresivo' && !RETO.aprobado(si)) {
+          setTimeout(() => RETO.abrir(si), 100);
+          return;
+        }
+        if (modo !== 'progresivo' && !_retoMostrado.has(si)) {
+          _retoMostrado.add(si);
+          setTimeout(() => RETO.abrir(si), 100);
+          return;
+        }
       }
     }
   }
@@ -1631,6 +1639,114 @@ const RETO = (() => {
         { t: 'op', s: 'Pilates', pil: true, q: 'In the Reformer Footwork in the Pilates position, what do you focus on so that the V is held by the deep rotators and not the feet?', op: ['That the rotation comes from the hip and the knees follow the line of the feet', 'That the feet open as wide as possible', 'That the knees come together', 'That the pelvis tilts forward'], ok: 0 },
         { t: 'op', s: 'Who am I', nopil: true, q: 'When I am contracted or shortened, I can compress the sciatic nerve. Who am I?', op: ['Obturator internus', 'Piriformis', 'Inferior gemellus'], ok: 1 }
       ]
+    },
+    2: {
+      titulo: 'The Vital Bridge', unidad: 'Unit 2', lamina: 19, ultima: 23,
+      maxOp: 10,
+      claveQ: { q: 'How many muscles make up Unit 2 "The Vital Bridge"?', op: ['2', '3', '4'], ok: 1 },
+      retos: [
+        { t: 'toca', m: 'the iliacus', img: 1, visImg: 'u2_toca_clean.png' },
+        { t: 'toca', m: 'the psoas major', img: 2, visImg: 'u2_toca_clean.png' },
+        { t: 'toca', m: 'the psoas minor', img: 3, visImg: 'u2_toca_clean.png' },
+        { t: 'oi', m: 'the iliacus', img: 1, visImg: 'u2_oi_base.png',
+          intro: 'The iliacus is the most domestic of the group: it lives pressed against the inside of the hip bone and never leaves the pelvis on its own.',
+          no: 'the iliac fossa (the concave inner surface of the hip bone)',
+          ni: 'the lesser trochanter (where it meets the psoas, like two coworkers arriving together)' },
+        { t: 'oi', m: 'the psoas major', img: 2, visImg: 'u2_oi_base.png',
+          intro: 'The psoas major makes the longest journey of the three: it leaves the lumbar spine, crosses the pelvis and reaches the femur. It is the bridge.',
+          no: 'the bodies of T12 to L5 (five lumbar vertebrae plus T12!)',
+          ni: 'the lesser trochanter (where it joins hands with the iliacus)' },
+        { t: 'oi', m: 'the psoas minor', img: 3, visImg: 'u2_oi_base.png',
+          intro: 'Note: the psoas minor only exists in 60% of people. Short, flat, and very discreet. Is yours there?',
+          no: 'the bodies of T12 to L1 (barely one or two)',
+          ni: 'the iliopubic eminence (it reaches the pelvic rim, not the femur like its neighbors)' },
+        { t: 'op', s: 'Who am I', q: 'I fill the iliac fossa like a hand in a glove. I share my insertion with the psoas. Who am I?', op: ['The psoas major', 'The iliacus', 'The psoas minor'], ok: 1 },
+        { t: 'op', s: 'Who am I', q: 'I travel from the lumbar vertebrae to the lesser trochanter. I am the bridge between the spine and the femur. Who am I?', op: ['The iliacus', 'The psoas minor', 'The psoas major'], ok: 2 },
+        { t: 'op', s: 'Who am I', q: 'I only exist in 60% of people. I am short, flat and I do not reach the femur. Who am I?', op: ['The psoas minor', 'The iliacus', 'The psoas major'], ok: 0 },
+        { t: 'op', s: 'Who am I', q: 'My origin is the inner surface of the hip bone. I join the psoas to work together. Who am I?', op: ['The psoas major', 'The psoas minor', 'The iliacus'], ok: 2 },
+        { t: 'op', s: 'Who am I', q: 'I cross the pelvis from top to bottom, pass under the inguinal ligament and reach the lesser trochanter. Who am I?', op: ['The iliacus', 'The psoas major', 'The psoas minor'], ok: 1 },
+        { t: 'op', s: 'Who am I', q: 'Four out of ten people do not have me. When I exist, I end at the anterior border of the pelvis. Who am I?', op: ['The iliacus', 'The psoas major', 'The psoas minor'], ok: 2 },
+        { t: 'op', s: 'Who am I', q: 'I am the only muscle in the body that directly connects the lumbar spine with the lower limb. Who am I?', op: ['The iliacus', 'The gluteus maximus', 'The psoas major'], ok: 2 },
+        { t: 'op', s: 'Who am I', q: 'We are two and together we form the iliopsoas. Who are we?', op: ['Psoas major + psoas minor', 'Iliacus + psoas minor', 'Iliacus + psoas major'], ok: 2 },
+        { t: 'op', s: 'Where it comes from', q: 'Where does the iliacus originate?', op: ['From the lumbar vertebral bodies', 'From the iliac fossa (inner surface of the hip bone)', 'From the greater trochanter'], ok: 1 },
+        { t: 'op', s: 'Where it comes from', q: 'From how many vertebrae does the psoas major originate?', op: ['3 vertebrae (L1–L3)', '6 vertebrae (T12–L5)', '2 vertebrae (L4–L5)'], ok: 1 },
+        { t: 'op', s: 'Where it comes from', q: 'From which vertebrae does the psoas minor originate?', op: ['L1–L3', 'L3–L5', 'T12–L1'], ok: 2 },
+        { t: 'op', s: 'Where it comes from', q: 'The psoas major originates from T12 to L5. How many vertebrae does that span?', op: ['4 vertebrae', '6 vertebrae', '8 vertebrae'], ok: 1 },
+        { t: 'op', s: 'Where it comes from', q: 'From which surface of the ilium does the iliacus originate?', op: ['Outer (gluteal) surface', 'Inner surface (iliac fossa)', 'Superior iliac crest'], ok: 1 },
+        { t: 'op', s: 'Where it comes from', q: 'The psoas minor is shorter than the major because it originates from fewer vertebrae. From how many?', op: ['2 vertebrae (T12–L1)', '4 vertebrae (L1–L4)', '5 vertebrae (T12–L4)'], ok: 0 },
+        { t: 'op', s: 'Where it comes from', q: 'With which vertebra does the origin of the psoas major begin?', op: ['L1', 'T12', 'T10'], ok: 1 },
+        { t: 'op', s: 'Where it goes', q: 'Where does the iliacus insert?', op: ['At the iliopubic eminence', 'At the lesser trochanter of the femur', 'At the greater trochanter of the femur'], ok: 1 },
+        { t: 'op', s: 'Where it goes', q: 'Where does the psoas major insert?', op: ['At the greater trochanter of the femur', 'At the iliopubic eminence', 'At the lesser trochanter of the femur'], ok: 2 },
+        { t: 'op', s: 'Where it goes', q: 'Where does the psoas minor insert?', op: ['At the lesser trochanter of the femur', 'At the iliopubic eminence (rim of the pelvis)', 'At the greater trochanter of the femur'], ok: 1 },
+        { t: 'op', s: 'Where it goes', q: 'Which of the three muscles does NOT insert into the femur?', op: ['The iliacus', 'The psoas major', 'The psoas minor'], ok: 2 },
+        { t: 'op', s: 'Where it goes', q: 'The iliacus and psoas major share an insertion. Where do they arrive together?', op: ['Iliac crest', 'Greater trochanter', 'Lesser trochanter'], ok: 2 },
+        { t: 'op', s: 'Where it goes', q: 'The psoas minor does not reach the femur. At what point on the anterior border of the pelvis does it go?', op: ['Anterior superior iliac spine', 'Iliopubic eminence', 'Pubic tubercle'], ok: 1 },
+        { t: 'op', s: 'Where it goes', q: 'The lesser trochanter of the femur receives the insertion of two of the three muscles. Which ones?', op: ['Psoas major + psoas minor', 'Iliacus + psoas minor', 'Iliacus + psoas major'], ok: 2 },
+        { t: 'op', s: 'What they do', q: 'What is the main action of the iliopsoas (iliacus + psoas major acting together)?', op: ['Hip extension', 'Hip flexion', 'Internal rotation of the hip'], ok: 1 },
+        { t: 'op', s: 'What they do', q: 'When the femur is fixed and the iliopsoas contracts, what does it do to the pelvis?', op: ['Posterior tilt (pelvis tilts back)', 'Anterior tilt (pelvis tilts forward)', 'Lateral pelvic tilt'], ok: 1 },
+        { t: 'op', s: 'What they do', q: 'What action does the psoas major have on the trunk when the femur is fixed?', op: ['Trunk extension', 'Trunk rotation', 'Trunk flexion'], ok: 2 },
+        { t: 'op', s: 'What they do', q: 'The psoas major has an action on femoral rotation. What is it?', op: ['Internal rotation', 'Lateral (external) rotation', 'No rotational action'], ok: 1 },
+        { t: 'op', s: 'What they do', q: 'What movement brings the iliopsoas to its greatest elongation?', op: ['Hip flexion with posterior pelvic tilt', 'Hip extension with posterior pelvic tilt', 'Hip flexion with anterior pelvic tilt'], ok: 1 },
+        { t: 'op', s: 'What they do', q: 'What does the psoas minor do?', op: ['Powerful hip flexion', 'Slight trunk flexion with little clinical relevance', 'Femoral rotation'], ok: 1 },
+        { t: 'op', s: 'Pilates', q: 'A shortened and contracted psoas major primarily produces:', op: ['Posterior pelvic tilt and flat back', 'Anterior pelvic tilt and lumbar hyperlordosis', 'Cervical scoliosis'], ok: 1 },
+        { t: 'op', s: 'Pilates', q: 'Why is the psoas major so worked in Pilates?', op: ['Because it controls diaphragmatic breathing', 'Because its condition directly affects lumbar and pelvic posture', 'Because it is the largest muscle in the body'], ok: 1 },
+        { t: 'op', s: 'Pilates', q: 'In the Pelvic Curl, the iliopsoas lengthens. What combination of positions elongates it most?', op: ['Hip flexion + anterior tilt', 'Hip extension + posterior tilt', 'Knee flexion + posterior tilt'], ok: 1 },
+        { t: 'op', s: 'Pilates', q: 'A weak and elongated psoas major (as in some dancers) is associated with:', op: ['Hyperlordosis and anterior tilt', 'Flat back (reduced lordosis)', 'Lumbar scoliosis'], ok: 1 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'In the Hundred with legs in tabletop, which muscle holds the legs in the air from the spine?', op: ['The gluteus maximus', 'The iliopsoas', 'The quadriceps'], ok: 1 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'In the Leg Stretch, when does the psoas major work eccentrically?', op: ['When bringing the knee to the chest', 'When extending the leg away from center, resisting its own lengthening', 'When rotating the hip outward'], ok: 1 },
+        { t: 'op', s: 'The story', q: 'What nickname does the story give the psoas major?', op: ['The homeboy', 'The vital bridge', 'The 40% ghost'], ok: 1 },
+        { t: 'op', s: 'The story', q: 'In the story, the iliacus is "the homeboy." Why?', op: ['Because it is the oldest of the group', 'Because it is born in its own home: the iliac fossa', 'Because it carries the weight of all three'], ok: 1 },
+        { t: 'op', s: 'The story', q: 'What does the story call the psoas minor because of its rarity?', op: ['The vital bridge', 'The homeboy', 'The 40% ghost'], ok: 2 },
+        { t: 'op', s: 'Comparing', q: 'Which of the three only originates from TWO vertebrae?', op: ['The psoas major', 'The iliacus', 'The psoas minor'], ok: 2 },
+        { t: 'op', s: 'Comparing', q: 'Which of the three originates from the most vertebrae?', op: ['The psoas minor', 'The iliacus', 'The psoas major'], ok: 2 },
+        { t: 'op', s: 'Comparing', q: 'Which two share an insertion at the lesser trochanter?', op: ['Psoas major + psoas minor', 'Iliacus + psoas minor', 'Iliacus + psoas major'], ok: 2 },
+        { t: 'op', s: 'Comparing', q: 'Which of the three originates from a pelvic bone (not the spine)?', op: ['The psoas major', 'The psoas minor', 'The iliacus'], ok: 2 },
+        { t: 'op', s: 'Comparing', q: 'How many of the three muscles in this unit reach the femur?', op: ['All three', 'Only one (the psoas major)', 'Two (the iliacus and the psoas major)'], ok: 2 },
+        { t: 'clave' }
+      ]
+    },
+    3: {
+      titulo: 'The Engineering Workshop', unidad: 'Unit 3', lamina: 26, ultima: 32,
+      maxOp: 10,
+      claveQ: { q: 'How many joints does the rectus femoris cross?', op: ['1', '2', '3'], ok: 1 },
+      retos: [
+        { t: 'toca', m: 'the vastus intermedius', img: 1, visImg: 'u3_toca_clean.png' },
+        { t: 'toca', m: 'the vastus medialis', img: 2, visImg: 'u3_toca_clean.png' },
+        { t: 'toca', m: 'the vastus lateralis', img: 3, visImg: 'u3_toca_clean.png' },
+        { t: 'toca', m: 'the rectus femoris', img: 4, visImg: 'u3_toca_clean.png' },
+        { t: 'toca', m: 'the sartorius', img: 5, visImg: 'u3_toca_clean.png' },
+        { t: 'oi', m: 'the vastus intermedius', img: 1, visImg: 'u3_oi_base.png',
+          intro: 'The invisible quadriceps: it lives completely covered by the rectus femoris. No hand ever touches it from outside. Only a scalpel sees it.',
+          no: 'the anterior surface of the femoral shaft (the bone itself, directly)',
+          ni: 'the tibial tuberosity (via the patellar tendon, like its brothers)' },
+        { t: 'oi', m: 'the vastus medialis', img: 2, visImg: 'u3_oi_base.png',
+          intro: 'The vastus medialis has a special mission in its lower part: the VMO prevents the patella from drifting outward. It is the knee guardian.',
+          no: 'the medial lip of the linea aspera of the femur',
+          ni: 'the tibial tuberosity (via the patellar tendon)' },
+        { t: 'oi', m: 'the vastus lateralis', img: 3, visImg: 'u3_oi_base.png',
+          intro: 'The most voluminous of the group. It feels like a wall on the outer surface of the thigh. It gives the lateral bulk.',
+          no: 'the lateral lip of the linea aspera of the femur',
+          ni: 'the tibial tuberosity (via the patellar tendon)' },
+        { t: 'oi', m: 'the rectus femoris', img: 4, visImg: 'u3_oi_base.png',
+          intro: 'The only one of the quadriceps that crosses TWO joints: the hip and the knee. That is why it shortens when sitting and pulls on the pelvis when running.',
+          no: 'the anterior inferior iliac spine (AIIS, on the pelvis)',
+          ni: 'the tibial tuberosity (via the patellar tendon, like the other three)' },
+        { t: 'oi', m: 'the sartorius', img: 5, visImg: 'u3_oi_base.png',
+          intro: 'The longest muscle in the body. It runs diagonally from the hip to the tibia. Its name comes from "tailor": the cross-legged sitting position for sewing.',
+          no: 'the anterior superior iliac spine (ASIS)',
+          ni: 'the medial surface of the tibia (pes anserinus, alongside the gracilis and semitendinosus)' },
+        { t: 'op', s: 'Who am I', q: 'I am the only one of the quadriceps that crosses two joints: the hip and the knee. Who am I?', op: ['The vastus lateralis', 'The rectus femoris', 'The vastus medialis'], ok: 1 },
+        { t: 'op', s: 'Who am I', q: 'I live buried under the rectus femoris. No hand touches me from outside. Who am I?', op: ['The vastus intermedius', 'The vastus medialis', 'The sartorius'], ok: 0 },
+        { t: 'op', s: 'Who am I', q: 'The longest muscle in the body. I cross the thigh diagonally like a band. Who am I?', op: ['The rectus femoris', 'The vastus lateralis', 'The sartorius'], ok: 2 },
+        { t: 'op', s: 'What they do', q: 'What movement do all four quadriceps muscles share?', op: ['Knee flexion', 'Knee extension', 'External rotation of the hip'], ok: 1 },
+        { t: 'op', s: 'What they do', q: 'What extra movement can the rectus femoris do that its three vasti companions cannot?', op: ['Hip extension', 'Hip flexion', 'Internal rotation of the knee'], ok: 1 },
+        { t: 'op', s: 'What they do', q: 'The sartorius crosses the hip and the knee. What combination of actions does it perform?', op: ['Hip flexion + external rotation; knee flexion + internal rotation', 'Hip extension + knee extension', 'Knee flexion only'], ok: 0 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'In Running on the Reformer, what role does the quadriceps play when pushing the carriage?', op: ['Eccentric contraction to control the extension', 'Concentric contraction extending the knee against the spring', 'No activity: only the gluteus works'], ok: 1 },
+        { t: 'op', s: 'Pilates', pil: true, q: 'A quadriceps-dominant pattern over the hamstrings is common in sedentary people. What usually happens to the pelvis?', op: ['It tilts into anterior tilt', 'It tilts into posterior tilt', 'No effect on the pelvis'], ok: 0 },
+        { t: 'op', s: 'Clinical', nopil: true, q: 'An inhibited VMO causes the patella to deviate. In which direction?', op: ['Inward', 'Outward (lateral)', 'Upward'], ok: 1 },
+        { t: 'op', s: 'Clinical', nopil: true, q: 'The rectus femoris shortens when we sit for many hours. When standing up, what effect does it have on the pelvis?', op: ['The pelvis tilts into posterior tilt', 'The pelvis tilts into anterior tilt', 'The pelvis is not modified'], ok: 1 },
+        { t: 'clave' }
+      ]
     }
   };
   let S = null;   // estado del reto en curso
@@ -1662,8 +1778,13 @@ const RETO = (() => {
   }
   function empezar(u) {
     const pil = esPil();
-    S = { u, i: 0, res: [], lista: U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil)).sort(() => Math.random() - .5) };
-    html(`<div class="rtintro"><div class="rtbig">🦸</div><h3>${U[u].titulo}</h3><p>${S.lista.length} short challenges. Pass with <b>80%</b>.</p><p class="rtsmall">Find each muscle, mark its origin and insertion on the skeleton and show what you know about the league.</p><button class="pill on rtgo">Start!</button><button class="pill rtperfil">Change my profile</button></div>`);
+    const todo = U[u].retos.filter(r => !(r.pil && !pil) && !(r.nopil && pil));
+    const clave = todo.filter(r => r.t === 'clave');
+    const pool = todo.filter(r => r.t !== 'clave').sort(() => Math.random() - .5);
+    const max = U[u].maxOp !== undefined ? U[u].maxOp : 10;
+    const lista = [...clave, ...pool.slice(0, max - clave.length)].sort(() => Math.random() - .5);
+    S = { u, i: 0, res: [], lista };
+    html(`<div class="rtintro"><div class="rtbig"><img src="reto/u${u}_cover.png" onerror="this.parentElement.textContent='🦸'"></div><h3>${U[u].titulo}</h3><p>${S.lista.length} short challenges. Pass with <b>80%</b>.</p><p class="rtsmall">Find each muscle, mark its origin and insertion on the skeleton and show what you know about the league.</p><button class="pill on rtgo">Start!</button><button class="pill rtperfil">Change my profile</button></div>`);
     box().querySelector('.rthead').innerHTML = `<b>Challenge · ${U[u].unidad}</b>`;
     box().querySelector('.rtgo').onclick = () => paso();
     box().querySelector('.rtperfil').onclick = () => perfil(u);
@@ -1742,9 +1863,11 @@ const RETO = (() => {
     const n = U[S.u].lamina, z = (MAP[n] || {}).zones || {};
     html(`<p class="rtst">Find the muscle</p><p class="rtq">Tap <b>${r.en || r.m}</b></p><div class="rtimg"><canvas></canvas></div>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, li] = await Promise.all([r.img ? loadImg('reto/u' + S.u + '_' + r.img + '_hueso.jpg') : loadImg(pageFile(n, '.jpg')), loadImg(pageFile(n, '_lab.png'))]);
-    const pm = META[n - 1], yb = Math.round((pm.yb || 792) * PT), y0 = Math.round(90 * PT);
-    cv.width = W; cv.height = yb - y0; x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H);
+    const dispSrc = r.visImg ? 'reto/' + r.visImg : (r.img ? 'reto/u' + S.u + '_' + r.img + '_hueso.jpg' : pageFile(n, '.jpg'));
+    const [im, li] = await Promise.all([loadImg(dispSrc), loadImg(pageFile(n, '_lab.png'))]);
+    const pm = META[n - 1], y0 = r.visImg ? 0 : Math.round(90 * PT);
+    const ch = r.visImg ? H : Math.round((pm.yb || 792) * PT) - y0;
+    cv.width = W; cv.height = ch; x.fillStyle = '#fff'; x.fillRect(0, 0, W, ch); x.drawImage(im, 0, -y0, W, H);
     const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
     let done = false;
     cv.onclick = e => {
@@ -1766,9 +1889,10 @@ const RETO = (() => {
   async function origenInsercion(r) {
     const base = `reto/u${S.u}_${r.img}_`;
     const n = U[S.u].lamina;
-    html(`<p class="rtst">Where it comes from and where it goes</p><p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Draw on the bone to mark.</p>`);
+    html(`<p class="rtst">Where it comes from and where it goes</p>${r.intro ? `<p class="rtintro">${r.intro}</p>` : ''}<p class="rtq"><b>${cap(r.m)}</b>: mark its <b class="rto">origin</b>.</p><div class="rtimg sk"><canvas></canvas></div><p class="rtsmall rthint">Draw on the bone to mark.</p>`);
     const cv = box().querySelector('canvas'), x = cv.getContext('2d');
-    const [im, mk] = await Promise.all([loadImg(pageFile(n, '.jpg')), loadImg(base + 'marcas.png')]);
+    const imgSrc = r.visImg ? 'reto/' + r.visImg : pageFile(n, '.jpg');
+    const [im, mk] = await Promise.all([loadImg(imgSrc), loadImg(base + 'marcas.png')]);
     cv.width = im.width; cv.height = im.height; x.drawImage(im, 0, 0);
     const mc = document.createElement('canvas'); mc.width = im.width; mc.height = im.height; const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(mk, 0, 0);
     const M = mx.getImageData(0, 0, im.width, im.height).data;
@@ -1824,7 +1948,8 @@ const RETO = (() => {
       }
     } catch (e) {}
     if (!pista) {   // aún no pintó la lámina del grupo con colores distintos
-      return opciones({ s: 'Your color key', q: 'In the construction order, what number is the piriformis?', op: ['1', '4', '6'], ok: 2, nota: 'Paint the group plate with a different color for each muscle and this challenge will use your own key.' });
+      const cq = U[S.u].claveQ || { q: 'In the construction order, what number is the piriformis?', op: ['1', '4', '6'], ok: 2 };
+      return opciones({ s: 'Your color key', ...cq, nota: 'Paint the group plate with a different color for each muscle and this challenge will use your own key.' });
     }
     const [nm, c1] = pista, rgb = `rgb(${c1.map(v => v | 0).join(',')})`;
     const ops = [nm, ...mus.filter(m => m !== nm).sort(() => Math.random() - .5).slice(0, 2)];
