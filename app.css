@@ -427,10 +427,12 @@ body.hand #viewport{cursor:grab}
 #reto .rtfb{margin-top:8px;padding:9px 12px;border-radius:14px;display:flex;flex-direction:column;gap:4px;animation:mdin .35s}
 #reto .rtfb.ok{background:#ECF8EF}#reto .rtfb.no{background:#FFF4D1}
 #reto .rtfb b{font-size:17px}#reto .rtfb span{font-size:14px;line-height:1.4}
-#reto .rtbasta{margin-top:10px;padding:14px 16px;border-radius:14px;background:#FFF0E6;border:2px solid #E07B39;display:flex;flex-direction:column;gap:6px;animation:mdin .3s}
-#reto .rtbasta b{font-size:22px;font-weight:900;color:#1a1a1a;letter-spacing:.5px}
-#reto .rtbasta span{font-size:14px;line-height:1.45;color:#555}
+#reto .rtbasta{margin-top:12px;padding:14px 16px;border-radius:14px;background:#ECF8EF;display:flex;flex-direction:column;gap:10px;animation:mdin .35s}
+#reto .rtbasta span{font-size:15px;line-height:1.5}
+#reto .rtbasta .pill{align-self:flex-end}
 #reto .rtfb .pill{align-self:flex-end}
+.basta-flash{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:80px;font-weight:900;color:#fff;letter-spacing:-2px;background:rgba(210,0,0,0.88);z-index:9999;pointer-events:none;animation:bastain 1.4s ease-in-out forwards}
+@keyframes bastain{0%{opacity:0;transform:scale(0.5)}12%{opacity:1;transform:scale(1.2)}25%{transform:scale(1)}65%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.15)}}
 #reto .rtintro,#reto .rtfin{text-align:center;padding:10px 4px;position:relative}
 #reto .rtbig,#reto .rtstar{font-size:56px;line-height:1.1;animation:mdsw 2.4s ease-in-out infinite}
 #reto .rtbig img{width:140px;height:auto;border-radius:4px;display:block;margin:0 auto}
@@ -471,7 +473,7 @@ body.hand #viewport{cursor:grab}
 #rpClose:hover{background:rgba(255,255,255,.18);color:#eae2d2}
 #rpClose svg{width:1.3rem;height:1.3rem}
 #rpBody{flex:1;overflow-y:auto;padding:1.5rem 1rem 2.5rem;max-width:52rem;margin:0 auto;width:100%;box-sizing:border-box}
-.rppara{font-size:1.15rem;line-height:1.85;color:rgba(234,226,210,.38);margin:0 0 1.5rem;border-left:3px solid transparent;padding-left:1rem;transition:color .4s,border-color .4s,text-shadow .4s}
+.rppara{font-size:1.15rem;line-height:1.85;color:rgba(234,226,210,.82);margin:0 0 1.5rem;border-left:3px solid transparent;padding-left:1rem;transition:color .4s,border-color .4s,text-shadow .4s}
 .rppara.rpa{color:#eae2d2;border-left-color:#c8a870;text-shadow:0 0 24px rgba(200,168,112,.15)}
 .rppara strong{font-weight:700}
 @media(min-width:600px){#rpBody{padding:2rem 2.5rem 3rem}.rppara{font-size:1.25rem}}

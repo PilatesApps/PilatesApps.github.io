@@ -1904,7 +1904,7 @@ const RETO = (() => {
         const b = document.createElement('div'); b.className = 'rtbasta';
         b.innerHTML = `<span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Try again</button>`;
         box().querySelector('.rtbody').appendChild(b); b.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        b.querySelector('button').onclick = () => iniciarReto(S.u);
+        b.querySelector('button').onclick = () => empezar(S.u);
       }, 400);
       return;
     }

@@ -1945,9 +1945,17 @@ const RETO = (() => {
     S.res[S.i] = ok; head(); SFX.blip(ok ? 'ok' : 'fail'); buzz(ok ? 25 : 70);
     const errores = S.res.filter(v => v === false).length;
     if (!ok && errores >= 3) {
-      const f = document.createElement('div'); f.className = 'rtfb no';
-      f.innerHTML = `<b>¡Casi!</b>${msg ? `<span>${msg}</span>` : ''}`;
-      box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      // Flash visual — el gran ¡BASTA! rojo aparece y desaparece solo
+      const fl = document.createElement('div'); fl.className = 'basta-flash';
+      fl.textContent = '¡BASTA!';
+      document.body.appendChild(fl);
+      setTimeout(() => fl.remove(), 1400);
+      // Respuesta incorrecta sin el texto ¡BASTA! en el recuadro
+      if (msg) {
+        const f = document.createElement('div'); f.className = 'rtfb no';
+        f.innerHTML = `<span>${msg}</span>`;
+        box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
       decirBasta(); setTimeout(() => SFX.blip('basta'), 900);
       if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
       const FRASES_B = [
@@ -1955,10 +1963,12 @@ const RETO = (() => {
         'Tres errores: pausa, repasa y regresa con más fuerza. ¡Sí puedes!',
         'Vuelve a ver la unidad. La segunda vez te saldrán preguntas distintas.'
       ];
-      const b = document.createElement('div'); b.className = 'rtbasta';
-      b.innerHTML = `<span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Volver a intentar</button>`;
-      const rtbody = box().querySelector('.rtbody'); rtbody.appendChild(b); setTimeout(() => { rtbody.scrollTop = rtbody.scrollHeight; }, 80);
-      b.querySelector('button').onclick = () => empezar(S.u);
+      setTimeout(() => {
+        const b = document.createElement('div'); b.className = 'rtbasta';
+        b.innerHTML = `<span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Volver a intentar</button>`;
+        box().querySelector('.rtbody').appendChild(b); b.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        b.querySelector('button').onclick = () => empezar(S.u);
+      }, 400);
       return;
     }
     const f = document.createElement('div'); f.className = 'rtfb ' + (ok ? 'ok' : 'no');
