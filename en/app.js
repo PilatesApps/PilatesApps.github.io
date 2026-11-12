@@ -1594,7 +1594,7 @@ function isComplete() {
     for (let i = 3; i < c.length; i += 16) if (c[i] > 24 || k[i] > 24) p++;
     return p / (c.length / 16) > 0.06;
   }
-  const rv = reviewArt(); return !rv.block.length && !rv.tips.length;
+  const rv = reviewArt(); return !rv.block.length;
 }
 function checkDone(celebrate) {
   if (!page || !page.plate || !labels && !page.nobucket) return;
@@ -2071,43 +2071,50 @@ function reviewArt() {
     if (cov < 0.15) miss.push(L); else if (cov < 0.88) part.push(L);
     else if (spill[L] / area[L] > 0.05) sp.push(L);
   }
-  // Bloqueo único: menos del 50% de la lámina pintada en total
-  if (totalArea > 0 && totalPnt / totalArea < 0.50) {
-    const pct = Math.round(totalPnt / totalArea * 100);
-    rv.block.push(`Paint at least <b>50%</b> of the plate to share it. You have painted <b>${pct}%</b>.`);
-  }
-  rv.zones = miss.concat(part, sp);
   const pl = (k, a, b) => k === 1 ? a : b.replace('#', k);
   const zn = (MAP[cur] || {}).zones || {}, mus = new Set((MAP[cur] || {}).muscles || []);
-  // con el Mapa de músculos se nombra cada parte: primero los músculos, luego los huesos
+  // Painting block: guided mode → only muscles ≥60%; no map → ≥50% total
+  { const isGuided = page.plate && mus.size > 0;
+    if (isGuided) { let anyMuscle = false, muscleFail = false;
+      for (let L = 1; L < n; L++) { if (skip[L]) continue; const name = zn[L]; if (name && mus.has(name)) { anyMuscle = true; if (pnt[L] / area[L] < 0.60) muscleFail = true; } }
+      if (anyMuscle && muscleFail) rv.block.push('Still need to paint at least 60% of each muscle.'); }
+    else if (totalArea > 0 && totalPnt / totalArea < 0.50) rv.block.push('Paint at least 50% of the plate to share it.'); }
+  // in guided mode with muscle map: only highlight and mention muscle zones
+  const guided = page.plate && mus.size > 0;
+  const musZone = L => { const name = zn[L]; return name && mus.has(name); };
+  const missV = guided ? miss.filter(musZone) : miss;
+  const partV = guided ? part.filter(musZone).filter(L => pnt[L] / area[L] < 0.60) : part;
+  const spV   = guided ? sp.filter(musZone)   : sp;
+  rv.zones = missV.concat(partV, spV);
+  // name each part when the Muscle Map is on: muscles first, then bones
   const named = list => { const nm = [], seen = new Set(); let rest = 0;
     for (const L of list) { const t = zn[L]; if (!t) { rest++; continue; } if (!seen.has(t)) { seen.add(t); nm.push(t); } }
     nm.sort((a, b) => (mus.has(b) ? 1 : 0) - (mus.has(a) ? 1 : 0));
     if (!nm.length) return null;
     const extra = nm.length > 4 ? nm.length - 3 : 0, lst = (extra ? nm.slice(0, 3) : nm).map(t => `<b>${t}</b>`).concat(extra ? [`${extra} more parts`] : []), txt = lst.length > 1 ? lst.slice(0, -1).join(', ') + ' and ' + lst.at(-1) : lst[0];
     return rest ? `${txt} (and ${pl(rest, '1 small part', '# small parts')})` : txt; };
-  const nMiss = named(miss), nPart = named(part), nSp = named(sp);
-  // sugerencias (ya no bloquean):
-  if (nMiss) rv.block.push(`Still to paint: ${nMiss}.`);
-  else if (miss.length) rv.block.push(pl(miss.length, '<b>1 part</b> of the plate still needs painting.', '<b>#</b> parts of the plate still need painting.'));
-  if (nPart) rv.block.push(`Half painted: ${nPart}. Take the color all the way to the black lines.`);
-  else if (part.length) rv.block.push(pl(part.length, '<b>1 part</b> is only half painted: take the color all the way to the black lines.', '<b>#</b> parts are only half painted: take the color all the way to the black lines.'));
-  if (nSp) rv.block.push(`In ${nSp} the color went into the neighboring part. Clean it with the eraser or turn on <b>Stay inside</b>.`);
-  else if (sp.length) rv.block.push(pl(sp.length, 'In <b>1 part</b> the color went into the neighboring part. Clean it with the eraser or turn on <b>Stay inside</b>.', 'In <b>#</b> parts the color went into the neighboring part. Clean them with the eraser or turn on <b>Stay inside</b>.'));
-  // lo escrito: cuadro y bolitas
+  const nMiss = named(missV), nPart = named(partV), nSp = named(spV);
+  // suggestions (no longer blocking):
+  if (nMiss) rv.tips.push(`Still to paint: ${nMiss}.`);
+  else if (missV.length) rv.tips.push(pl(missV.length, '<b>1 part</b> of the plate still needs painting.', '<b>#</b> parts of the plate still need painting.'));
+  if (nPart) rv.tips.push(`Half painted: ${nPart}. Take the color all the way to the black lines.`);
+  else if (partV.length) rv.tips.push(pl(partV.length, '<b>1 part</b> is only half painted: take the color all the way to the black lines.', '<b>#</b> parts are only half painted: take the color all the way to the black lines.'));
+  if (nSp) rv.tips.push(`In ${nSp} the color went into the neighboring part. Clean it with the eraser or turn on <b>Stay inside</b>.`);
+  else if (spV.length) rv.tips.push(pl(spV.length, 'In <b>1 part</b> the color went into the neighboring part. Clean it with the eraser or turn on <b>Stay inside</b>.', 'In <b>#</b> parts the color went into the neighboring part. Clean them with the eraser or turn on <b>Stay inside</b>.'));
+  // written answers: table boxes and circles
   const ink = xInk.getImageData(0, 0, W, H).data;
   const hasInk = (r, key) => { if (texts[key] && String(texts[key]).trim()) return true; let c = 0;
     for (let y = r[1] * PT | 0; y < r[3] * PT; y += 2) for (let x = r[0] * PT | 0; x < r[2] * PT; x += 2) if (ink[(y * W + x) * 4 + 3] > 40 && ++c > 12) return true; return false; };
   const wr = page.write || [];
   if (wr.length === 5) {
     const nm = ['the muscle', 'the origin', 'the insertion', 'the action'], falta = nm.filter((_, i) => !hasInk(wr[i], 'w' + i));
-    if (falta.length) rv.tips.push(`The table still needs ${falta.length > 1 ? falta.slice(0, -1).join(', ') + ' and ' + falta[falta.length - 1] : falta[0]}.`);
+    if (falta.length) rv.block.push(`The table still needs ${falta.length > 1 ? falta.slice(0, -1).join(', ') + ' and ' + falta[falta.length - 1] : falta[0]}.`);
   } else if (wr.length) {
     const k = wr.filter((r, i) => !hasInk(r, 'w' + i)).length;
-    if (k) rv.tips.push(pl(k, '<b>1 answer line</b> is still blank.', '<b>#</b> answer lines are still blank.'));
+    if (k) rv.block.push(pl(k, '<b>1 answer line</b> is still blank.', '<b>#</b> answer lines are still blank.'));
   }
   const ck = (page.circles || []).filter((r, i) => !hasInk(r, 'c' + i)).length;
-  if (ck) rv.tips.push(pl(ck, 'The number is still missing in <b>1 circle</b>.', 'The number is still missing in <b>#</b> circles.'));
+  if (ck) rv.block.push(pl(ck, 'Write the number of each colored muscle in its <b>circle</b>.', 'Write the number of each colored muscle in its <b>#</b> circles.'));
   return rv;
 }
 function flashZones(list) {
