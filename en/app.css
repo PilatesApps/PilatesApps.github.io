@@ -430,6 +430,13 @@ body.hand #viewport{cursor:grab}
 #reto .rtfb.ok{background:#ECF8EF}#reto .rtfb.no{background:#FFF4D1}
 #reto .rtfb b{font-size:17px}#reto .rtfb span{font-size:14px;line-height:1.4}
 #reto .rtfb .pill{align-self:flex-end}
+/* ¡BASTA! flash alert */
+.basta-flash{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:80px;font-weight:900;color:#fff;letter-spacing:-2px;background:rgba(210,0,0,0.88);z-index:9999;pointer-events:none;animation:bastain 1.4s ease-in-out forwards}
+@keyframes bastain{0%{opacity:0;transform:scale(0.5)}12%{opacity:1;transform:scale(1.2)}25%{transform:scale(1)}65%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.15)}}
+/* ¡BASTA! recovery card */
+#reto .rtbasta{margin-top:12px;padding:14px 16px;border-radius:14px;background:#ECF8EF;display:flex;flex-direction:column;gap:10px;animation:mdin .35s}
+#reto .rtbasta span{font-size:15px;line-height:1.5}
+#reto .rtbasta .pill{align-self:flex-end}
 #reto .rtintro,#reto .rtfin{text-align:center;padding:10px 4px;position:relative}
 #reto .rtbig,#reto .rtstar{font-size:56px;line-height:1.1;animation:mdsw 2.4s ease-in-out infinite}
 #reto .rtbig img{width:140px;height:auto;border-radius:4px;display:block;margin:0 auto}

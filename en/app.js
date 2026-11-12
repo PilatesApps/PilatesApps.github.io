@@ -1867,7 +1867,7 @@ const RETO = (() => {
       window.speechSynthesis.cancel();
       setTimeout(() => {
         const u = new SpeechSynthesisUtterance('¡Basta!');
-        u.lang = 'es-ES'; u.rate = 0.65; u.pitch = 2.0; u.volume = 1;
+        u.lang = 'es-ES'; u.rate = 0.9; u.pitch = 2.2; u.volume = 1;
         const voices = window.speechSynthesis.getVoices();
         const fem = voices.find(v => v.lang.startsWith('es') && /Monica|Paulina|female/i.test(v.name))
                  || voices.find(v => v.lang.startsWith('es'))
@@ -1881,19 +1881,27 @@ const RETO = (() => {
     S.res[S.i] = ok; head(); SFX.blip(ok ? 'fill' : 'undo'); buzz(ok ? 18 : 40);
     const errores = S.res.filter(v => v === false).length;
     if (!ok && errores >= 3) {
-      const f = document.createElement('div'); f.className = 'rtfb no';
-      f.innerHTML = `<b>¡BASTA!</b>${msg ? `<span>${msg}</span>` : ''}`;
-      box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      // Flash alert — big ¡BASTA! pops up then disappears on its own
+      const fl = document.createElement('div'); fl.className = 'basta-flash';
+      fl.textContent = '¡BASTA!';
+      document.body.appendChild(fl);
+      setTimeout(() => fl.remove(), 1400);
+      // Wrong answer hint only — no ¡BASTA! text in this box
+      if (msg) {
+        const f = document.createElement('div'); f.className = 'rtfb no';
+        f.innerHTML = `<span>${msg}</span>`;
+        box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
       SFX.blip('basta'); sayEnough();
       if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
       const FRASES_B = [
-        'Take a breath, review the unit and start again.',
-        'Three mistakes: pause, review and come back stronger!',
-        'Go back and watch the unit again. You\'ve got this!'
+        'Take a moment to breathe. You can do this!',
+        'Pause, breathe, and come back stronger!',
+        'Take a breath. Review and go again — you\'ve got this!'
       ];
       setTimeout(() => {
         const b = document.createElement('div'); b.className = 'rtbasta';
-        b.innerHTML = `<b>¡BASTA!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Try again</button>`;
+        b.innerHTML = `<span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Try again</button>`;
         box().querySelector('.rtbody').appendChild(b); b.scrollIntoView({ behavior: 'smooth', block: 'end' });
         b.querySelector('button').onclick = () => iniciarReto(S.u);
       }, 400);
