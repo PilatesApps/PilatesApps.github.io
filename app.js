@@ -1620,7 +1620,7 @@ function isComplete() {
     for (let i = 3; i < c.length; i += 16) if (c[i] > 24 || k[i] > 24) p++;
     return p / (c.length / 16) > 0.60;
   }
-  const rv = reviewArt(); return !rv.block.length && !rv.tips.length && coloredShare() >= 0.5;
+  const rv = reviewArt(); return !rv.block.length;
 }
 let _motivLast = 0;
 let _shareBlockCount = 0;  // veces que intentaron compartir sin terminar
@@ -2166,14 +2166,14 @@ function reviewArt() {
     if (cov < 0.15) miss.push(L); else if (cov < 0.88) part.push(L);
     else if (spill[L] / area[L] > 0.05) sp.push(L);
   }
-  // Bloqueo único: menos del 50% de la lámina pintada en total
-  if (totalArea > 0 && totalPnt / totalArea < 0.50) {
-    const pct = Math.round(totalPnt / totalArea * 100);
-    rv.block.push(`Pinte al menos el <b>50%</b> de la lámina para compartirla. Lleva el <b>${pct}%</b>.`);
-  }
   rv.zones = miss.concat(part, sp);
   const pl = (k, a, b) => k === 1 ? a : b.replace('#', k);
   const zn = (MAP[cur] || {}).zones || {}, mus = new Set((MAP[cur] || {}).muscles || []);
+  // Bloqueo de pintado: modo guiado → cada músculo ≥60% y el resto ≥30%; sin mapa → ≥50% total
+  { let anyMuscle = false, muscleFail = false, nmPnt = 0, nmArea = 0;
+    for (let L = 1; L < n; L++) { if (skip[L]) continue; const name = zn[L]; if (name && mus.has(name)) { anyMuscle = true; if (pnt[L] / area[L] < 0.60) muscleFail = true; } else { nmPnt += pnt[L]; nmArea += area[L]; } }
+    if (anyMuscle) { if (muscleFail || (nmArea > 0 && nmPnt / nmArea < 0.30)) rv.block.push('Todavía te falta 60% del músculo pintado y al menos un 30% del resto de la planilla.'); }
+    else if (totalArea > 0 && totalPnt / totalArea < 0.50) rv.block.push('Pinte al menos el 50% de la lámina para compartirla.'); }
   // con el Mapa de músculos se nombra cada parte: primero los músculos, luego los huesos
   const named = list => { const nm = [], seen = new Set(); let rest = 0;
     for (const L of list) { const t = zn[L]; if (!t) { rest++; continue; } if (!seen.has(t)) { seen.add(t); nm.push(t); } }
@@ -2196,13 +2196,13 @@ function reviewArt() {
   const wr = page.write || [];
   if (wr.length === 5) {
     const nm = ['el músculo', 'el origen', 'la inserción', 'la acción'], falta = nm.filter((_, i) => !hasInk(wr[i], 'w' + i));
-    if (falta.length) rv.tips.push(`En el cuadro todavía falta escribir ${falta.length > 1 ? falta.slice(0, -1).join(', ') + ' y ' + falta[falta.length - 1] : falta[0]}.`);
+    if (falta.length) rv.block.push(`En el cuadro todavía falta escribir ${falta.length > 1 ? falta.slice(0, -1).join(', ') + ' y ' + falta[falta.length - 1] : falta[0]}.`);
   } else if (wr.length) {
     const k = wr.filter((r, i) => !hasInk(r, 'w' + i)).length;
-    if (k) rv.tips.push(pl(k, 'Queda <b>1 línea</b> de respuesta sin escribir.', 'Quedan <b>#</b> líneas de respuesta sin escribir.'));
+    if (k) rv.block.push(pl(k, 'Queda <b>1 línea</b> de respuesta sin escribir.', 'Quedan <b>#</b> líneas de respuesta sin escribir.'));
   }
   const ck = (page.circles || []).filter((r, i) => !hasInk(r, 'c' + i)).length;
-  if (ck) rv.tips.push(pl(ck, 'Falta escribir el número en <b>1 bolita</b>.', 'Falta escribir el número en <b>#</b> bolitas.'));
+  if (ck) rv.block.push(pl(ck, 'Falta escribir el número en <b>1 bolita</b>.', 'Falta escribir el número en <b>#</b> bolitas.'));
   return rv;
 }
 function flashZones(list) {
