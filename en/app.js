@@ -2037,8 +2037,10 @@ function reviewArt() {
   let mx = 0; for (let i = 0; i < labels.length; i += 7) if (labels[i] > mx) mx = labels[i];
   for (let i = 0; i < labels.length; i++) if (labels[i] > mx) mx = labels[i];
   const n = mx + 1, area = new Uint32Array(n), first = new Int32Array(n).fill(-1), pnt = new Uint32Array(n), sr = new Float64Array(n), sg = new Float64Array(n), sb = new Float64Array(n), cy = new Float64Array(n), cx = new Float64Array(n);
+  let bgArea = 0, bgPnt = 0;
   for (let i = 0; i < labels.length; i++) {
-    const L = labels[i]; if (!L || L === page.bg) continue;
+    const L = labels[i]; if (!L) continue;
+    if (L === page.bg) { bgArea++; if (d[i * 4 + 3] > 24) bgPnt++; continue; }
     area[L]++; cy[L] += (i / W) | 0; cx[L] += i % W; if (first[L] < 0) first[L] = i;
     if (d[i * 4 + 3] > 24) { pnt[L]++; sr[L] += d[i * 4]; sg[L] += d[i * 4 + 1]; sb[L] += d[i * 4 + 2]; }
   }
@@ -2075,7 +2077,7 @@ function reviewArt() {
   const zn = (MAP[cur] || {}).zones || {}, mus = new Set((MAP[cur] || {}).muscles || []);
   // Painting block: guided mode → only muscles ≥60%; no map → ≥50% total
   { const isGuided = page.plate && mus.size > 0;
-    if (isGuided) { let anyMuscle = false, muscleFail = false, nonMusArea = 0, nonMusPnt = 0;
+    if (isGuided) { let anyMuscle = false, muscleFail = false, nonMusArea = bgArea, nonMusPnt = bgPnt;
       for (let L = 1; L < n; L++) { if (skip[L]) continue; const name = zn[L]; if (name && mus.has(name)) { anyMuscle = true; if (pnt[L] / area[L] < 0.60) muscleFail = true; } else { nonMusArea += area[L]; nonMusPnt += pnt[L]; } }
       if (anyMuscle && muscleFail) rv.block.push('Still need to paint at least 60% of each muscle.');
       if (nonMusArea > 0 && nonMusPnt / nonMusArea < 0.30) rv.block.push('Develop your artistic level: also paint at least 30% of the rest of the plate.'); }
