@@ -2075,9 +2075,10 @@ function reviewArt() {
   const zn = (MAP[cur] || {}).zones || {}, mus = new Set((MAP[cur] || {}).muscles || []);
   // Painting block: guided mode → only muscles ≥60%; no map → ≥50% total
   { const isGuided = page.plate && mus.size > 0;
-    if (isGuided) { let anyMuscle = false, muscleFail = false;
-      for (let L = 1; L < n; L++) { if (skip[L]) continue; const name = zn[L]; if (name && mus.has(name)) { anyMuscle = true; if (pnt[L] / area[L] < 0.60) muscleFail = true; } }
-      if (anyMuscle && muscleFail) rv.block.push('Still need to paint at least 60% of each muscle.'); }
+    if (isGuided) { let anyMuscle = false, muscleFail = false, nonMusArea = 0, nonMusPnt = 0;
+      for (let L = 1; L < n; L++) { if (skip[L]) continue; const name = zn[L]; if (name && mus.has(name)) { anyMuscle = true; if (pnt[L] / area[L] < 0.60) muscleFail = true; } else { nonMusArea += area[L]; nonMusPnt += pnt[L]; } }
+      if (anyMuscle && muscleFail) rv.block.push('Still need to paint at least 60% of each muscle.');
+      if (nonMusArea > 0 && nonMusPnt / nonMusArea < 0.30) rv.block.push('Develop your artistic level: also paint at least 30% of the rest of the plate.'); }
     else if (totalArea > 0 && totalPnt / totalArea < 0.50) rv.block.push('Paint at least 50% of the plate to share it.'); }
   // in guided mode with muscle map: only highlight and mention muscle zones
   const guided = page.plate && mus.size > 0;

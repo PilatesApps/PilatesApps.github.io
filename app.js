@@ -204,7 +204,7 @@ const SFX = (() => {
       if (kind === 'basta') {                              /* ¡BASTA! — buzzer dramático descendente */
         const o = a.createOscillator(), g = a.createGain(); o.type = 'sawtooth';
         o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.45);
-        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.45, t + 0.025); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.15, t + 0.025); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
         o.connect(g).connect(master); o.start(t); o.stop(t + 0.65); return;
       }
       if (kind === 'fill') {                               /* gota de pintura que cae */
@@ -1938,7 +1938,7 @@ const RETO = (() => {
                  || voices.find(v => v.lang.startsWith('es'));
         if (fem) u.voice = fem;
         window.speechSynthesis.speak(u);
-      }, 350);
+      }, 80);
     }
   }
   function resultado(ok, msg) {
@@ -1948,7 +1948,7 @@ const RETO = (() => {
       const f = document.createElement('div'); f.className = 'rtfb no';
       f.innerHTML = `<b>¡Casi!</b>${msg ? `<span>${msg}</span>` : ''}`;
       box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      SFX.blip('basta'); decirBasta();
+      decirBasta(); setTimeout(() => SFX.blip('basta'), 900);
       if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
       const FRASES_B = [
         'Respira, repasa la unidad y vuelve a comenzar desde el principio.',
@@ -1956,7 +1956,7 @@ const RETO = (() => {
         'Vuelve a ver la unidad. La segunda vez te saldrán preguntas distintas.'
       ];
       const b = document.createElement('div'); b.className = 'rtbasta';
-      b.innerHTML = `<b>¡BASTA!</b><span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Volver a intentar</button>`;
+      b.innerHTML = `<span>${FRASES_B[Math.floor(Math.random() * FRASES_B.length)]}</span><button class="pill on">Volver a intentar</button>`;
       const rtbody = box().querySelector('.rtbody'); rtbody.appendChild(b); setTimeout(() => { rtbody.scrollTop = rtbody.scrollHeight; }, 80);
       b.querySelector('button').onclick = () => empezar(S.u);
       return;
@@ -2170,9 +2170,10 @@ function reviewArt() {
   const zn = (MAP[cur] || {}).zones || {}, mus = new Set((MAP[cur] || {}).muscles || []);
   // Bloqueo de pintado: modo guiado → solo músculos ≥60%; sin mapa → ≥50% total
   { const isGuided = page.plate && mus.size > 0;
-    if (isGuided) { let anyMuscle = false, muscleFail = false;
-      for (let L = 1; L < n; L++) { if (skip[L]) continue; const name = zn[L]; if (name && mus.has(name)) { anyMuscle = true; if (pnt[L] / area[L] < 0.60) muscleFail = true; } }
-      if (anyMuscle && muscleFail) rv.block.push('Todavía te falta pintar el 60% de cada músculo.'); }
+    if (isGuided) { let anyMuscle = false, muscleFail = false, nonMusArea = 0, nonMusPnt = 0;
+      for (let L = 1; L < n; L++) { if (skip[L]) continue; const name = zn[L]; if (name && mus.has(name)) { anyMuscle = true; if (pnt[L] / area[L] < 0.60) muscleFail = true; } else { nonMusArea += area[L]; nonMusPnt += pnt[L]; } }
+      if (anyMuscle && muscleFail) rv.block.push('Todavía te falta pintar el 60% de cada músculo.');
+      if (nonMusArea > 0 && nonMusPnt / nonMusArea < 0.30) rv.block.push('Desarrolla tu nivel artístico: pinta también el 30% del resto de la lámina.'); }
     else if (totalArea > 0 && totalPnt / totalArea < 0.50) rv.block.push('Pinte al menos el 50% de la lámina para compartirla.'); }
   // en modo guiado con mapa: solo destacar y mencionar zonas de músculos
   const guided = page.plate && mus.size > 0;
