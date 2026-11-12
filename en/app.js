@@ -1866,11 +1866,11 @@ const RETO = (() => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setTimeout(() => {
-        const u = new SpeechSynthesisUtterance('ENOUGH!');
-        u.lang = 'en-US'; u.rate = 0.65; u.pitch = 2.0; u.volume = 1;
+        const u = new SpeechSynthesisUtterance('¡Basta!');
+        u.lang = 'es-ES'; u.rate = 0.65; u.pitch = 2.0; u.volume = 1;
         const voices = window.speechSynthesis.getVoices();
-        const fem = voices.find(v => v.lang.startsWith('en') && /Samantha|Zira|Karen|Moira|Tessa|Victoria|Susan|female/i.test(v.name))
-                 || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('google'))
+        const fem = voices.find(v => v.lang.startsWith('es') && /Monica|Paulina|female/i.test(v.name))
+                 || voices.find(v => v.lang.startsWith('es'))
                  || voices.find(v => v.lang.startsWith('en'));
         if (fem) u.voice = fem;
         window.speechSynthesis.speak(u);
