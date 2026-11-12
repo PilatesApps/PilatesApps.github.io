@@ -531,6 +531,7 @@ async function openPage(n) {
   document.body.classList.toggle('freemode', !!page.nobucket);
   $('#btnShare').hidden = !page.plate;
   if (typeof storyUI === 'function') setTimeout(storyUI, 0);
+  if (typeof readUI === 'function') { setTimeout(readUI, 0); const rp = document.getElementById('readPanel'); if (rp) rp.hidden = true; }
   if (page.nobucket) setTimeout(() => toast('Free canvas: draw the whole muscle group, from origin to insertion, however you like'), 600);
   pageImg.src = pageFile(n, '.jpg');
   const topI = document.getElementById('topImg'); if (page.top) { topI.src = pageFile(n, '_top.png'); topI.hidden = false; } else { topI.hidden = true; topI.removeAttribute('src'); }
@@ -2886,6 +2887,65 @@ $('#btnCloseMusic').onclick = () => { $('#music').hidden = true; };
 $('#music').addEventListener('pointerdown', e => { if (e.target.id === 'music') $('#music').hidden = true; });
 MUSIC.build();
 
+/* ---------------- modo lectura ---------------- */
+const READ_TEXTS = {
+  7: { title: 'The Justice League of the Pelvic Dungeon', sub: 'Unit 1 · Story', p: [
+    "Welcome, explorer of your own body. Come down with me, because the adventure begins in a basement.",
+    "Far below, beneath the famous Gluteus Maximus (that hero who steals every flash at the gym), lives a squad no one applauds. Six guardians on patrol in the shadows. They call them the Rotator Cuff of the Hip, and they have a single mission: to keep your femur from ever slipping out of its armored chamber, the acetabulum. They work in silence, asking for nothing in return. Without them, every step you take would be a collapse.",
+    "Meet them.",
+    "First to show his face is the Obturator Externus, the Batman of the group. A dark cloak covering the great opening of the pelvis, the obturator foramen. It turns your leg outward and always whispers the same thing: you're not going anywhere. Quiet, loyal, never leaving his post.",
+    "His partner, the Obturator Internus, is the infiltrator of the team. The master of stealth. It slips through a narrow tunnel, the lesser sciatic notch, and pulls off an impossible turn of nearly ninety degrees to anchor itself at the back, on the trochanter of the femur. But in bending that tight corner, it loses strength. And that is exactly where the best part of the story begins.",
+    "Because in come the twins, the Superior Gemellus and the Inferior Gemellus. They are not mere bystanders. They are the escorts. The two who grip the Obturator Internus right at its weak point, one from above and one from below, and lend it their muscle so the turn comes out perfect. The three of them end up fused into a single tendon, shoulder to shoulder. A three-headed team with a single heart.",
+    "Farther in stands watch the Quadratus Femoris, that quiet Superman. Square, solid, forged from steel. It neither talks nor shows off. It simply holds. It anchors your femur to the bedrock of your body and bears the weight of the world without so much as blinking.",
+    "And closing the formation, the most famous of them all: the Piriformis. The strategist who directs the patrol from the shadows. Brilliant, yes, but with a dark side. If you neglect it, if you leave it crushed in a chair day after day, it rebels. It takes your sciatic nerve hostage and fires a bolt of pain down your whole leg. Its way of shouting one single thing at you: don't ignore me.",
+    "Six guardians. A silent league. The headquarters of your movement.",
+    "Now take your colors and bring them to life. Let the adventure begin."
+  ]},
+  8: { title: 'Deep Posterior Muscles of the Hip', sub: 'Unit 1 · Reference Card', p: [
+    "The hip joint requires a precise stabilization system to bear the body's weight while standing. Deep within the pelvis, six short muscles go to work. This group is also known as the deep external rotators of the hip, or the pelvitrochanteric muscles. Together they form the rotator cuff of the hip: their job is to fix the femur against the pelvis and control its rotation with precision.",
+    "1 · Obturator Externus — A flat, fan-shaped muscle that covers the anterior surface of the pelvis. It originates from the external surface of the obturator membrane and the bony margin surrounding the obturator foramen, and crosses the joint to insert into the trochanteric fossa of the femur. Its function is external rotation and stabilization of the hip.",
+    "2 · Obturator Internus — Lines the lesser (true) pelvis, forming part of its lateral wall. Its tendon makes a turn of nearly ninety degrees as it wraps around the lesser sciatic notch. It arises from the internal surface of the obturator membrane, and anchors onto the medial surface of the greater trochanter. It produces external rotation, abduction, and firmly centers the femoral head within the acetabulum.",
+    "3 · Superior Gemellus — The first of the twins. It originates from the ischial spine and fuses with the tendon of the obturator internus to anchor alongside it on the greater trochanter. It steps in right where the obturator internus loses power after its ninety-degree bend, working in direct synergy for external rotation.",
+    "4 · Inferior Gemellus — Its twin reinforces the team from below. It emerges from the ischial tuberosity and joins the inferior border of the obturator internus tendon on the way to the greater trochanter. It assists in external rotation and helps prevent anterior displacement of the femoral head.",
+    "5 · Quadratus Femoris — The anchor of the group, thick and quadrangular. It originates from the lateral border of the ischial tuberosity and inserts directly into the intertrochanteric crest. Its shape gives it exceptional mechanical advantage: a powerful external rotator and a key stabilizer during gait.",
+    "6 · Piriformis — With its pyramidal shape, it originates from the anterior surface of the sacrum and exits the pelvis through the greater sciatic foramen to insert onto the superior border of the greater trochanter. A key external rotator. When it tightens or shortens, it can compress the sciatic nerve and produce pain down the leg.",
+    "Working Together — These six muscles share a biomechanical mission: they work concentrically and isometrically to control external rotation, check excessive internal rotation while walking, and generate a compressive force that draws the femoral head deep into the acetabulum, protecting the joint from wear."
+  ]},
+  17: { title: 'The Vital Bridge', sub: 'Unit 2 · Story', p: [
+    "Step quietly into the deepest tower of your body, there where the spine meets the legs. In this hidden realm, three mages guard the vital bridge: the passage that connects the trunk to the lower body. Without their constant spell, that bridge would collapse and not a single step would be possible.",
+    "The first is the Iliacus, the mage of the silken cloak. His cape lines the inner wings of the great hip bone, spread across that hollow like a tapestry hung on the castle wall. When he speaks his spell, he pulls the thigh upward and draws your knee toward your chest. He is a sorcerer of a single movement, direct and without detours, and that is why his magic is so precise.",
+    "Beside him rises the Psoas Major, the great river of the fortress. It is born high above, fastened to the vertebrae of the lower back, and descends like a long, powerful current, crossing the whole realm until it meets the Iliacus. The two join their waters into one channel, a single tendon that anchors onto the femur. But beware this mage: because it touches the spine and the leg at once, if it grows angry or shortens, it pulls on your lower back and awakens an ancient pain in the realm.",
+    "And last, half hidden behind his brothers, appears the Psoas Minor, the apprentice. He is the smallest and the rarest of the three: in half the realms he was never even born. When he exists, he never crosses the bridge to the femur; he stays halfway, holding the cord that tightens the tapestry of the fascia. A humble mage, almost a rumor, but part of the old lineage.",
+    "Three mages, a single bridge. The triumvirate that holds your center and makes every step possible.",
+    "Now take your colors and awaken their magic. The spell begins with you."
+  ]},
+  18: { title: 'Deep Anterior Muscles of the Hip', sub: 'Unit 2 · Reference Card', p: [
+    "In the anterior region of the pelvis we find a muscle group that forms the vital bridge between the trunk and the lower body. These deep muscles govern hip flexion, and they link the spine to the femur to make movements like walking, running, and standing possible.",
+    "7 · Iliacus — A wide, flat muscle that lines the iliac fossa, the inner surface of the hip bone. It originates from the entire concave surface of the ilium, and its fibers converge downward to insert onto the lesser trochanter of the femur. It is a single-joint muscle, making it a powerful and precise hip flexor. It also assists in external rotation and stabilizes the femur in its socket.",
+    "8 · Psoas Major — The direct connection between the trunk and the lower body. A long, bulky muscle that descends from the axis of the back. It originates from the lateral surfaces and intervertebral discs of T12 to L5, and passes through the pelvis to insert alongside the iliacus onto the lesser trochanter. It is the main engine of hip flexion. Because it also touches the spine, it exerts a deep influence on the lumbar region: depending on posture, it can increase or reduce the arch of the lower back.",
+    "9 · Psoas Minor — A thin, more superficial muscle that acts as an assistant to the psoas major. An evolutionary relic: absent in 50 to 60% of people. When present, it originates from the vertebral bodies of T12 and L1 and descends to insert onto the superior pubic ramus, without ever crossing to the femur. Its role is to contribute weakly to pelvic tilt and to tense the iliac fascia.",
+    "Working Together — The iliacus and psoas major have different origins (one in the pelvis, the other in the spine), but their tendons fuse below to form the iliopsoas complex, the strongest hip flexor in the body. This triumvirate is essential for core stability: it draws the femur toward the trunk during the swing phase of walking and anchors the body's center of gravity."
+  ]},
+  24: { title: 'The Grand Prix of the Thigh', sub: 'Unit 3 · Story', p: [
+    "Start your engines, because we are entering the Grand Prix of the anterior thigh: a racing team of five elite engineers with a single technical mission, to defy gravity and keep your knee steady on the track. These mechanics work like a Formula 1 crew, anchored with industrial force onto the tibial tuberosity, that solid bump just below your knee that serves as the master bolt of your chassis.",
+    "Hidden in the depths, wrapping around the core of the femur, works the Vastus Intermedius. It is the invisible piston, the engine block that envelops nearly the whole bone and leaves only the linea aspera exposed at the back. It never shows off, but it delivers the compression that fires up the entire system.",
+    "On the inner flank lives the Vastus Medialis, a precision engineer shaped like a teardrop. It makes sure your patella glides along its track with the smoothness of a high-end bearing. It is your best anti-wear system, as long as you don't let it rust in the pit lane of a sedentary life.",
+    "Command of the outer flank belongs to the Vastus Lateralis, the sturdiest part of your bodywork. Like a reinforcement of carbon fiber, it absorbs the impacts on every curve and keeps the integrity of your chassis on any circuit.",
+    "Above them races the Rectus Femoris, the two-joint engineer, the vanguard scout. It is the only one on the team that pilots two systems at once: it is born high on the pelvis and descends down the center like a suspension arm connecting the hip with the leg. It leads the charge by flexing the hip and extending the knee, though it overheats like an engine diva at the first hint of fatigue.",
+    "And closing the grid is the Sartorius, the specialist in steering maneuvers and the longest engine in your whole inventory. Like a flexible, one-of-a-kind drive belt, it is born at the tip of the hip and winds diagonally across the entire thigh until it fastens onto the pes anserinus, on the tibia. It is the expert in versatility, the one that calibrates the exact turn so you can cross your legs with a driver's precision.",
+    "Five engines, a single Grand Prix. The racing team that holds up every step you take.",
+    "Now activate your colors and calibrate these high-performance engines. The race begins with you."
+  ]},
+  25: { title: 'Anterior Muscles of the Hip and Thigh', sub: 'Unit 3 · Reference Card', p: [
+    "The anterior compartment of the thigh houses the most powerful motor complex in the body, the quadriceps femoris, designed for primary locomotion and knee stability. This racing team of five elite engineers keeps you standing and propels you forward, anchoring firmly onto the tibial tuberosity to allow movement and to bear the load of the human chassis.",
+    "10 · Vastus Intermedius — The engine block of the team wraps around nearly the whole femur from the deepest layer. It originates from the anterior and lateral surfaces of the upper two thirds of the femoral shaft, and converges into the common quadriceps tendon. It provides the base compression needed for knee extension.",
+    "11 · Vastus Medialis — Teardrop-shaped, it occupies the inner flank of the thigh. It arises from the intertrochanteric line and the medial lip of the linea aspera, and inserts onto the medial border of the patella and the common tendon. It extends the knee and calibrates patellar tracking, ensuring the patella glides without wear.",
+    "12 · Vastus Lateralis — Dominates the outer flank. It originates from the greater trochanter and the lateral lip of the linea aspera, and inserts onto the lateral base of the patella and the common tendon. It extends the knee and absorbs impacts, maintaining the structural integrity of the stride.",
+    "13 · Rectus Femoris — The only two-joint component. It arises from the anterior inferior iliac spine (AIIS) and the supra-acetabular groove, and descends down the center to the common tendon. Because it crosses two joints, it flexes the hip and extends the knee, and is prone to exhaustion in explosive efforts.",
+    "14 · Sartorius — The longest muscle in the body. It originates from the anterior superior iliac spine (ASIS) and runs diagonally across the whole thigh to insert onto the medial surface of the proximal tibia at the pes anserinus. It allows flexion, abduction, and external rotation of the hip, along with knee flexion.",
+    "Working Together — The four quadriceps muscles converge into the quadriceps tendon, a powerful transmission cable that wraps around the patella (which acts as a pulley to increase power) and continues to the tibia as the patellar ligament. While the quadriceps secures knee extension, the rectus femoris and sartorius calibrate hip flexion. Together they keep alignment and ensure every step is an act of precise engineering."
+  ]}
+};
 /* ---------------- audiolibro del cuento ---------------- */
 const STORIES = { 7: { src: 'audio/cuento_u1_en.mp3', t: 'Listen to the story' } };
 const story = new Audio(); story.preload = 'none';
@@ -2924,6 +2984,21 @@ story.addEventListener('play', storyUI); story.addEventListener('pause', storyUI
 story.addEventListener('timeupdate', () => { const p = story.duration ? story.currentTime / story.duration : 0; $('#storyBar').style.width = (p * 100) + '%'; if (!$('#storyTrack').classList.contains('drag')) $('#storyKnob').style.left = (p * 100) + '%';
   if (!seeking) { $('#spSeek').value = Math.round(p * 1000); if (story.duration) $('#spTime').textContent = `${mmss(story.currentTime)} / ${mmss(story.duration)}`; }
   $('#spPlay').classList.toggle('on', !story.paused); });
+/* ---------------- reading mode panel ---------------- */
+function readUI() { $('#readBtn').hidden = !READ_TEXTS[cur]; }
+function openReadPanel() {
+  const rt = READ_TEXTS[cur]; if (!rt) return;
+  $('#rpTitle').textContent = rt.title;
+  $('#rpSub').textContent = rt.sub;
+  const body = $('#rpBody'); body.innerHTML = '';
+  rt.p.forEach(txt => { const el = document.createElement('p'); el.className = 'rppara'; el.textContent = txt; body.appendChild(el); });
+  $('#readPanel').hidden = false; body.scrollTop = 0;
+  if (window._rpObs) window._rpObs.disconnect();
+  window._rpObs = new IntersectionObserver(entries => entries.forEach(e => e.target.classList.toggle('rpa', e.intersectionRatio > 0.3)), { root: body, threshold: [0, 0.3] });
+  body.querySelectorAll('.rppara').forEach(p => window._rpObs.observe(p));
+}
+$('#rpClose').onclick = () => { $('#readPanel').hidden = true; if (window._rpObs) { window._rpObs.disconnect(); window._rpObs = null; } };
+$('#readBtn').onclick = openReadPanel;
 /* ---------------- arranque ---------------- */
 async function start() {
   await loadMeta();
