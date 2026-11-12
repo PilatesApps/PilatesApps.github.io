@@ -189,6 +189,24 @@ const SFX = (() => {
         const g = a.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
         s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + 0.4); return;
       }
+      if (kind === 'ok') {                                  /* correct answer — bright ting */
+        const o = a.createOscillator(), g = a.createGain(); o.type = 'sine';
+        o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(1320, t + 0.06);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.28, t + 0.012); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        o.connect(g).connect(master); o.start(t); o.stop(t + 0.32); return;
+      }
+      if (kind === 'fail') {                                /* wrong answer — dry ta */
+        const o = a.createOscillator(), g = a.createGain(); o.type = 'square';
+        o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.13);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.28, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        o.connect(g).connect(master); o.start(t); o.stop(t + 0.2); return;
+      }
+      if (kind === 'basta') {                              /* BASTA! — dramatic descending buzzer */
+        const o = a.createOscillator(), g = a.createGain(); o.type = 'sawtooth';
+        o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.45);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.15, t + 0.025); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+        o.connect(g).connect(master); o.start(t); o.stop(t + 0.65); return;
+      }
       if (kind === 'fill') {                               /* gota de pintura que cae */
         const o = a.createOscillator(), g = a.createGain(); o.type = 'sine';
         o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(760, t + 0.09);
@@ -407,7 +425,7 @@ function syncTape() { tapeBtn.classList.toggle('on', tape); tapeBtn.setAttribute
 tapeBtn.onclick = () => { tape = !tape; store.set('tape', tape); syncTape(); toast(tape ? 'Stay inside: the color stays inside the part you started painting' : 'Free: the color can go past the line'); };
 
 let toastT = null;
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
+function toast(msg, ms) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms || 2200); }
 
 /* ---------------- vista: zoom y desplazamiento ---------------- */
 let view = { s: 1, x: 0, y: 0, base: 1 };
@@ -516,7 +534,7 @@ async function openPage(n) {
     let retoAbierto = false;
     for (let k = 1; k < si; k++) {
       const [, , a, b] = SECTIONS[k]; const [d, t] = plateCount(a, b);
-      if (!RETO.aprobado(k) && RETO.U[k]) { retoAbierto = true; break; } // challenge disabled (coming soon)
+      if (!RETO.aprobado(k) && RETO.U[k]) { setTimeout(() => RETO.abrir(k), 100); retoAbierto = true; break; }
     }
     if (!retoAbierto) toast('Progressive mode: complete the previous unit and pass its challenge to open this one');
     if (page) return; n = 1;
@@ -532,7 +550,14 @@ async function openPage(n) {
   $('#btnShare').hidden = !page.plate;
   if (typeof storyUI === 'function') setTimeout(storyUI, 0);
   if (typeof readUI === 'function') { setTimeout(readUI, 0); const rp = document.getElementById('readPanel'); if (rp) rp.hidden = true; }
-  if (page.nobucket) setTimeout(() => toast('Free canvas: draw the whole muscle group, from origin to insertion, however you like'), 600);
+  if (page.nobucket) {
+    const si = SECTIONS.findIndex(([, , a, b]) => n >= a && n <= b);
+    if (si > 0 && SECTIONS[si][2] === n && typeof RETO !== 'undefined' && RETO.U && RETO.U[si]) {
+      setTimeout(() => RETO.abrir(si), 600);
+    } else {
+      setTimeout(() => toast('Free canvas: draw the whole muscle group, from origin to insertion, however you like'), 600);
+    }
+  }
   pageImg.src = pageFile(n, '.jpg');
   const topI = document.getElementById('topImg'); if (page.top) { topI.src = pageFile(n, '_top.png'); topI.hidden = false; } else { topI.hidden = true; topI.removeAttribute('src'); }
   xColor.clearRect(0, 0, W, H); xInk.clearRect(0, 0, W, H); xLive.clearRect(0, 0, W, H);
@@ -1154,11 +1179,11 @@ function buildTex() {
     b.onclick = () => { if (id === 'foto' && !texPhoto) { choosePhoto(); return; } texId = id; store.set('tex', id); buildTex(); };
     row.appendChild(b); return b;
   };
-  head('Materiales');
+  head('Materials');
   for (const [id, nm] of TEXTURES.slice(0, 6)) btn(id, nm, x => { x.fillStyle = x.createPattern(texTile(id, color, Math.min(k, .5)), 'repeat'); x.fillRect(0, 0, 96, 48); });
-  head('Estampados (en el color elegido)');
+  head('Patterns (in the chosen color)');
   for (const [id, nm] of TEXTURES.slice(6)) btn(id, nm, x => { x.fillStyle = x.createPattern(texTile(id, color, Math.min(k, .4)), 'repeat'); x.fillRect(0, 0, 96, 48); });
-  head('Su foto');
+  head('Your photo');
   btn('foto', texPhoto ? 'Su foto' : 'Elegir foto', x => {
     if (texPhoto) { const r = Math.max(96 / texPhoto.width, 48 / texPhoto.height); x.drawImage(texPhoto, (96 - texPhoto.width * r) / 2, (48 - texPhoto.height * r) / 2, texPhoto.width * r, texPhoto.height * r); }
     else { x.fillStyle = '#EEF1F4'; x.fillRect(0, 0, 96, 48); x.strokeStyle = '#3F4A57'; x.lineWidth = 2; x.strokeRect(30, 12, 36, 26); x.beginPath(); x.arc(48, 25, 7, 0, 7); x.stroke(); x.fillStyle = '#3F4A57'; x.fillRect(42, 8, 12, 5); }
@@ -1277,12 +1302,12 @@ function renderTexts() {
 }
 
 /* ---------------- biblioteca de láminas ---------------- */
-const PN = ['Portada', 'Edición Digital 2026', 'Bienvenida', 'Índice de contenido', 'Orden de construcción', 'Orden de construcción (2)',
+const PN = ['Cover', 'Digital Edition 2026', 'Welcome', 'Table of Contents', 'Build Order', 'Build Order (2)',
   'The story of Unit 1', 'The muscles of Unit 1', 'Group plate', 'Obturator externus', 'Obturator internus', 'Superior gemellus',
   'Inferior gemellus', 'Quadratus femoris', 'Piriformis', 'Free canvas: draw Unit 1',
   'The story of Unit 2', 'The muscles of Unit 2', 'Group plate', 'Iliacus', 'Psoas major', 'Psoas minor', 'Free canvas: draw Unit 2',
   'The story of Unit 3', 'The muscles of Unit 3', 'Group plate', 'Vastus intermedius', 'Vastus medialis', 'Vastus lateralis', 'Rectus femoris', 'Sartorius', 'Free canvas: draw Unit 3'];
-const SECTIONS = [['Inicio', '', 1, 6], ['Unidad 1', 'Músculos posteriores profundos de la cadera', 7, 16], ['Unidad 2', 'Músculos anteriores profundos de la cadera', 17, 23], ['Unidad 3', 'Músculos anteriores de la cadera y el muslo', 24, 32]];
+const SECTIONS = [['Home', '', 1, 6], ['Unit 1', 'Deep Posterior Muscles of the Hip', 7, 16], ['Unit 2', 'Deep Anterior Muscles of the Hip', 17, 23], ['Unit 3', 'Anterior Muscles of the Hip and Thigh', 24, 32]];
 const thumbCache = {};
 async function drawThumb(cv, n) {
   const x = cv.getContext('2d'), w = cv.width, h = cv.height;
@@ -1315,7 +1340,7 @@ async function buildHome() {
   for (const [t, sub, a, b] of SECTIONS) {
     const sec = document.createElement('div'); sec.className = 'hsec';
     const [sd, sk] = plateCount(a, b);
-    const badge = sk ? (sd === sk ? `<span class="ribbon"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="m8.5 13.5-2 7.5 5.5-3 5.5 3-2-7.5"/></svg>Listón ganado</span>` : `<span class="stars">${sd}/${sk} <svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span>`) : '';
+    const badge = sk ? (sd === sk ? `<span class="ribbon"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="m8.5 13.5-2 7.5 5.5-3 5.5 3-2-7.5"/></svg>Ribbon earned</span>` : `<span class="stars">${sd}/${sk} <svg viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg></span>`) : '';
     sec.innerHTML = `<h2>${t}${badge}${sub ? `<small>${sub}</small>` : ''}</h2>`;
     const cards = document.createElement('div'); cards.className = 'cards';
     for (let n = a; n <= Math.min(b, N); n++) {
@@ -1592,9 +1617,39 @@ function isComplete() {
   if (page.nobucket) {   // lienzo libre: basta con un dibujo de verdad
     const c = xColor.getImageData(0, 0, W, H).data, k = xInk.getImageData(0, 0, W, H).data; let p = 0;
     for (let i = 3; i < c.length; i += 16) if (c[i] > 24 || k[i] > 24) p++;
-    return p / (c.length / 16) > 0.06;
+    return p / (c.length / 16) > 0.60;
   }
   const rv = reviewArt(); return !rv.block.length;
+}
+let _motivLast = 0;
+let _shareBlockCount = 0;  // times they tried to share without finishing
+const FRASES_BASTA_SHARE = [
+  "You're an artist! Finish painting your work and share it in all its glory.",
+  "Come on, unlock your potential! This piece deserves to be complete before you share it.",
+  "Da Vinci didn't publish unfinished sketches either! Finish your plate, then share it.",
+  "Let your inner artist out! Paint every last muscle and share your masterpiece.",
+  "You can do it! Just a little more paint and your work will be ready to shine."
+];
+function motivarPintura() {
+  const now = Date.now();
+  if (now - _motivLast < 25000 || Math.random() > 0.09) return;
+  _motivLast = now;
+  const si = SECTIONS.findIndex(([,,a,b]) => cur >= a && cur <= b);
+  const titulo = (RETO.U && RETO.U[si] && RETO.U[si].titulo) || '';
+  const unit = titulo ? [
+    `The characters of ${titulo} need their colors!`,
+    `Keep bringing ${titulo} to life!`,
+  ] : [];
+  const gen = [
+    "Let your inner artist out — Da Vinci didn't paint in one stroke either.",
+    "You're a Da Vinci of anatomy!",
+    "Every muscle you paint is a secret of the body revealed!",
+    "With patience and color, you master anatomy!",
+    "The great masters painted like this, with dedication!",
+    "You can do it! The human body deserves every stroke of yours.",
+  ];
+  const pool = [...unit, ...gen];
+  toast(pool[Math.floor(Math.random() * pool.length)]);
 }
 function checkDone(celebrate) {
   if (!page || !page.plate || !labels && !page.nobucket) return;
@@ -1879,7 +1934,7 @@ const RETO = (() => {
     }
   }
   function resultado(ok, msg) {
-    S.res[S.i] = ok; head(); SFX.blip(ok ? 'fill' : 'undo'); buzz(ok ? 18 : 40);
+    S.res[S.i] = ok; head(); SFX.blip(ok ? 'ok' : 'fail'); buzz(ok ? 25 : 70);
     const errores = S.res.filter(v => v === false).length;
     if (!ok && errores >= 3) {
       // Flash alert — big ¡BASTA! pops up then disappears on its own
@@ -1893,7 +1948,7 @@ const RETO = (() => {
         f.innerHTML = `<span>${msg}</span>`;
         box().querySelector('.rtbody').appendChild(f); f.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
-      SFX.blip('basta'); sayEnough();
+      sayEnough(); setTimeout(() => SFX.blip('basta'), 900);
       if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500]);
       const FRASES_B = [
         'Take a moment to breathe. You can do this!',
@@ -1925,19 +1980,31 @@ const RETO = (() => {
     const ch = r.visImg ? H : Math.round((pm.yb || 792) * PT) - y0;
     cv.width = W; cv.height = ch; x.fillStyle = '#fff'; x.fillRect(0, 0, W, ch); x.drawImage(im, 0, -y0, W, H);
     const lc = document.createElement('canvas'); lc.width = W; lc.height = H; const lx = lc.getContext('2d', { willReadFrequently: true }); lx.drawImage(li, 0, 0);
-    let done = false;
+    let done = false, fallos = 0;
+    // mark the correct zone in green (and the tapped one in red if wrong)
+    const hl = (lab, col) => { const id = lx.getImageData(0, y0, W, cv.height), D = id.data, o = x.getImageData(0, 0, W, cv.height), O = o.data;
+      for (let i = 0; i < D.length; i += 4) { const l = D[i] | (D[i + 1] << 8); if (lab(l)) { O[i] = O[i] * .4 + col[0] * .6; O[i + 1] = O[i + 1] * .4 + col[1] * .6; O[i + 2] = O[i + 2] * .4 + col[2] * .6; } }
+      x.putImageData(o, 0, 0); };
     cv.onclick = e => {
       if (done) return; const rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W, py = (e.clientY - rc.top) / rc.height * cv.height + y0;
       const d = lx.getImageData(px | 0, py | 0, 1, 1).data, L = d[0] | (d[1] << 8), nm = z[L];
-      done = true;
       const ok = nm === r.m;
-      // marcar la zona correcta en verde (y la tocada en rojo si falló)
-      const hl = (lab, col) => { const id = lx.getImageData(0, y0, W, cv.height), D = id.data, o = x.getImageData(0, 0, W, cv.height), O = o.data;
-        for (let i = 0; i < D.length; i += 4) { const l = D[i] | (D[i + 1] << 8); if (lab(l)) { O[i] = O[i] * .4 + col[0] * .6; O[i + 1] = O[i + 1] * .4 + col[1] * .6; O[i + 2] = O[i + 2] * .4 + col[2] * .6; } }
-        x.putImageData(o, 0, 0); };
-      if (!ok && L && L !== pm.bg) hl(l => l === L, [220, 40, 40]);
-      hl(l => z[l] === r.m, [40, 170, 80]);
-      resultado(ok, ok ? '' : (nm ? `That is ${nm}. ${cap(r.m)} is marked in green.` : `${cap(r.m)} is marked in green.`));
+      if (ok) { done = true; SFX.blip('ok'); buzz(30); hl(l => z[l] === r.m, [40, 170, 80]); resultado(true, ''); return; }
+      fallos++;
+      SFX.blip('fail'); buzz(80);
+      x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height); x.drawImage(im, 0, -y0, W, H); // clear previous error mark
+      if (nm && L !== pm.bg) hl(l => l === L, [220, 40, 40]);
+      const qEl = box().querySelector('.rtq');
+      if (fallos === 1 && Math.random() < 0.25) {
+        // Luck: a single second chance
+        if (qEl) qEl.innerHTML = (nm ? `That is <em>${nm}</em>. ` : 'Not that muscle. ') + "<b>You're in luck!</b> You have a second chance.";
+      } else {
+        // No more chances — reveal and move on
+        done = true;
+        hl(l => z[l] === r.m, [40, 170, 80]);
+        if (qEl) qEl.innerHTML = (nm ? `That is <em>${nm}</em>. ` : '') + `The answer was <b>${cap(r.m)}</b>, marked in green.`;
+        setTimeout(() => resultado(false, `${cap(r.m)} is marked in green.`), 1200);
+      }
     };
   }
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -2632,7 +2699,7 @@ async function shareRender(st, s, final) {
 $('#btnShare').onclick = async () => {
   if (!page) return;
   if (!page.plate) { toast('Only the plates you color can be shared'); return; }
-  if (!SH.passed) { const rv = reviewArt(); if (rv.block.length || rv.tips.length) { showReview(rv); return; } toast('It looks beautiful! Choose how to share it'); checkDone(true); }
+  if (!SH.passed) { const rv = reviewArt(); if (rv.block.length || rv.tips.length) { _shareBlockCount++; if (_shareBlockCount >= 5) { _shareBlockCount = 0; SFX.blip('basta'); if (navigator.vibrate) navigator.vibrate([200, 60, 200, 60, 500, 60, 400]); const mot = FRASES_BASTA_SHARE[Math.floor(Math.random() * FRASES_BASTA_SHARE.length)]; toast(`¡BASTA! ${mot}`, 5000); return; } motivarPintura(); showReview(rv); return; } _shareBlockCount = 0; toast('It looks beautiful! Choose how to share it'); checkDone(true); }
   SH.passed = false;
   await saveNow(); SH.cache = {}; SH.ready = null; $('#sgYes').textContent = 'Share my work';
   try { await Promise.all([document.fonts.load('700 40px Caveat'), document.fonts.load('700 30px Montserrat'), document.fonts.load('italic 900 40px Montserrat')]); } catch (e) {}
